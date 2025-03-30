@@ -1,4 +1,4 @@
-# tag-writer help
+# tag-writer FAQ
 
 Getting started
 
