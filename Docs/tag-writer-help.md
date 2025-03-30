@@ -6,4 +6,4 @@ What its metadata
 
 What are EXIF, ITC and IPTC tags
 
-Why do tagwriter use just IPTC tags
+Why does tagwriter use just IPTC tags
