@@ -4,4 +4,6 @@ Getting started
 
 What its metadata
 
-What is IPTC
+What are EXIF, ITC and IPTC tags
+
+Why do tagwriter use just IPTC tags
