@@ -1,0 +1,36 @@
+Required Python Modules for tag-writer.py
+
+Based on my analysis of the code, here are the Python modules you need to install with pip to run tag-writer.py successfully:
+
+1. Pillow (PIL) - For image processing capabilities:
+
+   pip install Pillow
+
+2. PyExifTool - For reading and writing metadata to image files:
+
+   pip install PyExifTool
+
+3. System Dependency: You also need to install the system package for PIL's Tk support. On Debian/Ubuntu systems, this can be done with:
+
+   sudo apt-get install python3-pil.imagetk
+
+   (This is a system package, not installed via pip)
+
+Important Notes:
+
+1. tkinter is used extensively but comes with standard Python installations, so it doesn't need a separate pip installation.
+2. The thumbnail functionality requires both the Pillow library AND the ImageTk component. As we discovered in our debugging, even with Pillow installed, the ImageTk component may be missing if the system package isn't installed.
+3. The script has been modified to gracefully handle cases where these dependencies are missing, but for full functionality (especially thumbnail display), all components should be installed.
+
+Installation Command
+
+You can install all pip packages at once:
+
+pip install Pillow PyExifTool
+
+And then install the system dependency for ImageTk:
+
+sudo apt-get install python3-pil.imagetk
+
+After installing these dependencies, tag-writer.py should run with full thumbnail support and all metadata functionality.
+
