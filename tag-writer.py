@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  v0.5  ################
+# ############   tag-writer.py  ver 0.6  ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using the tkinter libraries.
@@ -10,17 +10,29 @@
 #  Updated Sun 02 Jul 2023 04:53:41 PM CDT added no-backup
 #  Updated Sat 29 Mar 2025 07:51:49 PM CDT Updated to use execute_json() for robust metadata retrieval
 #  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
+#  Updated Sun 30 Mar 2023 03:20:00 AM CDT added command-line argument support & status msg after write
 #-----------------------------------------------------------
 
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import Menu
 import exiftool
+import argparse
+import os
+import sys
 
-def select_file():
+def select_file(file_path=None):
     global selected_file
-    selected_file = filedialog.askopenfilename(title="Select")
-    read_metadata()  # Read metadata after selecting the file
+    if file_path:
+        if os.path.isfile(file_path):
+            selected_file = file_path
+            read_metadata()  # Read metadata after selecting the file
+        else:
+            print(f"Error: The file '{file_path}' does not exist or is not accessible.")
+            sys.exit(1)
+    else:
+        selected_file = filedialog.askopenfilename(title="Select")
+        read_metadata()  # Read metadata after selecting the file
 
 def get_metadata(file_path):
     """Retrieve metadata from the specified file using execute_json() method."""
@@ -87,10 +99,11 @@ def read_metadata():
     
     entry_date.delete(0, tk.END)
     entry_date.insert(0, safe_get(metadata, 'DateCreated'))
-
 def write_metadata():
+    global status_label
     if not selected_file:
         print("No file selected!")
+        status_label.config(text="Error: No file selected!", fg="red")
         return
 
     Headline = entry_headline.get()
@@ -116,79 +129,126 @@ def write_metadata():
         et.execute(b"-DateCreated=" + Date.encode('utf-8'), selected_file.encode('utf-8'))
 
     print("Metadata written successfully!")
+    status_label.config(text="Metadata written successfully!", fg="green")
 
-# Create the GUI window
-root = tk.Tk()
-root.title("Metadata Tag Writer")
-
-root.geometry("700x260")     # sets default window size 
+def start_gui(initial_file=None):
+    global root, entry_headline, entry_caption_abstract, entry_credit, entry_object_name
+    global entry_writer_editor, entry_by_line, entry_source, entry_date, selected_file
+    global status_label
     
-menubar = Menu(root)
-root.config(menu=menubar)
+    # Create the GUI window
+    root = tk.Tk()
+    root.title("Metadata Tag Writer")
+    
+    root.geometry("700x260")     # sets default window size 
+    
+    # Add function to exit application when 'q' is pressed
+    def quit_app(event=None):
+        root.destroy()
+    
+    # Bind the 'q' key to the quit_app function
+    root.bind('<q>', quit_app)
+        
+    menubar = Menu(root)
+    root.config(menu=menubar)
+    
+    filemenu = Menu(menubar)
+    menubar.add_cascade(label="File", menu=filemenu)
+    filemenu.add_command(label="Open")
+    filemenu.add_command(label="Save")
+    filemenu.add_command(label="Exit", command=quit_app)
+    selected_file = None
+    
+    # Create select file button
+    button_select_file = tk.Button(root, text="Select File", command=select_file)
+    button_select_file.grid(row=0, column=0)
+    
+    # Create write button
+    button_write = tk.Button(root, text="Write Metadata", command=write_metadata)
+    button_write.grid(row=0, column=1)
+    
+    # Create input fields
+    entry_headline = tk.Entry(root, width=60)
+    entry_caption_abstract = tk.Entry(root, width=60)
+    entry_credit = tk.Entry(root)
+    entry_object_name = tk.Entry(root)
+    entry_writer_editor = tk.Entry(root)
+    entry_by_line = tk.Entry(root)
+    entry_source = tk.Entry(root)
+    entry_date = tk.Entry(root)
+    
+    # Create labels
+    label_headline = tk.Label(root, justify="left", text="Headline:")
+    label_caption_abstract = tk.Label(root, text="Caption Abstract:")
+    label_credit = tk.Label(root, text="Credit:")
+    label_object_name = tk.Label(root, text="Unique ID [Object Name]: ")
+    label_writer_editor = tk.Label(root, text="Writer Editor:")
+    label_by_line = tk.Label(root, text="By-line [photographer]:")
+    label_source = tk.Label(root, text="Source:")
+    label_date = tk.Label(root, text="Date Created [YYY-MM-DD]:")
+    
+    # Grid layout
+    label_headline.grid(row=1, column=0, sticky="w")
+    entry_headline.grid(row=1, column=1, sticky="w")
+    
+    label_credit.grid(row=2, column=0, sticky="w")
+    entry_credit.grid(row=2, column=1, sticky="w")
+    
+    label_object_name.grid(row=3, column=0, sticky="w")
+    entry_object_name.grid(row=3, column=1, sticky="w")
+    
+    label_caption_abstract.grid(row=4, column=0, sticky="w")
+    entry_caption_abstract.grid(row=4, column=1, sticky="w")
+    
+    label_writer_editor.grid(row=5, column=0, sticky="w")
+    entry_writer_editor.grid(row=5, column=1, sticky="w")
+    
+    label_by_line.grid(row=6, column=0, sticky="w")
+    entry_by_line.grid(row=6, column=1, sticky="w")
+    
+    label_source.grid(row=7, column=0, sticky="w")
+    entry_source.grid(row=7, column=1, sticky="w")
+    
+    label_date.grid(row=8, column=0, sticky="w")
+    entry_date.grid(row=8, column=1, sticky="w")
+    
+    # Status message label
+    status_label = tk.Label(root, text="", fg="green")
+    status_label.grid(row=9, columnspan=2, sticky="w")
+    
+    # message lower right filename, version and date
+    label = tk.Label(root, text="tag-writer.py   ver .06  2025-03-30   ", bg="lightgray")
+    label.grid(row=10, columnspan=2, sticky="se")
+    
+    # If an initial file was provided, select it
+    if initial_file:
+        select_file(initial_file)
+    
+    root.mainloop()
 
-filemenu = Menu(menubar)
-menubar.add_cascade(label="File", menu=filemenu)
-filemenu.add_command(label="Open")
-filemenu.add_command(label="Save")
-filemenu.add_command(label="Exit")
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="Metadata Tag Writer for TIF and JPG images")
+    parser.add_argument("file_path", nargs="?", help="Path to the image file to process")
+    parser.add_argument("-v", "--version", action="store_true", help="Show version information and exit")
+    
+    return parser.parse_args()
 
-selected_file = None
-
-# Create select file button
-button_select_file = tk.Button(root, text="Select File", command=select_file)
-button_select_file.grid(row=0, column=0)
-
-# Create write button
-button_write = tk.Button(root, text="Write Metadata", command=write_metadata)
-button_write.grid(row=0, column=1)
-
-# Create input fields
-entry_headline = tk.Entry(root, width=60)
-entry_caption_abstract = tk.Entry(root, width=60)
-entry_credit = tk.Entry(root)
-entry_object_name = tk.Entry(root)
-entry_writer_editor = tk.Entry(root)
-entry_by_line = tk.Entry(root)
-entry_source = tk.Entry(root)
-entry_date = tk.Entry(root)
-
-# Create labels
-label_headline = tk.Label(root, justify="left", text="Headline:")
-label_caption_abstract = tk.Label(root, text="Caption Abstract:")
-label_credit = tk.Label(root, text="Credit:")
-label_object_name = tk.Label(root, text="Unique ID [Object Name]: ")
-label_writer_editor = tk.Label(root, text="Writer Editor:")
-label_by_line = tk.Label(root, text="By-line [photographer]:")
-label_source = tk.Label(root, text="Source:")
-label_date = tk.Label(root, text="Date Created [YYY-MM-DD]:")
-
-# Grid layout
-label_headline.grid(row=1, column=0, sticky="w")
-entry_headline.grid(row=1, column=1, sticky="w")
-
-label_credit.grid(row=2, column=0, sticky="w")
-entry_credit.grid(row=2, column=1, sticky="w")
-
-label_object_name.grid(row=3, column=0, sticky="w")
-entry_object_name.grid(row=3, column=1, sticky="w")
-
-label_caption_abstract.grid(row=4, column=0, sticky="w")
-entry_caption_abstract.grid(row=4, column=1, sticky="w")
-
-label_writer_editor.grid(row=5, column=0, sticky="w")
-entry_writer_editor.grid(row=5, column=1, sticky="w")
-
-label_by_line.grid(row=6, column=0, sticky="w")
-entry_by_line.grid(row=6, column=1, sticky="w")
-
-label_source.grid(row=7, column=0, sticky="w")
-entry_source.grid(row=7, column=1, sticky="w")
-
-label_date.grid(row=8, column=0, sticky="w")
-entry_date.grid(row=8, column=1, sticky="w")
-
-# message lower right filename, version and date
-label = tk.Label(root, text="tag-writer.py   ver 0.5   2023-10-30   ", bg="lightgray")
-label.grid(row=10, columnspan=2, sticky="se")
-
-root.mainloop()
+if __name__ == "__main__":
+    args = parse_arguments()
+    
+    # Handle version flag
+    if args.version:
+        print("tag-writer.py  version .06  (2025-03-30)")
+        sys.exit(0)
+    
+    # Handle file path argument
+    if args.file_path:
+        try:
+            start_gui(args.file_path)
+        except Exception as e:
+            print(f"Error: {str(e)}")
+            sys.exit(1)
+    else:
+        # No arguments provided, start with GUI only
+        start_gui()
