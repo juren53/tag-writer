@@ -1,5 +1,35 @@
+
 Required Python Modules for tag-writer.py
 
+Python Modules Required for tag-writer
+
+Based on the code analysis, here are the Python modules required for tag-writer.py to run successfully:
+
+Standard Library Modules
+1. tkinter (with various components: tk, filedialog, Menu, messagebox)
+2. argparse
+3. os
+4. sys
+5. io
+6. logging
+7. webbrowser
+
+External Dependencies
+1. exiftool - A Python wrapper for the ExifTool command-line application
+2. PIL (Python Imaging Library / Pillow) - Used for image processing with the following components:
+•  PIL.Image
+•  PIL.ImageTk
+
+Note: The code includes fallback mechanisms for PIL/Pillow features, suggesting that while these are important for full functionality (especially for displaying image thumbnails), the application might still run with limited functionality without them.
+
+The core functionality of tag-writer appears to rely heavily on the exiftool Python package, which itself requires the ExifTool command-line application to be installed on the system.
+
+For a complete installation, you would need to:
+1. Install Python standard library (included with Python)
+2. Install external Python packages:
+3. Install the ExifTool command-line application on your system
+
+============================ Deprecated  ==================================================
 Based on my analysis of the code, here are the Python modules you need to install with pip to run tag-writer.py successfully:
 
 1. Pillow (PIL) - For image processing capabilities:
@@ -33,4 +63,5 @@ And then install the system dependency for ImageTk:
 sudo apt-get install python3-pil.imagetk
 
 After installing these dependencies, tag-writer.py should run with full thumbnail support and all metadata functionality.
+
 
