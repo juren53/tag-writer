@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  ver 0.07  ################
+# ############   tag-writer.py  ver 0.08  ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using the tkinter libraries.
@@ -16,12 +16,14 @@
 import tkinter as tk
 from tkinter import filedialog
 from tkinter import Menu
+from tkinter import messagebox
 import exiftool
 import argparse
 import os
 import sys
 import io
 import logging
+import webbrowser
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -127,6 +129,9 @@ def read_metadata():
     
     entry_date.delete(0, tk.END)
     entry_date.insert(0, safe_get(metadata, 'DateCreated'))
+    
+    entry_copyright_notice.delete(0, tk.END)
+    entry_copyright_notice.insert(0, safe_get(metadata, 'CopyrightNotice'))
 def write_metadata():
     global status_label
     if not selected_file:
@@ -142,6 +147,7 @@ def write_metadata():
     By_line = entry_by_line.get()
     Source = entry_source.get()
     Date = entry_date.get()
+    CopyrightNotice = entry_copyright_notice.get()
 
     with exiftool.ExifTool() as et:
         # Set the save_backup parameter to False
@@ -155,6 +161,7 @@ def write_metadata():
         et.execute(b"-By-line=" + By_line.encode('utf-8'), selected_file.encode('utf-8'))
         et.execute(b"-Source=" + Source.encode('utf-8'), selected_file.encode('utf-8'))
         et.execute(b"-DateCreated=" + Date.encode('utf-8'), selected_file.encode('utf-8'))
+        et.execute(b"-CopyrightNotice=" + CopyrightNotice.encode('utf-8'), selected_file.encode('utf-8'))
 
     print("Metadata written successfully!")
     status_label.config(text="Metadata written successfully!", fg="green")
@@ -329,7 +336,7 @@ def update_thumbnail():
 
 def start_gui(initial_file=None):
     global root, entry_headline, entry_caption_abstract, entry_credit, entry_object_name
-    global entry_writer_editor, entry_by_line, entry_source, entry_date, selected_file
+    global entry_writer_editor, entry_by_line, entry_source, entry_date, entry_copyright_notice, selected_file
     global status_label, filename_label, version_label, thumbnail_label, thumbnail_image
     # Create the GUI window
     root = tk.Tk()
@@ -343,6 +350,20 @@ def start_gui(initial_file=None):
     
     # Bind the 'q' key to the quit_app function
     root.bind('<q>', quit_app)
+    
+    # Function to show About dialog
+    def show_about_dialog():
+        messagebox.showinfo(
+            "About Tag Writer",
+            "Tag Writer\n\n"
+            "Version: 0.08\n\n"
+            "A tool for viewing and editing IPTC metadata in image files.\n\n"
+            "© 2025 Juren"
+        )
+        
+    # Function to open the usage guide in web browser
+    def open_usage_guide():
+        webbrowser.open("https://github.com/juren53/tag-writer/blob/main/Docs/tag-writer-help.md")
         
     menubar = Menu(root)
     root.config(menu=menubar)
@@ -352,15 +373,29 @@ def start_gui(initial_file=None):
     filemenu.add_command(label="Open")
     filemenu.add_command(label="Save")
     filemenu.add_command(label="Exit", command=quit_app)
+    
+    # Create Edit menu
+    editmenu = Menu(menubar)
+    menubar.add_cascade(label="Edit", menu=editmenu)
+    editmenu.add_command(label="Clear Fields")
+    editmenu.add_command(label="Copy All")
+    editmenu.add_command(label="Paste All")
+    
+    # Create Help menu
+    helpmenu = Menu(menubar)
+    menubar.add_cascade(label="Help", menu=helpmenu)
+    helpmenu.add_command(label="About", command=show_about_dialog)
+    helpmenu.add_command(label="Usage Guide", command=open_usage_guide)
+    
     selected_file = None
     
     # Create select file button
     button_select_file = tk.Button(root, text="Select File", command=select_file)
-    button_select_file.grid(row=0, column=0)
+    button_select_file.grid(row=0, column=1)
     
     # Create write button
     button_write = tk.Button(root, text="Write Metadata", command=write_metadata)
-    button_write.grid(row=0, column=1)
+    button_write.grid(row=0, column=2)
     
     # Create filename display label
     filename_label = tk.Label(root, text="No file selected", font=("Arial", 10, "bold"))
@@ -375,6 +410,7 @@ def start_gui(initial_file=None):
     entry_by_line = tk.Entry(root)
     entry_source = tk.Entry(root)
     entry_date = tk.Entry(root)
+    entry_copyright_notice = tk.Entry(root)
     
     # Create labels
     label_headline = tk.Label(root, justify="left", text="Headline:")
@@ -385,6 +421,7 @@ def start_gui(initial_file=None):
     label_by_line = tk.Label(root, text="By-line [photographer]:")
     label_source = tk.Label(root, text="Source:")
     label_date = tk.Label(root, text="Date Created [YYY-MM-DD]:")
+    label_copyright_notice = tk.Label(root, text="Copyright Notice:")
     
     # Grid layout
     label_headline.grid(row=2, column=0, sticky="w")
@@ -411,14 +448,17 @@ def start_gui(initial_file=None):
     label_date.grid(row=9, column=0, sticky="w")
     entry_date.grid(row=9, column=1, sticky="w")
     
+    label_copyright_notice.grid(row=10, column=0, sticky="w")
+    entry_copyright_notice.grid(row=10, column=1, sticky="w")
+    
     # Status message label
     status_label = tk.Label(root, text="", fg="green")
-    status_label.grid(row=10, columnspan=2, sticky="w")
+    status_label.grid(row=11, columnspan=2, sticky="w")
     
     # Create and configure the thumbnail display area
     # Create a frame with fixed size for thumbnail display
     thumbnail_frame = tk.Frame(root, width=220, height=220, relief=tk.SUNKEN, borderwidth=1)
-    thumbnail_frame.grid(row=2, column=2, rowspan=8, padx=10, pady=5, sticky="ne")
+    thumbnail_frame.grid(row=2, column=2, rowspan=9, padx=10, pady=5, sticky="ne")
     # Prevent the frame from shrinking to fit its contents
     thumbnail_frame.grid_propagate(False)
     # Make sure the frame expands within its cell
@@ -467,7 +507,7 @@ def start_gui(initial_file=None):
         status_indicator.grid(row=0, column=0, pady=2)
     
     # Create version label that will be positioned dynamically
-    version_text = "tag-writer.py   ver .07  2025-03-30   "
+    version_text = "tag-writer.py   ver .08  2025-03-30   "
     # Add PIL status to version label
     if not PIL_AVAILABLE:
         version_text += " [PIL missing]"
@@ -510,7 +550,7 @@ if __name__ == "__main__":
     # Handle version flag
     # Handle version flag
     if args.version:
-        version_text = "tag-writer.py  version .07  (2025-03-30)"
+        version_text = "tag-writer.py  version .08  (2025-03-30)"
         
         # Add PIL/ImageTk status to version output
         if not PIL_AVAILABLE:
