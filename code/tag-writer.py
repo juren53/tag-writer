@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  Ver 0.08  ################
+# ############   tag-writer.py  Ver 0.09  ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using the tkinter libraries.
