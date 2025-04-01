@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  ver 0.08  ################
+# ############   tag-writer.py  Ver 0.08  ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using the tkinter libraries.
@@ -10,7 +10,8 @@
 #  Updated Sun 02 Jul 2023 04:53:41 PM CDT added no-backup
 #  Updated Sat 29 Mar 2025 07:51:49 PM CDT Updated to use execute_json() for robust metadata retrieval
 #  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
-#  Updated Sun 30 Mar 2023 03:20:00 AM CDT added command-line argument support & status msg after write
+#  Updated Sun 30 Mar 2025 03:20:00 AM CDT added command-line argument support & status msg after write
+#  Updated Tue 01 Apr 2025 08:55:00 AM CDT Ver .09 added export to JSON feature & clear data to Edit menu
 #-----------------------------------------------------------
 
 import tkinter as tk
@@ -23,6 +24,7 @@ import os
 import sys
 import io
 import logging
+import json
 import webbrowser
 
 # Configure logging
@@ -165,6 +167,65 @@ def write_metadata():
 
     print("Metadata written successfully!")
     status_label.config(text="Metadata written successfully!", fg="green")
+
+def export_metadata_to_json():
+    """Export metadata from selected file to a JSON file."""
+    global status_label
+    if not selected_file:
+        print("No file selected!")
+        status_label.config(text="Error: No file selected!", fg="red")
+        return
+
+    try:
+        # Get metadata from the selected file
+        metadata = get_metadata(selected_file)
+        
+        # Extract base filename from selected_file and change extension to .json
+        base_filename = os.path.basename(selected_file)
+        base_name_without_ext = os.path.splitext(base_filename)[0]
+        default_json_filename = f"{base_name_without_ext}.json"
+        
+        # Prompt user for save location
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Save metadata as JSON",
+            initialfile=default_json_filename
+        )
+        
+        # If user cancels the dialog
+        if not file_path:
+            return
+            
+        # Write metadata to JSON file
+        with open(file_path, 'w', encoding='utf-8') as json_file:
+            json.dump(metadata, json_file, indent=4)
+            
+        print(f"Metadata exported successfully to {file_path}")
+        status_label.config(text=f"Metadata exported successfully!", fg="green")
+        
+    except Exception as e:
+        error_msg = f"Error exporting metadata: {str(e)}"
+        print(error_msg)
+        status_label.config(text=error_msg, fg="red")
+
+def clear_metadata_fields():
+    """Clear all metadata entry fields and update status label."""
+    global status_label
+    
+    # Clear all entry fields
+    entry_headline.delete(0, tk.END)
+    entry_caption_abstract.delete(0, tk.END)
+    entry_credit.delete(0, tk.END)
+    entry_object_name.delete(0, tk.END)
+    entry_writer_editor.delete(0, tk.END)
+    entry_by_line.delete(0, tk.END)
+    entry_source.delete(0, tk.END)
+    entry_date.delete(0, tk.END)
+    entry_copyright_notice.delete(0, tk.END)
+    
+    # Update status label
+    status_label.config(text="All fields cleared", fg="green")
 
 def update_version_label_position(event=None):
     """Update the position of the version label to stay in the bottom right corner."""
@@ -356,7 +417,7 @@ def start_gui(initial_file=None):
         messagebox.showinfo(
             "About Tag Writer",
             "Tag Writer\n\n"
-            "Version: 0.08\n\n"
+            "Version: 0.09\n\n"
             "A tool for viewing and editing IPTC metadata in image files.\n\n"
             "© 2025 Juren"
         )
@@ -377,9 +438,10 @@ def start_gui(initial_file=None):
     # Create Edit menu
     editmenu = Menu(menubar)
     menubar.add_cascade(label="Edit", menu=editmenu)
-    editmenu.add_command(label="Clear Fields")
+    editmenu.add_command(label="Clear Fields", command=clear_metadata_fields)
     editmenu.add_command(label="Copy All")
     editmenu.add_command(label="Paste All")
+    editmenu.add_command(label="Export data", command=export_metadata_to_json)
     
     # Create Help menu
     helpmenu = Menu(menubar)
@@ -507,7 +569,7 @@ def start_gui(initial_file=None):
         status_indicator.grid(row=0, column=0, pady=2)
     
     # Create version label that will be positioned dynamically
-    version_text = "tag-writer.py   ver .08  2025-03-30   "
+    version_text = "tag-writer.py   ver .09  2025-04-01   "
     # Add PIL status to version label
     if not PIL_AVAILABLE:
         version_text += " [PIL missing]"
@@ -550,7 +612,7 @@ if __name__ == "__main__":
     # Handle version flag
     # Handle version flag
     if args.version:
-        version_text = "tag-writer.py  version .08  (2025-03-30)"
+        version_text = "tag-writer.py  version .09  (2025-04-01)"
         
         # Add PIL/ImageTk status to version output
         if not PIL_AVAILABLE:
