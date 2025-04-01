@@ -1,8 +1,8 @@
 # tag-writer FAQ
 
-Getting started
+What does tag-writer do
 
-What its metadata
+What is meant by metadata
 
 What are EXIF, ITC and IPTC tags
 
