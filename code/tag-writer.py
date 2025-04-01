@@ -27,6 +27,8 @@ import logging
 import json
 import webbrowser
 
+# Global list to store recently accessed files (max 5)
+recent_files = []
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -44,6 +46,71 @@ try:
 except ImportError:
     logging.warning("PIL/Pillow not available - image handling functionality will be limited")
 
+def update_recent_files(file_path):
+    """
+    Updates the list of recently accessed files.
+    - Adds the file_path to the beginning of the list
+    - Removes duplicates
+    - Limits the list to 5 entries
+    - Rebuilds the recent files menu
+    """
+    global recent_files
+    
+    # Only add valid files to recent_files list
+    if file_path and os.path.isfile(file_path):
+        # Remove the file if it's already in the list
+        if file_path in recent_files:
+            recent_files.remove(file_path)
+        
+        # Add the file to the beginning of the list
+        recent_files.insert(0, file_path)
+        
+        # Limit the list to 5 items
+        recent_files = recent_files[:5]
+        
+        # Rebuild the recent files menu if it exists
+        if 'recent_files_menu' in globals() and recent_files_menu:
+            build_recent_files_menu()
+
+def build_recent_files_menu():
+    """
+    Builds the recent files menu from the recent_files list.
+    - Clears the current menu
+    - Adds an item for each recent file
+    - Adds a "No recent files" disabled item if the list is empty
+    """
+    global recent_files_menu
+    
+    # Clear all items from the menu
+    recent_files_menu.delete(0, 'end')
+    
+    # If there are recent files, add them to the menu
+    if recent_files:
+        for file_path in recent_files:
+            # Get the base filename for the menu label
+            basename = os.path.basename(file_path)
+            # Use a lambda with default argument to avoid late binding issues
+            recent_files_menu.add_command(
+                label=basename,
+                command=lambda path=file_path: open_recent_file(path)
+            )
+    else:
+        # If no recent files, add a disabled item
+        recent_files_menu.add_command(label="No recent files", state="disabled")
+
+def open_recent_file(file_path):
+    """Opens a file from the recent files list"""
+    if os.path.isfile(file_path):
+        select_file(file_path)
+    else:
+        # If the file no longer exists, show an error and update the menu
+        global status_label
+        if 'status_label' in globals() and status_label:
+            status_label.config(text=f"Error: File '{os.path.basename(file_path)}' no longer exists", fg="red")
+        if file_path in recent_files:
+            recent_files.remove(file_path)
+            build_recent_files_menu()
+
 def select_file(file_path=None):
     global selected_file, filename_label
     if file_path:
@@ -54,6 +121,7 @@ def select_file(file_path=None):
                 filename_label.config(text=f"File: {os.path.basename(selected_file)}")
             read_metadata()  # Read metadata after selecting the file
             update_thumbnail()  # Update the thumbnail display
+            update_recent_files(file_path)  # Update the recent files list
         else:
             print(f"Error: The file '{file_path}' does not exist or is not accessible.")
             sys.exit(1)
@@ -65,6 +133,7 @@ def select_file(file_path=None):
                 filename_label.config(text=f"File: {os.path.basename(selected_file)}")
             read_metadata()  # Read metadata after selecting the file
             update_thumbnail()  # Update the thumbnail display
+            update_recent_files(selected_file)  # Update the recent files list
 
 def get_metadata(file_path):
     """Retrieve metadata from the specified file using execute_json() method."""
@@ -398,7 +467,7 @@ def update_thumbnail():
 def start_gui(initial_file=None):
     global root, entry_headline, entry_caption_abstract, entry_credit, entry_object_name
     global entry_writer_editor, entry_by_line, entry_source, entry_date, entry_copyright_notice, selected_file
-    global status_label, filename_label, version_label, thumbnail_label, thumbnail_image
+    global status_label, filename_label, version_label, thumbnail_label, thumbnail_image, recent_files_menu
     # Create the GUI window
     root = tk.Tk()
     root.title("Metadata Tag Writer")
@@ -431,7 +500,14 @@ def start_gui(initial_file=None):
     
     filemenu = Menu(menubar)
     menubar.add_cascade(label="File", menu=filemenu)
-    filemenu.add_command(label="Open")
+    filemenu.add_command(label="Open", command=select_file)
+    
+    # Create a submenu for recently accessed files
+    global recent_files_menu
+    recent_files_menu = Menu(filemenu, tearoff=0)
+    filemenu.add_cascade(label="Recently accessed", menu=recent_files_menu)
+    build_recent_files_menu()  # Initialize the recent files menu
+    
     filemenu.add_command(label="Save")
     filemenu.add_command(label="Exit", command=quit_app)
     
