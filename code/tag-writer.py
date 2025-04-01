@@ -29,6 +29,8 @@ import webbrowser
 
 # Global list to store recently accessed files (max 5)
 recent_files = []
+# Config file for storing persistent data
+CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".tag_writer_config.json")
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -54,7 +56,7 @@ def update_recent_files(file_path):
     - Limits the list to 5 entries
     - Rebuilds the recent files menu
     """
-    global recent_files
+    global recent_files, recent_files_menu
     
     # Only add valid files to recent_files list
     if file_path and os.path.isfile(file_path):
@@ -81,6 +83,10 @@ def build_recent_files_menu():
     """
     global recent_files_menu
     
+    # Check if recent_files_menu exists in global scope
+    if 'recent_files_menu' not in globals() or recent_files_menu is None:
+        return
+        
     # Clear all items from the menu
     recent_files_menu.delete(0, 'end')
     
@@ -110,6 +116,39 @@ def open_recent_file(file_path):
         if file_path in recent_files:
             recent_files.remove(file_path)
             build_recent_files_menu()
+
+def save_recent_files():
+    """
+    Save the recent_files list to the config file.
+    """
+    try:
+        config_data = {"recent_files": recent_files}
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config_data, f)
+        logging.debug(f"Recent files saved to {CONFIG_FILE}")
+        return True
+    except Exception as e:
+        logging.error(f"Error saving recent files: {str(e)}")
+        return False
+
+def load_recent_files():
+    """
+    Load the recent_files list from the config file.
+    Returns True if successful, False otherwise.
+    """
+    global recent_files
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+                if "recent_files" in config_data:
+                    # Filter out files that no longer exist
+                    recent_files = [f for f in config_data["recent_files"] if os.path.isfile(f)]
+                    logging.debug(f"Loaded {len(recent_files)} recent files from {CONFIG_FILE}")
+                    return True
+    except Exception as e:
+        logging.error(f"Error loading recent files: {str(e)}")
+    return False
 
 def select_file(file_path=None):
     global selected_file, filename_label
@@ -472,10 +511,14 @@ def start_gui(initial_file=None):
     root = tk.Tk()
     root.title("Metadata Tag Writer")
     
-    root.geometry("1000x400")     # sets default window size 
+    root.geometry("1000x400")     # sets default window size
+    
+    # Load recent files from config file
+    load_recent_files()
     
     # Add function to exit application when 'q' is pressed
     def quit_app(event=None):
+        save_recent_files()  # Save recent files before closing
         root.destroy()
     
     # Bind the 'q' key to the quit_app function
@@ -506,7 +549,7 @@ def start_gui(initial_file=None):
     global recent_files_menu
     recent_files_menu = Menu(filemenu, tearoff=0)
     filemenu.add_cascade(label="Recently accessed", menu=recent_files_menu)
-    build_recent_files_menu()  # Initialize the recent files menu
+    build_recent_files_menu()  # Initialize the recent files menu with loaded files
     
     filemenu.add_command(label="Save")
     filemenu.add_command(label="Exit", command=quit_app)
