@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  Ver 0.09  ################
+# ############   tag-writer.py  Ver 0.10  ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using the tkinter libraries.
@@ -12,6 +12,7 @@
 #  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
 #  Updated Sun 30 Mar 2025 03:20:00 AM CDT added command-line argument support & status msg after write
 #  Updated Tue 01 Apr 2025 08:55:00 AM CDT Ver .09 added export to JSON feature & clear data to Edit menu
+#  Updated Wed 02 APr 2025 11:23:01 AM CSD Ver .10 added full image viewer from thumbnail & License window under Help
 #-----------------------------------------------------------
 
 import tkinter as tk
@@ -242,6 +243,7 @@ def read_metadata():
     
     entry_copyright_notice.delete(0, tk.END)
     entry_copyright_notice.insert(0, safe_get(metadata, 'CopyrightNotice'))
+
 def write_metadata():
     global status_label
     if not selected_file:
@@ -502,6 +504,124 @@ def update_thumbnail():
         except Exception as e:
             logging.error(f"Error updating GUI: {str(e)}")
 
+def show_full_image():
+    """
+    Displays the full-sized version of the currently selected image in a new window.
+    
+    Features:
+    - Creates a new Toplevel window with the image filename as part of the title
+    - Loads the full image using PIL/Pillow, scaling down if too large for the screen
+    - Displays a button to close the window
+    - Handles potential errors gracefully with appropriate user feedback
+    """
+    global selected_file, root
+    
+    # Check if a file is selected
+    if not selected_file:
+        messagebox.showinfo("No Image", "No image file is currently selected.")
+        return
+    
+    # Check if PIL is available
+    if not PIL_AVAILABLE:
+        messagebox.showerror("Feature Unavailable", 
+                            "Cannot display full image. PIL/Pillow library is not installed.")
+        return
+    
+    try:
+        # Create new window
+        img_window = tk.Toplevel(root)
+        img_window.title(f"Full Image: {os.path.basename(selected_file)}")
+        
+        # Calculate maximum display size (80% of screen dimensions)
+        screen_width = img_window.winfo_screenwidth()
+        screen_height = img_window.winfo_screenheight()
+        max_width = int(screen_width * 0.8)
+        max_height = int(screen_height * 0.8)
+        
+        # Load the image and get original dimensions
+        img = Image.open(selected_file)
+        original_width, original_height = img.size
+        
+        # Calculate the scaling factor if image is too large
+        scale_width = max_width / original_width if original_width > max_width else 1
+        scale_height = max_height / original_height if original_height > max_height else 1
+        scale = min(scale_width, scale_height)
+        
+        # Resize image if necessary
+        if scale < 1:
+            new_width = int(original_width * scale)
+            new_height = int(original_height * scale)
+            
+            # Use appropriate resampling method based on PIL version
+            try:
+                img = img.resize((new_width, new_height), Image.LANCZOS)
+            except AttributeError:
+                try:
+                    img = img.resize((new_width, new_height), Image.ANTIALIAS)
+                except AttributeError:
+                    img = img.resize((new_width, new_height))
+        
+        # Convert to PhotoImage for display
+        if IMAGETK_AVAILABLE:
+            photo_img = ImageTk.PhotoImage(img)
+            
+            # Create label to display the image
+            image_label = tk.Label(img_window, image=photo_img)
+            image_label.image = photo_img  # Keep a reference
+            image_label.pack(padx=10, pady=10)
+            
+            # Add dimension information
+            if scale < 1:
+                info_text = f"Scaled image: {photo_img.width()}x{photo_img.height()} (Original: {original_width}x{original_height})"
+            else:
+                info_text = f"Original size: {original_width}x{original_height}"
+            
+            info_label = tk.Label(img_window, text=info_text)
+            info_label.pack(pady=5)
+            
+            # Add close button
+            close_button = tk.Button(img_window, text="Close", command=img_window.destroy)
+            close_button.pack(pady=10)
+            # Set focus to window
+            img_window.focus_set()
+            
+            # Bind Escape key to close the window
+            img_window.bind("<Escape>", lambda e: img_window.destroy())
+            
+            # Update the window to ensure it's rendered before attempting to grab
+            img_window.update()
+            
+            # Set grab after a short delay to ensure window is visible
+            def set_grab():
+                try:
+                    if img_window.winfo_exists():
+                        img_window.grab_set()
+                except Exception as e:
+                    logging.error(f"Error setting grab on image window: {str(e)}")
+                    
+            # Schedule grab_set to occur after the window is fully visible
+            img_window.after(100, set_grab)
+        else:
+            # Handle case where ImageTk is not available
+            img_window.geometry("400x150")
+            error_label = tk.Label(img_window, 
+                                  text="ImageTk is not available.\nCannot display the full image.",
+                                  fg="red")
+            error_label.pack(padx=20, pady=20)
+            
+            # Add close button
+            close_button = tk.Button(img_window, text="Close", command=img_window.destroy)
+            close_button.pack(pady=10)
+    
+    except Exception as e:
+        # Handle any errors that might occur
+        if 'img_window' in locals() and img_window.winfo_exists():
+            img_window.destroy()  # Close the window if it exists
+        
+        error_message = f"Error displaying image: {str(e)}"
+        logging.error(error_message)
+        messagebox.showerror("Error", error_message)
+
 
 def start_gui(initial_file=None):
     global root, entry_headline, entry_caption_abstract, entry_credit, entry_object_name
@@ -529,10 +649,48 @@ def start_gui(initial_file=None):
         messagebox.showinfo(
             "About Tag Writer",
             "Tag Writer\n\n"
-            "Version: 0.09\n\n"
+            "Version: 0.10\n\n"
             "A tool for viewing and editing IPTC metadata in image files.\n\n"
             "© 2025 Juren"
         )
+    
+    # Function to display license information
+    def show_license_dialog():
+        # Create a new toplevel window for the license dialog
+        license_window = tk.Toplevel(root)
+        license_window.title("License Information")
+        license_window.geometry("600x200")
+        license_window.resizable(True, True)
+        
+        # Set minimum size to ensure the text is readable
+        license_window.minsize(500, 150)
+        
+        # Create a label with the license text using 10pt Ubuntu font
+        license_text = "Licensed open-source Apache License and source code viewable at\nhttps://github.com/juren53/tag-writer/blob/main/code/tag-writer.py"
+        
+        license_label = tk.Label(license_window, 
+                                text=license_text, 
+                                font=("Ubuntu", 10),
+                                justify=tk.CENTER,
+                                padx=20, pady=20)
+        license_label.pack(expand=True, fill=tk.BOTH)
+        
+        # Add a close button
+        close_button = tk.Button(license_window, text="Close", command=license_window.destroy)
+        close_button.pack(pady=10)
+        
+        # Make the window modal
+        license_window.transient(root)
+        license_window.grab_set()
+        license_window.focus_set()
+        
+        # Center the window on the screen
+        license_window.update_idletasks()
+        width = license_window.winfo_width()
+        height = license_window.winfo_height()
+        x = (license_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (license_window.winfo_screenheight() // 2) - (height // 2)
+        license_window.geometry(f"{width}x{height}+{x}+{y}")
         
     # Function to open the usage guide in web browser
     def open_usage_guide():
@@ -563,11 +721,12 @@ def start_gui(initial_file=None):
     editmenu.add_command(label="Export data", command=export_metadata_to_json)
     
     # Create Help menu
+    # Create Help menu
     helpmenu = Menu(menubar)
     menubar.add_cascade(label="Help", menu=helpmenu)
     helpmenu.add_command(label="About", command=show_about_dialog)
+    helpmenu.add_command(label="License", command=show_license_dialog)
     helpmenu.add_command(label="Usage Guide", command=open_usage_guide)
-    
     selected_file = None
     
     # Create select file button
@@ -664,10 +823,13 @@ def start_gui(initial_file=None):
                               compound=tk.TOP,  # Position image at the top, text below
                               anchor=tk.CENTER,  # Center the content
                               relief=tk.FLAT,
+                              cursor="hand2",  # Set cursor to hand to indicate clickability
                               padx=5, pady=5)  # Add padding inside the label
-    
     # Position the label to fill the entire frame
     thumbnail_label.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+    
+    # Bind click event to show full image when thumbnail is clicked
+    thumbnail_label.bind("<Button-1>", lambda event: show_full_image())
     
     # Log information about the thumbnail label
     logging.debug(f"thumbnail_label created with initial dimensions: {thumbnail_label.winfo_reqwidth()}x{thumbnail_label.winfo_reqheight()}")
@@ -688,7 +850,7 @@ def start_gui(initial_file=None):
         status_indicator.grid(row=0, column=0, pady=2)
     
     # Create version label that will be positioned dynamically
-    version_text = "tag-writer.py   ver .09  2025-04-01   "
+    version_text = "tag-writer.py   ver .10  2025-05-15   "
     # Add PIL status to version label
     if not PIL_AVAILABLE:
         version_text += " [PIL missing]"
@@ -731,7 +893,7 @@ if __name__ == "__main__":
     # Handle version flag
     # Handle version flag
     if args.version:
-        version_text = "tag-writer.py  version .09  (2025-04-01)"
+        version_text = "tag-writer.py  version .10  (2025-05-15)"
         
         # Add PIL/ImageTk status to version output
         if not PIL_AVAILABLE:
