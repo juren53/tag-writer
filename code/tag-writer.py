@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  Ver 0.10  ################
+# ############   tag-writer.py  Ver 0.10a ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using the tkinter libraries.
@@ -566,9 +566,12 @@ def show_full_image():
             photo_img = ImageTk.PhotoImage(img)
             
             # Create label to display the image
-            image_label = tk.Label(img_window, image=photo_img)
+            image_label = tk.Label(img_window, image=photo_img, cursor="hand2")  # Add hand cursor to indicate clickability
             image_label.image = photo_img  # Keep a reference
             image_label.pack(padx=10, pady=10)
+            
+            # Bind mouse click to close the window
+            image_label.bind("<Button-1>", lambda e: img_window.destroy())
             
             # Add dimension information
             if scale < 1:
@@ -659,19 +662,29 @@ def start_gui(initial_file=None):
         # Create a new toplevel window for the license dialog
         license_window = tk.Toplevel(root)
         license_window.title("License Information")
-        license_window.geometry("600x200")
+        license_window.geometry("600x400")
         license_window.resizable(True, True)
         
         # Set minimum size to ensure the text is readable
-        license_window.minsize(500, 150)
+        license_window.minsize(500, 300)
         
         # Create a label with the license text using 10pt Ubuntu font
-        license_text = "Licensed open-source Apache License and source code viewable at\nhttps://github.com/juren53/tag-writer/blob/main/code/tag-writer.py"
+        license_text = """tag-writer
+
+
+tag-writer is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
+
+tag-writer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with tag-writer. If not, see: https://www.gnu.org/licenses/
+
+Source code available at https://github.com/juren53/tag-writer/blob/main/code/tag-writer.py"""
         
         license_label = tk.Label(license_window, 
                                 text=license_text, 
                                 font=("Ubuntu", 10),
-                                justify=tk.CENTER,
+                                justify=tk.LEFT,
+                                wraplength=550,
                                 padx=20, pady=20)
         license_label.pack(expand=True, fill=tk.BOTH)
         
@@ -850,7 +863,7 @@ def start_gui(initial_file=None):
         status_indicator.grid(row=0, column=0, pady=2)
     
     # Create version label that will be positioned dynamically
-    version_text = "tag-writer.py   ver .10  2025-05-15   "
+    version_text = "tag-writer.py   ver .10  2025-04-02   "
     # Add PIL status to version label
     if not PIL_AVAILABLE:
         version_text += " [PIL missing]"
@@ -893,7 +906,7 @@ if __name__ == "__main__":
     # Handle version flag
     # Handle version flag
     if args.version:
-        version_text = "tag-writer.py  version .10  (2025-05-15)"
+        version_text = "tag-writer.py  version .10  (2025-04-02)"
         
         # Add PIL/ImageTk status to version output
         if not PIL_AVAILABLE:
