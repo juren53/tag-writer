@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  Ver 0.10a ################
+# ############   tag-writer.py  Ver 0.11 ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using the tkinter libraries.
@@ -336,14 +336,6 @@ def clear_metadata_fields():
     
     # Update status label
     status_label.config(text="All fields cleared", fg="green")
-
-def update_version_label_position(event=None):
-    """Update the position of the version label to stay in the bottom right corner."""
-    global version_label, root
-    # Place the label at bottom right with a small margin
-    version_label.place(x=root.winfo_width() - version_label.winfo_reqwidth() - 5, 
-                       y=root.winfo_height() - version_label.winfo_reqheight() - 5)
-
 def update_thumbnail():
     """Load the selected image file and display it as a thumbnail with robust error handling."""
     global selected_file, thumbnail_label, thumbnail_image
@@ -629,12 +621,13 @@ def show_full_image():
 def start_gui(initial_file=None):
     global root, entry_headline, entry_caption_abstract, entry_credit, entry_object_name
     global entry_writer_editor, entry_by_line, entry_source, entry_date, entry_copyright_notice, selected_file
-    global status_label, filename_label, version_label, thumbnail_label, thumbnail_image, recent_files_menu
+    global status_label, filename_label, thumbnail_label, thumbnail_image, recent_files_menu
     # Create the GUI window
     root = tk.Tk()
     root.title("Metadata Tag Writer")
     
-    root.geometry("1000x400")     # sets default window size
+    root.geometry("1000x600")     # sets default window size
+    root.configure(padx=5, pady=5)  # Add padding around the main window
     
     # Load recent files from config file
     load_recent_files()
@@ -652,7 +645,7 @@ def start_gui(initial_file=None):
         messagebox.showinfo(
             "About Tag Writer",
             "Tag Writer\n\n"
-            "Version: 0.10\n\n"
+            "Version: 0.11\n\n"
             "A tool for viewing and editing IPTC metadata in image files.\n\n"
             "© 2025 Juren"
         )
@@ -669,7 +662,7 @@ def start_gui(initial_file=None):
         license_window.minsize(500, 300)
         
         # Create a label with the license text using 10pt Ubuntu font
-        license_text = """tag-writer
+        license_text = """         tag-writer
 
 
 tag-writer is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
@@ -742,153 +735,141 @@ Source code available at https://github.com/juren53/tag-writer/blob/main/code/ta
     helpmenu.add_command(label="Usage Guide", command=open_usage_guide)
     selected_file = None
     
+    # Create a main container frame with proper padding
+    main_frame = tk.Frame(root, padx=10, pady=10)
+    main_frame.pack(fill=tk.BOTH, expand=True)
+    
+    # Top frame for buttons and file selection
+    top_frame = tk.Frame(main_frame, relief=tk.RAISED, bd=1)
+    top_frame.pack(fill=tk.X, pady=(0, 10))
+    
     # Create select file button
-    button_select_file = tk.Button(root, text="Select File", command=select_file)
-    button_select_file.grid(row=0, column=1)
+    button_select_file = tk.Button(top_frame, text="Select File", command=select_file, 
+                                  padx=10, pady=5)
+    button_select_file.pack(side=tk.LEFT, padx=10, pady=8)
     
     # Create write button
-    button_write = tk.Button(root, text="Write Metadata", command=write_metadata)
-    button_write.grid(row=0, column=2)
+    button_write = tk.Button(top_frame, text="Write Metadata", command=write_metadata,
+                            padx=10, pady=5)
+    button_write.pack(side=tk.LEFT, padx=10, pady=8)
     
     # Create filename display label
-    filename_label = tk.Label(root, text="No file selected", font=("Arial", 10, "bold"))
-    filename_label.grid(row=1, column=0, columnspan=2, sticky="w", padx=5, pady=5)
+    filename_label = tk.Label(top_frame, text="No file selected", font=("Arial", 10, "bold"))
+    filename_label.pack(side=tk.LEFT, padx=20, pady=8)
     
-    # Create input fields
-    entry_headline = tk.Entry(root, width=60)
-    entry_caption_abstract = tk.Entry(root, width=60)
-    entry_credit = tk.Entry(root)
-    entry_object_name = tk.Entry(root)
-    entry_writer_editor = tk.Entry(root)
-    entry_by_line = tk.Entry(root)
-    entry_source = tk.Entry(root)
-    entry_date = tk.Entry(root)
-    entry_copyright_notice = tk.Entry(root)
+    # Create a frame for the main content area with two columns
+    content_frame = tk.Frame(main_frame)
+    content_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
     
-    # Create labels
-    label_headline = tk.Label(root, justify="left", text="Headline:")
-    label_caption_abstract = tk.Label(root, text="Caption Abstract:")
-    label_credit = tk.Label(root, text="Credit:")
-    label_object_name = tk.Label(root, text="Unique ID [Object Name]: ")
-    label_writer_editor = tk.Label(root, text="Writer Editor:")
-    label_by_line = tk.Label(root, text="By-line [photographer]:")
-    label_source = tk.Label(root, text="Source:")
-    label_date = tk.Label(root, text="Date Created [YYY-MM-DD]:")
-    label_copyright_notice = tk.Label(root, text="Copyright Notice:")
+    # Create a frame for metadata entry fields (left side)
+    metadata_frame = tk.LabelFrame(content_frame, text="Metadata Fields", padx=15, pady=15, font=("Arial", 9, "bold"))
+    metadata_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
     
-    # Grid layout
-    label_headline.grid(row=2, column=0, sticky="w")
-    entry_headline.grid(row=2, column=1, sticky="w")
+    # Create a grid inside the metadata frame for the form fields
+    metadata_grid = tk.Frame(metadata_frame)
+    metadata_grid.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
     
-    label_credit.grid(row=3, column=0, sticky="w")
-    entry_credit.grid(row=3, column=1, sticky="w")
+    # Create labels with consistent styling
+    label_style = {"anchor": "e", "padx": 5, "pady": 3, "font": ("Arial", 9)}
+    label_headline = tk.Label(metadata_grid, text="Headline:", **label_style)
+    label_caption_abstract = tk.Label(metadata_grid, text="Caption Abstract:", **label_style)
+    label_credit = tk.Label(metadata_grid, text="Credit:", **label_style)
+    label_object_name = tk.Label(metadata_grid, text="Unique ID [Object Name]:", **label_style)
+    label_writer_editor = tk.Label(metadata_grid, text="Writer/Editor:", **label_style)
+    label_by_line = tk.Label(metadata_grid, text="By-line:", **label_style)
+    label_source = tk.Label(metadata_grid, text="Source:", **label_style)
+    label_date = tk.Label(metadata_grid, text="Date Created:", **label_style)
+    label_copyright_notice = tk.Label(metadata_grid, text="Copyright Notice:", **label_style)
     
-    label_object_name.grid(row=4, column=0, sticky="w")
-    entry_object_name.grid(row=4, column=1, sticky="w")
+    # Create input fields with consistent width
+    entry_width = 50
+    entry_style = {"width": entry_width, "font": ("Arial", 9)}
+    entry_headline = tk.Entry(metadata_grid, **entry_style)
+    entry_caption_abstract = tk.Entry(metadata_grid, **entry_style)
+    entry_credit = tk.Entry(metadata_grid, **entry_style)
+    entry_object_name = tk.Entry(metadata_grid, **entry_style)
+    entry_writer_editor = tk.Entry(metadata_grid, **entry_style)
+    entry_by_line = tk.Entry(metadata_grid, **entry_style)
+    entry_source = tk.Entry(metadata_grid, **entry_style)
+    entry_date = tk.Entry(metadata_grid, **entry_style)
+    entry_copyright_notice = tk.Entry(metadata_grid, **entry_style)
     
-    label_caption_abstract.grid(row=5, column=0, sticky="w")
-    entry_caption_abstract.grid(row=5, column=1, sticky="w")
+    # Arrange labels and entries in the grid
+    row = 0
+    grid_padx = (5, 5)
+    grid_pady = 3
     
-    label_writer_editor.grid(row=6, column=0, sticky="w")
-    entry_writer_editor.grid(row=6, column=1, sticky="w")
+    label_headline.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_headline.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    label_by_line.grid(row=7, column=0, sticky="w")
-    entry_by_line.grid(row=7, column=1, sticky="w")
+    label_caption_abstract.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_caption_abstract.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    label_source.grid(row=8, column=0, sticky="w")
-    entry_source.grid(row=8, column=1, sticky="w")
+    label_credit.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_credit.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    label_date.grid(row=9, column=0, sticky="w")
-    entry_date.grid(row=9, column=1, sticky="w")
+    label_object_name.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_object_name.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    label_copyright_notice.grid(row=10, column=0, sticky="w")
-    entry_copyright_notice.grid(row=10, column=1, sticky="w")
+    label_writer_editor.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_writer_editor.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    # Status message label
-    status_label = tk.Label(root, text="", fg="green")
-    status_label.grid(row=11, columnspan=2, sticky="w")
+    label_by_line.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_by_line.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    # Create and configure the thumbnail display area
-    # Create a frame with fixed size for thumbnail display
-    thumbnail_frame = tk.Frame(root, width=220, height=220, relief=tk.SUNKEN, borderwidth=1)
-    thumbnail_frame.grid(row=2, column=2, rowspan=9, padx=10, pady=5, sticky="ne")
-    # Prevent the frame from shrinking to fit its contents
-    thumbnail_frame.grid_propagate(False)
-    # Make sure the frame expands within its cell
-    thumbnail_frame.columnconfigure(0, weight=1)
-    thumbnail_frame.rowconfigure(0, weight=1)
+    label_source.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_source.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    # Place holder for thumbnail image
-    thumbnail_image = None
+    label_date.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_date.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
+    row += 1
     
-    # Adjust the thumbnail label based on PIL/ImageTk availability
-    if PIL_AVAILABLE and IMAGETK_AVAILABLE:
-        thumbnail_status = "No image to display"
-    elif PIL_AVAILABLE and not IMAGETK_AVAILABLE:
-        thumbnail_status = "ImageTk not available\nCannot display thumbnails"
-    else:
-        thumbnail_status = "PIL/Pillow not available\nCannot display thumbnails"
+    label_copyright_notice.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
+    entry_copyright_notice.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
     
-    logging.debug(f"Creating thumbnail_label with status: {thumbnail_status}")
-    # Create label with appropriate minimal size to display a 200x157 image
-    thumbnail_label = tk.Label(thumbnail_frame, text=thumbnail_status, 
-                              width=200, height=157,  # Set minimum width/height in pixels
-                              compound=tk.TOP,  # Position image at the top, text below
-                              anchor=tk.CENTER,  # Center the content
-                              relief=tk.FLAT,
-                              cursor="hand2",  # Set cursor to hand to indicate clickability
-                              padx=5, pady=5)  # Add padding inside the label
-    # Position the label to fill the entire frame
-    thumbnail_label.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+    # Create a frame for the thumbnail display (right side)
+    thumbnail_frame = tk.LabelFrame(content_frame, text="Image Preview", padx=15, pady=15, font=("Arial", 9, "bold"))
+    thumbnail_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(0, 0))
     
-    # Bind click event to show full image when thumbnail is clicked
+    # Create a container for the thumbnail with fixed size
+    thumbnail_container = tk.Frame(thumbnail_frame, width=220, height=220, bd=1, relief=tk.SUNKEN)
+    thumbnail_container.pack(padx=10, pady=10)
+    thumbnail_container.pack_propagate(False)  # Prevent the frame from resizing to fit its contents
+    
+    # Create the thumbnail label inside the container
+    # Create the thumbnail label inside the container
+    thumbnail_label = tk.Label(thumbnail_container, text="No image to display", bg="light gray", 
+                              width=200, height=200)
+    thumbnail_label.pack(expand=True, fill=tk.BOTH, padx=5, pady=5)
+    # Bind mouse click to show full image function
     thumbnail_label.bind("<Button-1>", lambda event: show_full_image())
+    # Add a button to view the full image
+    view_button = tk.Button(thumbnail_frame, text="View Full Image", command=show_full_image,
+                           padx=10, pady=5)
+    view_button.pack(pady=10)
     
-    # Log information about the thumbnail label
-    logging.debug(f"thumbnail_label created with initial dimensions: {thumbnail_label.winfo_reqwidth()}x{thumbnail_label.winfo_reqheight()}")
-    print(f"DEBUG: Thumbnail label created with dimensions: {thumbnail_label.winfo_reqwidth()}x{thumbnail_label.winfo_reqheight()}")
+    # Create a status bar at the bottom
+    status_frame = tk.Frame(main_frame, relief=tk.SUNKEN, bd=1)
+    status_frame.pack(side=tk.BOTTOM, fill=tk.X)
     
-    # Add indicator about PIL status
-    if not PIL_AVAILABLE or not IMAGETK_AVAILABLE:
-        status_frame = tk.Frame(thumbnail_frame)
-        status_frame.grid(row=1, column=0, sticky="ew", padx=5, pady=2)
-        
-        # Use Unicode symbols for indicators
-        status_icon = "⚠️" if not PIL_AVAILABLE else "ℹ️"
-        status_text = "PIL missing" if not PIL_AVAILABLE else "ImageTk missing"
-        
-        status_indicator = tk.Label(status_frame, text=f"{status_icon} {status_text}", 
-                                   fg="red" if not PIL_AVAILABLE else "orange",
-                                   font=("Arial", 8))
-        status_indicator.grid(row=0, column=0, pady=2)
+    # Status label on the left
+    status_label = tk.Label(status_frame, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W, padx=10, pady=5)
+    status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
     
-    # Create version label that will be positioned dynamically
-    version_text = "tag-writer.py   ver .10  2025-04-02   "
-    # Add PIL status to version label
-    if not PIL_AVAILABLE:
-        version_text += " [PIL missing]"
-    elif not IMAGETK_AVAILABLE:
-        version_text += " [ImageTk missing]"
-    
-    version_label = tk.Label(root, text=version_text, bg="lightgray")
-    
-    # Bind resize event to update the version label position
-    root.bind("<Configure>", update_version_label_position)
-    
-    # If an initial file was provided, select it
-    if initial_file:
-        select_file(initial_file)
-    else:
-        filename_label.config(text="No file selected")
-    
-    # Call once to position the version label after window is fully created
-    # We use after() to ensure the window is fully rendered
-    root.update_idletasks()
-    root.after(100, update_version_label_position)
+    # Version label on the right
+    version_label = tk.Label(status_frame, text="Tag Writer v0.11", bd=1, relief=tk.SUNKEN, padx=10, pady=5)
+    version_label.pack(side=tk.RIGHT)
     
     # Initialize the thumbnail display if a file is selected
     if initial_file:
-        update_thumbnail()
+        select_file(initial_file)
     
     root.mainloop()
 
@@ -906,7 +887,7 @@ if __name__ == "__main__":
     # Handle version flag
     # Handle version flag
     if args.version:
-        version_text = "tag-writer.py  version .10  (2025-04-02)"
+        version_text = "tag-writer.py  version .11  (2025-04-02)"
         
         # Add PIL/ImageTk status to version output
         if not PIL_AVAILABLE:
