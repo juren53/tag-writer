@@ -9,6 +9,6 @@ It has been tested against the following file types:
 - JPEG / JPG
 - TIFF / TIF
 - PNG
-- [more to come]
+
 
 
