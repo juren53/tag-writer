@@ -964,7 +964,7 @@ def show_full_image():
 def start_gui(initial_file=None):
     global root, entry_headline, text_caption_abstract, entry_credit, entry_object_name
     global entry_writer_editor, entry_by_line, entry_source, entry_date, entry_copyright_notice, selected_file
-    global status_label, filename_label, thumbnail_label, thumbnail_image, recent_files_menu
+    global status_label, filename_label, thumbnail_label, thumbnail_image, recent_files_menu, version_label
     # Create the GUI window
     root = tk.Tk()
     root.title("Metadata Tag Writer")
@@ -1003,15 +1003,15 @@ def start_gui(initial_file=None):
     root.bind_all("<Alt-r>", open_recent_menu)  # Bind to all widgets
     
     # Function to show About dialog
+    # Function to show About dialog
     def show_about_dialog():
         messagebox.showinfo(
             "About Tag Writer",
             "Tag Writer\n\n"
-            "Version: 0.12\n\n"
+            "Version: 0.13\n\n"
             "A tool for viewing and editing IPTC metadata in image files.\n\n"
             "© 2025 Juren"
         )
-    
     # Function to display license information
     def show_license_dialog():
         # Create a new toplevel window for the license dialog
@@ -1293,6 +1293,10 @@ Source code available at https://github.com/juren53/tag-writer/blob/main/code/ta
     status_label = tk.Label(status_frame, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W, padx=10, pady=5)
     status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
     
+    # Version label on the right
+    version_label = tk.Label(status_frame, text="Ver 0.13 (2025-04-05)", bd=1, relief=tk.SUNKEN, anchor=tk.E, padx=10, pady=5)
+    version_label.pack(side=tk.RIGHT)
+    
     # Initialize the thumbnail display if a file is selected
     if initial_file:
         select_file(initial_file)
@@ -1321,7 +1325,7 @@ if __name__ == "__main__":
     # Handle version flag
     # Handle version flag
     if args.version:
-        version_text = "tag-writer.py  version .12  (2025-04-04)"
+        version_text = "tag-writer.py  version .13  (2025-04-05)"
         
         # Add PIL/ImageTk status to version output
         if not PIL_AVAILABLE:
