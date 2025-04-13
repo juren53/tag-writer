@@ -8,8 +8,8 @@
 # when metada can not be pulled from an online database. 
 #  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
 #  Updated Sat 05 Apr 2025 11:24:00 PM CDT Converted from tkinter to wxPython
-#  Updated Sun 13 Apr 2025 10:20:00 AM CDT v 0.04c Load last image on startup
-#  Updated Sun 13 Apr 2025 12:44:00 AM CDT v 0.04d Key board arrow keys scroll through CWD
+#  Updated Sun 13 Apr 2025 10:20:00 AM CDT v 0.04 c Load last image on startup
+#  Updated Sun 13 Apr 2025 12:44:00 AM CDT v 0.04 d Key board arrow keys scroll through CWD
 #-----------------------------------------------------------
 
 import wx
