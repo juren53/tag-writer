@@ -1,12 +1,12 @@
-# Tag Writer User Guide
+# TagWriter User Guide
 
 ## Overview
 
-Tag Writer is a free, open-source application designed to view and edit IPTC metadata in image files (JPG and TIF formats). This tool is particularly useful when metadata cannot be pulled from an online database and needs to be entered manually.
+TagWriter is a free, open-source application designed to view and edit IPTC metadata in image files (JPG and TIF formats). This tool is particularly useful when metadata cannot be pulled from an online database and needs to be entered manually.
 
 The application provides a simple graphical user interface for editing common IPTC metadata fields, allowing photographers, archivists, and digital asset managers to properly tag their images with essential information.
 
-![Tag Writer Main Window](https://github.com/juren53/tag-writer/raw/main/Docs/images/main-window.png)
+![TagWriter Main Window](https://github.com/juren53/tag-writer/raw/main/Docs/images/main-window.png)
 
 ## Table of Contents
 
@@ -40,7 +40,7 @@ The application provides a simple graphical user interface for editing common IP
 
 ### Dependencies
 
-Tag Writer requires the following Python libraries:
+TagWriter requires the following Python libraries:
 
 1. **exiftool** - The Python wrapper for ExifTool, which is used to read and write metadata
    ```
@@ -63,7 +63,7 @@ Note: Tag Writer can run with limited functionality if PIL/Pillow is not install
 
 ### Main Window
 
-The Tag Writer main window is divided into several key areas:
+The TagWriter main window is divided into several key areas:
 
 - **Menu Bar** - Contains File, Edit, and Help menus
 - **Control Buttons** - "Select File" and "Write Metadata" buttons
@@ -84,7 +84,7 @@ The Tag Writer main window is divided into several key areas:
 - **Export data** - Export the current metadata to a JSON file
 
 #### Help Menu
-- **About** - Display information about Tag Writer
+- **About** - Display information about TagWriter
 - **License** - Show license information
 - **Usage Guide** - Open this help document in a web browser
 
@@ -119,7 +119,7 @@ To edit metadata:
 
 After editing the metadata fields, click the "Write Metadata" button to save the changes to the image file. A confirmation message will appear in the status bar at the bottom of the window.
 
-Important: Tag Writer does not create backup files by default. Any changes you make will overwrite the existing metadata in the file.
+Important: TagWriter does not create backup files by default. Any changes you make will overwrite the existing metadata in the file.
 
 ### Exporting to JSON
 
@@ -140,7 +140,7 @@ If PIL/Pillow is installed, Tag Writer provides image preview functionality:
 
 ## IPTC Metadata Fields
 
-Tag Writer supports editing the following IPTC metadata fields:
+TagWriter supports editing the following standard IPTC metadata fields:
 
 | Field | Description | Example |
 |-------|-------------|---------|
