@@ -7,8 +7,7 @@
 # This program is intended as a free form metadata tagger
 # when metada can not be pulled from an online database. 
 #  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
-#  Updated Sat 05 Apr 2025 11:24:00 PM CDT Ver .01 Converted from tkinter to wxPython
-#  Updated Sat 12 Apr 2025 19:05:00 PM CDT Ver .04 Fixed TIFF pop-up & add dir path display
+#  Updated Sat 05 Apr 2025 11:24:00 PM CDT Converted from tkinter to wxPython
 #-----------------------------------------------------------
 
 import wx
@@ -754,8 +753,8 @@ class TagWriterFrame(wx.Frame):
                 self.selected_file = file_path
                 
                 # Update the filename label
-                self.filename_label.SetLabel(f"File: {os.path.basename(selected_file)}")
-                
+                # Update the filename label with both basename and full path
+                self.filename_label.SetLabel(f"File: {os.path.basename(selected_file)} ({selected_file})")
                 # Read metadata and update UI
                 self.read_metadata()
                 self.update_thumbnail()
@@ -1222,11 +1221,11 @@ class TagWriterFrame(wx.Frame):
     def on_about(self, event):
         """Display about dialog"""
         info = wx.adv.AboutDialogInfo()
-        info.SetName("Metadata Tag Writer wx")
+        info.SetName("Metadata Tag Writer WX")
         info.SetVersion("0.04")
         info.SetDescription("A tool for editing IPTC metadata in image files")
         info.SetCopyright("(C) 2023-2025")
-        info.SetWebSite("https://github.com/user/tag-writer")
+        info.SetWebSite("https://github.com/juren53/tag-writer")
         info.AddDeveloper("Developer Name")
         
         wx.adv.AboutBox(info)
