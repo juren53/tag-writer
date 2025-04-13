@@ -57,7 +57,7 @@ TagWriter requires the following Python libraries:
    - On macOS with Homebrew: `brew install exiftool`
    - On Windows: Download from [ExifTool website](https://exiftool.org/)
 
-Note: Tag Writer can run with limited functionality if PIL/Pillow is not installed, but thumbnail and image previews will not be available.
+Note: TagWriter can run with limited functionality if PIL/Pillow is not installed, but thumbnail and image previews will not be available.
 
 ## Interface Overview
 
@@ -88,7 +88,7 @@ The TagWriter main window is divided into several key areas:
 - **License** - Show license information
 - **Usage Guide** - Open this help document in a web browser
 
-## Using Tag Writer
+## Using TagWriter
 
 ### Selecting Files
 
@@ -103,7 +103,7 @@ After selecting a file, the file name will be displayed, and any existing metada
 
 ### Viewing Existing Metadata
 
-When you select an image file, Tag Writer automatically reads the IPTC metadata from the file and populates the form fields with the existing values. This allows you to see what metadata is already associated with the image.
+When you select an image file, TagWriter automatically reads the IPTC metadata from the file and populates the form fields with the existing values. This allows you to see what metadata is already associated with the image.
 
 The thumbnail preview (if available) shows a small version of the image to confirm you're working with the correct file.
 
@@ -156,7 +156,7 @@ TagWriter supports editing the following standard IPTC metadata fields:
 
 ## Command-Line Usage
 
-Tag Writer can be launched from the command line with the following options:
+TagWriter can be launched from the command line with the following options:
 
 ```
 python tag-writer.py [file_path] [-v/--version]
@@ -206,7 +206,7 @@ The application displays the status of these dependencies in the version label a
 
 ## License Information
 
-Tag Writer is free software, distributed under the terms of the GNU General Public License version 3 or later.
+TagWriter is free open source software, distributed under the terms of the GNU General Public License version 3 or later.
 
 ```
 tag-writer is free software: you can redistribute it and/or modify it under the terms 
@@ -231,5 +231,5 @@ https://github.com/juren53/tag-writer/issues
 
 ---
 
-*This documentation was last updated on April 3, 2025*
+*This documentation was last updated on April 13, 2025*
 
