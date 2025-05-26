@@ -467,6 +467,7 @@ class TagWriterFrame(wx.Frame):
         filemenu.AppendSubMenu(self.recent_files_menu, "Recently accessed\tAlt+R")
         self.build_recent_files_menu()
         
+        item_save = filemenu.Append(wx.ID_SAVE, "&Save", "Save metadata to the current file")
         filemenu.AppendSeparator()
         item_exit = filemenu.Append(wx.ID_EXIT, "E&xit", "Exit the application")
         
@@ -493,6 +494,7 @@ class TagWriterFrame(wx.Frame):
         
         # Bind menu events
         self.Bind(wx.EVT_MENU, self.on_open, item_open)
+        self.Bind(wx.EVT_MENU, self.on_write_metadata, item_save)
         self.Bind(wx.EVT_MENU, self.on_exit, item_exit)
         self.Bind(wx.EVT_MENU, self.on_clear_fields, item_clear)
         self.Bind(wx.EVT_MENU, self.on_export_data, item_export)
@@ -679,10 +681,16 @@ class TagWriterFrame(wx.Frame):
         self.btn_view_full.Bind(wx.EVT_BUTTON, self.on_view_full_image)
         thumbnail_sizer.Add(self.btn_view_full, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
         
-        # Add dimensions label
-        self.dimensions_label = wx.StaticText(thumbnail_panel, label="Dimensions: --")
+        # Add dimensions label - create a panel to contain the centered label
+        dim_panel = wx.Panel(thumbnail_panel)
+        dim_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.dimensions_label = wx.StaticText(dim_panel, label="Dimensions: --", style=wx.ALIGN_CENTER_HORIZONTAL)
         self.dimensions_label.SetFont(wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        thumbnail_sizer.Add(self.dimensions_label, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        dim_panel_sizer.Add(self.dimensions_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        
+        dim_panel.SetSizer(dim_panel_sizer)
+        thumbnail_sizer.Add(dim_panel, 0, wx.EXPAND | wx.BOTTOM, 10)
         
         # Bind click on thumbnail to view full image
         self.thumbnail_panel.Bind(wx.EVT_LEFT_DOWN, self.on_view_full_image)
@@ -736,6 +744,7 @@ class TagWriterFrame(wx.Frame):
         accel_entries = [
             # File menu
             wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('O'), wx.ID_OPEN),  # Ctrl+O for Open
+            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('S'), wx.ID_SAVE),  # Ctrl+S for Save
             # Edit menu
             wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('L'), wx.ID_CLEAR),  # Ctrl+L for Clear fields
             # We don't add LEFT/RIGHT here because accelerator tables don't work well with them
@@ -1007,7 +1016,10 @@ class TagWriterFrame(wx.Frame):
                     img_height = img.GetHeight()
                     
                     # Update dimensions label
-                    self.dimensions_label.SetLabel(f"Dimensions: {img_width} x {img_height} pixels")
+                    dimensions_text = f"Dimensions: {img_width} x {img_height} pixels"
+                    self.dimensions_label.SetLabel(dimensions_text)
+                    # Make sure the dimensions label gets properly centered and wrapped if needed
+                    self.dimensions_label.GetParent().Layout()
                     
                     # Calculate scaling factor to fit within thumbnail boundaries
                     max_size = 200
