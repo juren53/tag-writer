@@ -1,4 +1,4 @@
-I've modified the tag-writer.py script to display the filename of the loaded file clearly in the GUI. Here's what the changes do:
+tag-writer.py has been modified to display the filename of the loaded file clearly in the GUI. Here's what the changes do:
 
 1. Added a new label (filename_label) near the top of the interface that shows the currently loaded filename
 2. Modified the select_file() function to update this label whenever a file is selected
