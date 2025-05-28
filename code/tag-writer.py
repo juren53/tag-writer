@@ -1,24 +1,34 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer-wx.py  Ver 0.05a ################
+# ############   tag-writer-wx.py  Ver 0.05d ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using wxPython libraries.
 # This program is intended as a free form metadata tagger
 # when metada can not be pulled from an online database. 
 #  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
-#  Updated Sat 25 May 2025 11:24:00 PM CDT Converted from tkinter to wxPython
-#  Updated Sun 25 May 2025 10:20:00 AM CDT v 0.05 a Load last image on startup
-#  Updated Sun 25 May 2025 12:44:00 AM CDT v 0.05 a Key board arrow keys scroll through CWD
+#  Updated Sun 02 Jul 2023 04:53:41 PM CDT added no-backup	
+#  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
+#  Updated Sun 30 Mar 2025 03:20:00 AM CDT added command-line argument support & status msg after write
+#  Updated Tue 01 Apr 2025 08:55:00 AM CDT Ver .09 added export to JSON feature & clear data to Edit menu
+#  Updated Wed 02 APr 2025 11:23:01 AM CSD Ver .10 added full image viewer from thumbnail & License window under Help
+#
+#  Updated Sat 05 Apr 2025 11:24:00 PM CDT Converted from tkinter to wxPython
+#  Updated Sun 13 Apr 2025 10:20:00 AM CDT v 0.04c Load last image on startup
+#  Updated Sun 13 Apr 2025 12:44:00 AM CDT v 0.04d Key board arrow keys scroll								 
+#  Updated Sun 25 May 2025 12:44:00 AM CDT v 0.05a Key board arrow keys scroll through CWD
+#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05b
+#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05c 
+#  Updated Wed 28 May 2025 12:44:00 AM CDT v 0.05d Caption Abstract increased to 1000 char
 #-----------------------------------------------------------
 
 import wx
 import wx.adv
+import wx.richtext
 import exiftool
 import argparse
 import os
 import sys
-import wx
 import logging
 import json
 import re
@@ -299,7 +309,7 @@ class TagWriterApp(wx.App):
         
         # Handle version flag
         if args.version:
-            version_text = "tag-writer-wx.py  version 0.05c  (2025-05-27)"
+            version_text = "tag-writer-wx.py  version 0.05d  (2025-05-28)"
             # Add PIL status to version output
             if not PIL_AVAILABLE:
                 version_text += " [PIL/Pillow not available]"
@@ -518,7 +528,7 @@ class TagWriterFrame(wx.Frame):
         self.statusbar.SetStatusWidths([200, -1, 200])
         self.SetStatusText("Ready", 0)
         self.SetStatusText("", 1)  # Middle section for file path
-        self.SetStatusText("Ver 0.05c (2025-05-27)", 2)
+        self.SetStatusText("Ver 0.05d (2025-05-28)", 2)
     
     def create_layout(self):
         """Create the main application layout"""
@@ -618,12 +628,12 @@ class TagWriterFrame(wx.Frame):
         caption_panel = wx.Panel(metadata_panel)
         caption_sizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.text_caption_abstract = wx.TextCtrl(caption_panel, size=(400, 100), 
-                                              style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER)
+        self.text_caption_abstract = wx.richtext.RichTextCtrl(caption_panel, size=(400, 100), 
+                                              style=wx.richtext.RE_MULTILINE)
         caption_sizer.Add(self.text_caption_abstract, 1, wx.EXPAND)
         
         # Character count label
-        self.caption_char_count = wx.StaticText(caption_panel, label="0/256 characters")
+        self.caption_char_count = wx.StaticText(caption_panel, label="0/1000 characters")
         self.caption_char_count.SetFont(wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         caption_sizer.Add(self.caption_char_count, 0, wx.ALIGN_RIGHT | wx.TOP, 2)
         
@@ -850,20 +860,42 @@ class TagWriterFrame(wx.Frame):
         current_length = len(current_text)
         
         # Update character count label
-        self.caption_char_count.SetLabel(f"{current_length}/256 characters")
+        self.caption_char_count.SetLabel(f"{current_length}/1000 characters")
         
-        # Change color if over limit
+        # Apply appropriate styling based on text length
+        self.text_caption_abstract.Freeze()  # Freeze to prevent flickering
+        
+        # Save current cursor position
+        current_position = self.text_caption_abstract.GetCaretPosition()
+        
+        # Create text attributes for default (white) and exceeded (red) text
+        default_attr = wx.TextAttr(wx.Colour(255, 255, 255))
+        exceeded_attr = wx.TextAttr(wx.Colour(255, 0, 0))
+        
+        # Reset all text to default color first
+        self.text_caption_abstract.SetStyle(0, current_length, default_attr)
+        
+        # If text is longer than 256 characters, color the excess in red
         if current_length > 256:
+            # Apply red color to text after position 256
+            self.text_caption_abstract.SetStyle(256, current_length, exceeded_attr)
+        
+        # Restore cursor position
+        self.text_caption_abstract.SetInsertionPoint(current_position)
+        self.text_caption_abstract.Thaw()  # Unfreeze the control
+        
+        # Change label color if over maximum limit
+        if current_length > 1000:
             self.caption_char_count.SetForegroundColour(wx.Colour(255, 0, 0))  # Red
             
             # Truncate text if over limit
-            self.text_caption_abstract.ChangeValue(current_text[:256])
+            self.text_caption_abstract.SetValue(current_text[:1000])
             self.text_caption_abstract.SetInsertionPointEnd()
             
             # Update count again after truncation
-            self.caption_char_count.SetLabel("256/256 characters")
+            self.caption_char_count.SetLabel("1000/1000 characters")
         else:
-            self.caption_char_count.SetForegroundColour(wx.Colour(0, 0, 0))  # Black
+            self.caption_char_count.SetForegroundColour(wx.Colour(255, 255, 255))  # White
     
     def select_file(self, file_path=None):
         """Select a file and load its metadata"""
@@ -1745,7 +1777,7 @@ class TagWriterFrame(wx.Frame):
         """Display about dialog"""
         info = wx.adv.AboutDialogInfo()
         info.SetName("Metadata Tag Writer WX")
-        info.SetVersion("0.05c")
+        info.SetVersion("0.05d")
         info.SetDescription("A tool for editing IPTC metadata in image files")
         info.SetCopyright("(C) 2023-2025")
         info.SetWebSite("https://github.com/juren53/tag-writer")
