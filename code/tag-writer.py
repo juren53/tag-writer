@@ -1,51 +1,94 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer.py  Ver 0.11 ################
+# ############   tag-writer-wx.py  Ver 0.05a ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
-# from a directory pick list using the tkinter libraries.
+# from a directory pick list using wxPython libraries.
 # This program is intended as a free form metadata tagger
 # when metada can not be pulled from an online database. 
 #  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
-#  Updated Sun 02 Jul 2023 04:53:41 PM CDT added no-backup
-#  Updated Sat 29 Mar 2025 07:51:49 PM CDT Updated to use execute_json() for robust metadata retrieval
-#  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
-#  Updated Sun 30 Mar 2025 03:20:00 AM CDT added command-line argument support & status msg after write
-#  Updated Tue 01 Apr 2025 08:55:00 AM CDT Ver .09 added export to JSON feature & clear data to Edit menu
-#  Updated Wed 02 APr 2025 11:23:01 AM CSD Ver .10 added full image viewer from thumbnail & License window under Help
+#  Updated Sat 25 May 2025 11:24:00 PM CDT Converted from tkinter to wxPython
+#  Updated Sun 25 May 2025 10:20:00 AM CDT v 0.05 a Load last image on startup
+#  Updated Sun 25 May 2025 12:44:00 AM CDT v 0.05 a Key board arrow keys scroll through CWD
 #-----------------------------------------------------------
 
-import tkinter as tk
-from tkinter import filedialog
-from tkinter import Menu
-from tkinter import messagebox
+import wx
+import wx.adv
 import exiftool
 import argparse
 import os
 import sys
-import io
+import wx
 import logging
 import json
-import webbrowser
-
+import re
+import shutil
+import subprocess
+import io
+from PIL import Image
 # Global list to store recently accessed files (max 5)
 recent_files = []
+# Global variables for full image preview zoom functionality
+original_image = None
+full_image_original = None
+full_image_zoom_factor = 1.0
+# Global variables for directory navigation
+directory_image_files = []
+current_file_index = -1
 # Config file for storing persistent data
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".tag_writer_config.json")
+# Global flag to suppress LibTIFF warnings
+SUPPRESS_LIBTIFF_WARNINGS = True
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Custom context manager to suppress stderr output
+class SuppressStderr:
+    """Context manager to suppress stderr output"""
+    def __init__(self):
+        self.stderr = None
+        self.devnull = None
+
+    def __enter__(self):
+        if SUPPRESS_LIBTIFF_WARNINGS:
+            self.stderr = sys.stderr
+            self.devnull = open(os.devnull, 'w')
+            sys.stderr = self.devnull
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if SUPPRESS_LIBTIFF_WARNINGS and self.stderr:
+            sys.stderr = self.stderr
+            self.devnull.close()
+
+# Global helper functions
+def is_richtiffiptc_warning(warning_text):
+    """Check if a warning message is related to RichTIFFIPTC and should be suppressed from UI"""
+    if not warning_text:
+        return False
+    
+    # List of warning patterns to suppress
+    suppress_patterns = [
+        "RichTIFFIPTC",
+        "TIFFFetchNormalTag",
+        "Incorrect value"
+    ]
+    
+    # Check if any of the patterns are in the warning
+    for pattern in suppress_patterns:
+        if pattern in warning_text:
+            return True
+    
+    return False
+
+# Global variable for the selected file
+selected_file = None
+
 # Try to import PIL/Pillow components with fallback options
 PIL_AVAILABLE = False
-IMAGETK_AVAILABLE = False
 try:
     from PIL import Image
     PIL_AVAILABLE = True
-    try:
-        from PIL import ImageTk
-        IMAGETK_AVAILABLE = True
-    except ImportError:
-        logging.warning("ImageTk not available - thumbnail display will be disabled")
 except ImportError:
     logging.warning("PIL/Pillow not available - image handling functionality will be limited")
 
@@ -57,7 +100,7 @@ def update_recent_files(file_path):
     - Limits the list to 5 entries
     - Rebuilds the recent files menu
     """
-    global recent_files, recent_files_menu
+    global recent_files
     
     # Only add valid files to recent_files list
     if file_path and os.path.isfile(file_path):
@@ -70,53 +113,6 @@ def update_recent_files(file_path):
         
         # Limit the list to 5 items
         recent_files = recent_files[:5]
-        
-        # Rebuild the recent files menu if it exists
-        if 'recent_files_menu' in globals() and recent_files_menu:
-            build_recent_files_menu()
-
-def build_recent_files_menu():
-    """
-    Builds the recent files menu from the recent_files list.
-    - Clears the current menu
-    - Adds an item for each recent file
-    - Adds a "No recent files" disabled item if the list is empty
-    """
-    global recent_files_menu
-    
-    # Check if recent_files_menu exists in global scope
-    if 'recent_files_menu' not in globals() or recent_files_menu is None:
-        return
-        
-    # Clear all items from the menu
-    recent_files_menu.delete(0, 'end')
-    
-    # If there are recent files, add them to the menu
-    if recent_files:
-        for file_path in recent_files:
-            # Get the base filename for the menu label
-            basename = os.path.basename(file_path)
-            # Use a lambda with default argument to avoid late binding issues
-            recent_files_menu.add_command(
-                label=basename,
-                command=lambda path=file_path: open_recent_file(path)
-            )
-    else:
-        # If no recent files, add a disabled item
-        recent_files_menu.add_command(label="No recent files", state="disabled")
-
-def open_recent_file(file_path):
-    """Opens a file from the recent files list"""
-    if os.path.isfile(file_path):
-        select_file(file_path)
-    else:
-        # If the file no longer exists, show an error and update the menu
-        global status_label
-        if 'status_label' in globals() and status_label:
-            status_label.config(text=f"Error: File '{os.path.basename(file_path)}' no longer exists", fg="red")
-        if file_path in recent_files:
-            recent_files.remove(file_path)
-            build_recent_files_menu()
 
 def save_recent_files():
     """
@@ -151,779 +147,1901 @@ def load_recent_files():
         logging.error(f"Error loading recent files: {str(e)}")
     return False
 
-def select_file(file_path=None):
-    global selected_file, filename_label
-    if file_path:
-        if os.path.isfile(file_path):
-            selected_file = file_path
-            # Update the filename label if it exists
-            if 'filename_label' in globals() and filename_label:
-                filename_label.config(text=f"File: {os.path.basename(selected_file)}")
-            read_metadata()  # Read metadata after selecting the file
-            update_thumbnail()  # Update the thumbnail display
-            update_recent_files(file_path)  # Update the recent files list
-        else:
-            print(f"Error: The file '{file_path}' does not exist or is not accessible.")
-            sys.exit(1)
-    else:
-        selected_file = filedialog.askopenfilename(title="Select")
-        if selected_file:  # Only update if a file was actually selected
-            # Update the filename label if it exists
-            if 'filename_label' in globals() and filename_label:
-                filename_label.config(text=f"File: {os.path.basename(selected_file)}")
-            read_metadata()  # Read metadata after selecting the file
-            update_thumbnail()  # Update the thumbnail display
-            update_recent_files(selected_file)  # Update the recent files list
+def get_directory_image_files(directory=None):
+    """Get a sorted list of all image files in the given directory."""
+    global directory_image_files, selected_file
+    
+    if directory is None and selected_file:
+        # Use directory of the currently selected file
+        directory = os.path.dirname(selected_file)
+    elif directory is None:
+        # Use current working directory if no directory specified
+        directory = os.getcwd()
+    
+    # Define supported image file extensions
+    image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.bmp']
+    
+    # Get all files in the directory
+    try:
+        all_files = [os.path.join(directory, f) for f in os.listdir(directory) 
+                     if os.path.isfile(os.path.join(directory, f))]
+        
+        # Filter for image files only
+        image_files = [f for f in all_files 
+                      if os.path.splitext(f)[1].lower() in image_extensions]
+        
+        # Sort alphabetically
+        directory_image_files = sorted(image_files, key=lambda x: os.path.basename(x).lower())
+        
+        logging.debug(f"Found {len(directory_image_files)} image files in {directory}")
+        return directory_image_files
+    except Exception as e:
+        logging.error(f"Error getting directory image files: {str(e)}")
+        directory_image_files = []
+        return []
 
 def get_metadata(file_path):
     """Retrieve metadata from the specified file using execute_json() method."""
     with exiftool.ExifTool() as et:
-        # Use execute_json to get metadata in JSON format
-        metadata_json = et.execute_json("-j", file_path)
-        
-        # metadata_json returns a list of dictionaries, with one dict per file
-        # Since we're only processing one file, we take the first element
-        if metadata_json and len(metadata_json) > 0:
-            return metadata_json[0]
-        else:
+        # Use execute_json to get metadata in JSON format with a simpler approach
+        # that works better with TIFF files
+        try:
+            # Check if the file is a TIFF file
+            file_ext = os.path.splitext(file_path)[1].lower()
+            if file_ext in ['.tif', '.tiff']:
+                # Add -m flag for TIFF files to ignore minor errors like RichTIFFIPTC issues
+                # Also add -ignoreMinorErrors flag for TIFF files to further suppress warnings
+                logging.debug(f"Processing TIFF file with -m flag: {file_path}")
+                metadata_json = et.execute_json("-j", "-m", "-ignoreMinorErrors", file_path)
+            else:
+                metadata_json = et.execute_json("-j", file_path)
+            
+            # metadata_json returns a list of dictionaries, with one dict per file
+            # Since we're only processing one file, we take the first element
+            if metadata_json and len(metadata_json) > 0:
+                raw_metadata = metadata_json[0]
+                return process_metadata(raw_metadata)
+            else:
+                logging.warning("No metadata found or empty metadata returned")
+                return {}
+        except Exception as e:
+            # Enhanced error handling to provide more information for troubleshooting
+            file_ext = os.path.splitext(file_path)[1].lower()
+            if file_ext in ['.tif', '.tiff']:
+                logging.error(f"Error processing TIFF file with exiftool: {str(e)}")
+                # Log additional details that might help diagnose the issue
+                logging.debug(f"TIFF file path: {file_path}")
+                logging.debug(f"File exists: {os.path.exists(file_path)}")
+                logging.debug(f"File size: {os.path.getsize(file_path) if os.path.exists(file_path) else 'N/A'}")
+                
+                # Try again with additional options if first attempt failed
+                try:
+                    logging.warning(f"Retrying TIFF file with additional options: {file_path}")
+                    # Try with both -m and -fast flags as a last resort
+                    metadata_json = et.execute_json("-j", "-m", "-fast", file_path)
+                    if metadata_json and len(metadata_json) > 0:
+                        logging.info(f"Successfully retrieved metadata on second attempt for: {file_path}")
+                        return process_metadata(metadata_json[0])
+                except Exception as retry_error:
+                    logging.error(f"Second attempt failed for TIFF file: {str(retry_error)}")
+            else:
+                logging.error(f"Error executing exiftool: {str(e)}")
             return {}
 
-def read_metadata():
-    if not selected_file:
-        print("No file selected!")
-        return
-
-    metadata = get_metadata(selected_file)  # Use the new get_metadata function
+# Helper function to process metadata after extraction
+def process_metadata(raw_metadata):
+    """Process raw metadata to standardize field names."""
+    metadata = {}
     
-    # Define a helper function to safely get metadata values
-    def safe_get(metadata, key, default=''):
-        """Safely retrieve a value from metadata with a default if not found."""
-        # Try several possible prefixes for IPTC metadata
-        possible_keys = [
-            f'IPTC:{key}',  # Standard IPTC prefix
-            key,            # Direct key
-            f'XMP:{key}',   # XMP prefix
-            f'EXIF:{key}'   # EXIF prefix
+    # Filter out RichTIFFIPTC warnings if present
+    if 'ExifTool:Warning' in raw_metadata:
+        warning = raw_metadata['ExifTool:Warning']
+        # Check if it's a list or a single string
+        if isinstance(warning, list):
+            # Filter out RichTIFFIPTC and related warnings from the list
+            filtered_warnings = [w for w in warning if not is_richtiffiptc_warning(w)]
+            if filtered_warnings:
+                raw_metadata['ExifTool:Warning'] = filtered_warnings
+            else:
+                # If all warnings were suppressed, remove the warning entirely
+                del raw_metadata['ExifTool:Warning']
+        elif isinstance(warning, str) and is_richtiffiptc_warning(warning):
+            # If the only warning is about RichTIFFIPTC or related issues, remove it
+            del raw_metadata['ExifTool:Warning']
+    
+    # Define mappings for IPTC field names to possible ExifTool field names
+    field_mappings = {
+        'Headline': ['IPTC:Headline', 'XMP-photoshop:Headline', 'XMP:Headline', 'XMP:Title'],
+        'Caption-Abstract': ['IPTC:Caption-Abstract', 'XMP:Description', 'EXIF:ImageDescription'],
+        'Credit': ['IPTC:Credit', 'XMP:Credit', 'XMP-photoshop:Credit'],
+        'Object Name': ['IPTC:ObjectName', 'IPTC:Object Name', 'XMP:Title'],
+        'Writer-Editor': ['IPTC:Writer-Editor', 'XMP:CaptionWriter', 'XMP-photoshop:CaptionWriter'],
+        'By-line': ['IPTC:By-line', 'XMP:Creator', 'EXIF:Artist'],
+        'By-line Title': ['IPTC:By-lineTitle', 'XMP:AuthorsPosition', 'XMP-photoshop:AuthorsPosition'],
+        'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
+        'Date Created': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
+        'Copyright Notice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright']
+    }
+    
+    # Log raw metadata field names for debugging
+    logging.debug(f"Raw metadata fields: {list(raw_metadata.keys())}")
+    
+    # Map the fields
+    for field, possible_names in field_mappings.items():
+        for name in possible_names:
+            if name in raw_metadata:
+                metadata[field] = raw_metadata[name]
+                logging.debug(f"Found '{field}' in '{name}': {raw_metadata[name]}")
+                break
+    
+    # Add debugging log for metadata fields found
+    logging.debug(f"Standardized metadata fields found: {list(metadata.keys())}")
+    logging.debug(f"Metadata values: {metadata}")
+    
+    # For backward compatibility, add raw metadata fields as well
+    # to allow access to any fields not in our mapping
+    metadata.update(raw_metadata)
+    
+    return metadata
+
+class TagWriterApp(wx.App):
+    """Main application class for Tag Writer"""
+    def OnInit(self):
+        """Initialize the application"""
+        # Load preferences if needed
+        # self.load_preferences()  # Uncomment if you implement this method
+        self.frame = TagWriterFrame(None, title="Metadata Tag Writer")
+        self.frame.Show()
+        self.SetTopWindow(self.frame)
+        
+        # Parse command line arguments
+        args = parse_arguments()
+        
+        # Handle version flag
+        if args.version:
+            version_text = "tag-writer-wx.py  version 0.05c  (2025-05-27)"
+            # Add PIL status to version output
+            if not PIL_AVAILABLE:
+                version_text += " [PIL/Pillow not available]"
+            else:
+                version_text += " [PIL support available]"
+                
+            print(version_text)
+            wx.GetApp().ExitMainLoop()
+            return False  # Exit the application
+        
+        # Handle file path argument (command line takes precedence)
+        if args.file_path:
+            self.frame.select_file(args.file_path)
+        # Otherwise, load the most recent file if available
+        elif recent_files and len(recent_files) > 0:
+            most_recent_file = recent_files[0]
+            if os.path.exists(most_recent_file):
+                logging.info(f"Loading most recent file: {most_recent_file}")
+                self.frame.select_file(most_recent_file)
+            else:
+                logging.warning(f"Most recent file no longer exists: {most_recent_file}")
+        
+        return True
+
+# Save application preferences to config
+def save_preferences():
+    """Save application preferences to config file"""
+    global SUPPRESS_LIBTIFF_WARNINGS
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+        else:
+            config_data = {}
+            
+        # Add preferences to config data
+        if 'preferences' not in config_data:
+            config_data['preferences'] = {}
+            
+        config_data['preferences']['suppress_libtiff_warnings'] = SUPPRESS_LIBTIFF_WARNINGS
+        
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config_data, f)
+        logging.debug(f"Preferences saved to {CONFIG_FILE}")
+    except Exception as e:
+        logging.error(f"Error saving preferences: {str(e)}")
+        return False
+    return True
+
+class TagWriterFrame(wx.Frame):
+    """Main application frame."""
+    def __init__(self, parent, title):
+        wx.Frame.__init__(self, parent, title=title, size=(1000, 600))
+        
+        # Set up class variables
+        self.selected_file = None
+        self.selected_file = None
+        self.filename_label = None
+        self.status_label = None
+        self.nav_next_button = None
+        self.thumbnail_image = None
+        self.thumbnail_panel = None
+        self.zoom_info_label = None
+        self.ui_zoom_factor = 1.0
+        self.ui_min_zoom = 0.8
+        self.ui_max_zoom = 1.5
+        self.ui_zoom_step = 0.1
+        self.ui_zoom_label = None
+        self.recent_files_menu = None
+        self.metadata = {}
+        self.preview_dialog = None
+        self.dimensions_label = None
+        
+        # Entry fields
+        self.entry_headline = None
+        self.text_caption_abstract = None
+        self.entry_credit = None
+        self.entry_object_name = None
+        self.entry_writer_editor = None
+        self.entry_by_line = None
+        self.entry_by_line_title = None
+        self.entry_source = None
+        self.entry_date = None
+        self.entry_copyright_notice = None
+        self.caption_char_count = None
+        
+        # Load recent files
+        load_recent_files()
+        
+        # Set up icons
+        self.setup_icons()
+        
+        # Create the UI layout
+        self.create_ui()
+        
+        # Set up key shortcuts
+        self.setup_accelerators()
+        
+        # Set up events
+        self.Bind(wx.EVT_CLOSE, self.on_close)
+        
+        # Set focus to the panel to enable keyboard navigation
+        # Use CallAfter to ensure focus is set after all initialization is complete
+        wx.CallAfter(self.panel.SetFocusIgnoringChildren)
+    
+    def setup_icons(self):
+        """Set up application icons"""
+        try:
+            if PIL_AVAILABLE:
+                icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ICON_tw.png")
+                if os.path.exists(icon_path):
+                    icon = wx.Icon(icon_path)
+                    self.SetIcon(icon)
+                    logging.info(f"Successfully set application icon from {icon_path}")
+                else:
+                    logging.warning(f"Icon file not found: {icon_path}")
+        except Exception as e:
+            logging.error(f"Error setting application icon: {str(e)}")
+    
+    def create_ui(self):
+        """Create the user interface"""
+        # Create the main panel
+        self.panel = wx.Panel(self)
+        
+        # Create the menu bar
+        self.create_menu_bar()
+        
+        # Create the status bar
+        self.create_status_bar()
+        
+        
+        # Create the main layout
+        self.create_layout()
+        
+        # Bind key events to all input controls for better keyboard navigation
+        self.entry_headline.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.text_caption_abstract.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_credit.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_object_name.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_writer_editor.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_by_line.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_by_line_title.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_date.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_copyright_notice.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        
+        # Set focus handling for keyboard navigation
+        self.panel.SetFocus()
+        self.panel.Bind(wx.EVT_SET_FOCUS, self.on_panel_focus)
+        self.Bind(wx.EVT_ACTIVATE, self.on_window_activate)
+    
+    def on_panel_focus(self, event):
+        """Handle panel focus events"""
+        event.Skip()  # Allow focus to propagate
+
+    def on_window_activate(self, event):
+        """Handle window activation"""
+        if event.GetActive():
+            # When window becomes active, set focus to panel for keyboard navigation
+            wx.CallAfter(self.panel.SetFocus)
+        event.Skip()
+        
+    def create_menu_bar(self):
+        """Create the application menu bar"""
+        # Create menubar
+        menubar = wx.MenuBar()
+        
+        # File menu
+        filemenu = wx.Menu()
+        item_open = filemenu.Append(wx.ID_OPEN, "&Open", "Open an image file")
+        
+        # Recent files submenu
+        self.recent_files_menu = wx.Menu()
+        filemenu.AppendSubMenu(self.recent_files_menu, "Recently accessed\tAlt+R")
+        self.build_recent_files_menu()
+        
+        item_save = filemenu.Append(wx.ID_SAVE, "&Save", "Save metadata to the current file")
+        filemenu.AppendSeparator()
+        item_exit = filemenu.Append(wx.ID_EXIT, "E&xit", "Exit the application")
+        
+        # Edit menu
+        editmenu = wx.Menu()
+        item_clear = editmenu.Append(wx.ID_CLEAR, "Clear Fields", "Clear all input fields")
+        editmenu.AppendSeparator()
+        item_export = editmenu.Append(wx.ID_ANY, "Export data", "Export metadata to JSON")
+        editmenu.AppendSeparator()
+        item_rotate_clockwise = editmenu.Append(wx.ID_ANY, "Rotate Clockwise", "Rotate the image 90° clockwise using FFmpeg and save in-place (creates backup)")
+        item_rotate_counterclockwise = editmenu.Append(wx.ID_ANY, "Rotate Counter-clockwise", "Rotate the image 90° counter-clockwise using FFmpeg and save in-place (creates backup)")
+        
+        # Help menu
+        helpmenu = wx.Menu()
+        item_about = helpmenu.Append(wx.ID_ABOUT, "&About", "About Tag Writer")
+        item_license = helpmenu.Append(wx.ID_ANY, "&License", "License information")
+        item_guide = helpmenu.Append(wx.ID_HELP, "Usage &Guide", "Open usage guide in web browser")
+        
+        # Add menus to menubar
+        menubar.Append(filemenu, "&File")
+        menubar.Append(editmenu, "&Edit")
+        menubar.Append(helpmenu, "&Help")
+        self.SetMenuBar(menubar)
+        
+        # Bind menu events
+        self.Bind(wx.EVT_MENU, self.on_open, item_open)
+        self.Bind(wx.EVT_MENU, self.on_write_metadata, item_save)
+        self.Bind(wx.EVT_MENU, self.on_exit, item_exit)
+        self.Bind(wx.EVT_MENU, self.on_clear_fields, item_clear)
+        self.Bind(wx.EVT_MENU, self.on_export_data, item_export)
+        self.Bind(wx.EVT_MENU, self.on_rotate_clockwise, item_rotate_clockwise)
+        self.Bind(wx.EVT_MENU, self.on_rotate_counterclockwise, item_rotate_counterclockwise)
+        self.Bind(wx.EVT_MENU, self.on_about, item_about)
+        self.Bind(wx.EVT_MENU, self.on_license, item_license)
+        self.Bind(wx.EVT_MENU, self.on_usage_guide, item_guide)
+    
+    def create_status_bar(self):
+        """Create the status bar"""
+        self.statusbar = self.CreateStatusBar(3)
+        self.statusbar.SetStatusWidths([200, -1, 200])
+        self.SetStatusText("Ready", 0)
+        self.SetStatusText("", 1)  # Middle section for file path
+        self.SetStatusText("Ver 0.05c (2025-05-27)", 2)
+    
+    def create_layout(self):
+        """Create the main application layout"""
+        # Create main sizer
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        # Top panel for buttons and file display
+        top_panel = wx.Panel(self.panel)
+        top_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # File selection button
+        self.btn_select_file = wx.Button(top_panel, label="Select File")
+        self.btn_select_file.Bind(wx.EVT_BUTTON, self.on_open)
+        top_sizer.Add(self.btn_select_file, 0, wx.ALL, 5)
+        
+        # Navigation buttons
+        self.nav_prev_button = wx.Button(top_panel, label="←", size=(30, -1))
+        self.nav_prev_button.Bind(wx.EVT_BUTTON, lambda evt: self.navigate_to_file(-1))
+        self.nav_prev_button.Disable()
+        top_sizer.Add(self.nav_prev_button, 0, wx.ALL, 5)
+        
+        self.nav_next_button = wx.Button(top_panel, label="→", size=(30, -1))
+        self.nav_next_button.Bind(wx.EVT_BUTTON, lambda evt: self.navigate_to_file(1))
+        self.nav_next_button.Disable()
+        top_sizer.Add(self.nav_next_button, 0, wx.ALL, 5)
+        
+        # Add UI zoom controls
+        zoom_panel = wx.Panel(top_panel)
+        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # Zoom out button
+        zoom_out_btn = wx.Button(zoom_panel, label="-", size=(30, -1))
+        zoom_out_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom_ui(-self.ui_zoom_step))
+        zoom_sizer.Add(zoom_out_btn, 0, wx.ALL, 5)
+        
+        # Zoom info label
+        self.ui_zoom_label = wx.StaticText(zoom_panel, label="UI Zoom: 100%")
+        zoom_sizer.Add(self.ui_zoom_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        # Zoom in button
+        zoom_in_btn = wx.Button(zoom_panel, label="+", size=(30, -1))
+        zoom_in_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom_ui(self.ui_zoom_step))
+        zoom_sizer.Add(zoom_in_btn, 0, wx.ALL, 5)
+        
+        # Reset zoom button
+        reset_zoom_btn = wx.Button(zoom_panel, label="Reset", size=(50, -1))
+        reset_zoom_btn.Bind(wx.EVT_BUTTON, lambda evt: self.reset_ui_zoom())
+        zoom_sizer.Add(reset_zoom_btn, 0, wx.ALL, 5)
+        
+        zoom_panel.SetSizer(zoom_sizer)
+        top_sizer.Add(zoom_panel, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        # Write metadata button
+        self.btn_write = wx.Button(top_panel, label="Write Metadata")
+        self.btn_write.Bind(wx.EVT_BUTTON, self.on_write_metadata)
+        top_sizer.Add(self.btn_write, 0, wx.ALL, 5)
+        
+        # Filename display
+        filename_panel = wx.Panel(top_panel)
+        filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # Main filename label (bold)
+        self.filename_label = wx.StaticText(filename_panel, label="No file selected")
+        self.filename_label.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        filename_sizer.Add(self.filename_label, 1, wx.ALIGN_CENTER_VERTICAL)
+        
+        filename_panel.SetSizer(filename_sizer)
+        top_sizer.Add(filename_panel, 1, wx.ALL | wx.EXPAND, 10)
+        
+        top_panel.SetSizer(top_sizer)
+        main_sizer.Add(top_panel, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # Content sizer (metadata and thumbnail)
+        content_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # Metadata panel (left side)
+        metadata_panel = wx.Panel(self.panel)
+        metadata_box = wx.StaticBox(metadata_panel, label="Metadata Fields")
+        metadata_sizer = wx.StaticBoxSizer(metadata_box, wx.VERTICAL)
+        
+        # Create metadata fields using GridBagSizer for precise control
+        fields_sizer = wx.GridBagSizer(5, 5)
+        
+        # Headline
+        row = 0
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Headline:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_headline = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_headline, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Caption Abstract (multiline text)
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Caption Abstract:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_TOP, border=5)
+        
+        # Create TextCtrl with scrollbar in a panel
+        caption_panel = wx.Panel(metadata_panel)
+        caption_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.text_caption_abstract = wx.TextCtrl(caption_panel, size=(400, 100), 
+                                              style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER)
+        caption_sizer.Add(self.text_caption_abstract, 1, wx.EXPAND)
+        
+        # Character count label
+        self.caption_char_count = wx.StaticText(caption_panel, label="0/256 characters")
+        self.caption_char_count.SetFont(wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        caption_sizer.Add(self.caption_char_count, 0, wx.ALIGN_RIGHT | wx.TOP, 2)
+        
+        caption_panel.SetSizer(caption_sizer)
+        fields_sizer.Add(caption_panel, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Bind event to update character count
+        self.text_caption_abstract.Bind(wx.EVT_TEXT, self.update_char_count)
+        
+        # Credit
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Credit:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_credit = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_credit, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Object Name
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Object Name:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_object_name = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_object_name, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Writer/Editor
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Writer/Editor:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_writer_editor = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_writer_editor, pos=(row, 1), flag=wx.EXPAND)
+        
+        # By-line
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="By-line:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_by_line = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_by_line, pos=(row, 1), flag=wx.EXPAND)
+        
+        # By-line Title
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="By-line Title:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_by_line_title = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_by_line_title, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Source
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Source:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_source = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_source, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Date Created
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Date Created:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_date = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_date, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Copyright Notice
+        row += 1
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Copyright Notice:"), 
+                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
+        self.entry_copyright_notice = wx.TextCtrl(metadata_panel, size=(400, -1))
+        fields_sizer.Add(self.entry_copyright_notice, pos=(row, 1), flag=wx.EXPAND)
+        
+        # Add some padding to the grid
+        fields_sizer.AddGrowableCol(1)
+        metadata_sizer.Add(fields_sizer, 1, wx.EXPAND | wx.ALL, 10)
+        metadata_panel.SetSizer(metadata_sizer)
+        
+        # Thumbnail panel (right side)
+        thumbnail_panel = wx.Panel(self.panel)
+        thumbnail_box = wx.StaticBox(thumbnail_panel, label="Image Preview")
+        thumbnail_sizer = wx.StaticBoxSizer(thumbnail_box, wx.VERTICAL)
+        
+        # Create a fixed-size panel for the thumbnail
+        self.thumbnail_panel = wx.Panel(thumbnail_panel, size=(220, 220), style=wx.BORDER_SUNKEN)
+        self.thumbnail_panel.SetBackgroundColour(wx.Colour(240, 240, 240))
+        
+        # Initialize with "No image" text
+        self.thumbnail_text = wx.StaticText(self.thumbnail_panel, label="No image to display",
+                                          style=wx.ALIGN_CENTER)
+        self.thumbnail_text.SetBackgroundColour(wx.Colour(240, 240, 240))
+        self.thumbnail_text.SetForegroundColour(wx.Colour(100, 100, 100))
+        
+        # Center the text in the thumbnail panel
+        thumbnail_text_sizer = wx.BoxSizer(wx.VERTICAL)
+        thumbnail_text_sizer.Add(self.thumbnail_text, 1, wx.ALIGN_CENTER | wx.ALL, 5)
+        self.thumbnail_panel.SetSizer(thumbnail_text_sizer)
+        
+        # Add thumbnail panel to its container
+        thumbnail_sizer.Add(self.thumbnail_panel, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+        
+        # View full image button
+        self.btn_view_full = wx.Button(thumbnail_panel, label="View Full Image")
+        self.btn_view_full.Bind(wx.EVT_BUTTON, self.on_view_full_image)
+        thumbnail_sizer.Add(self.btn_view_full, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        
+        # Add dimensions label - create a panel to contain the centered label
+        dim_panel = wx.Panel(thumbnail_panel)
+        dim_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.dimensions_label = wx.StaticText(dim_panel, label="Dimensions: --", style=wx.ALIGN_CENTER_HORIZONTAL)
+        self.dimensions_label.SetFont(wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
+        dim_panel_sizer.Add(self.dimensions_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        
+        dim_panel.SetSizer(dim_panel_sizer)
+        thumbnail_sizer.Add(dim_panel, 0, wx.EXPAND | wx.BOTTOM, 10)
+        
+        # Bind click on thumbnail to view full image
+        self.thumbnail_panel.Bind(wx.EVT_LEFT_DOWN, self.on_view_full_image)
+        
+        thumbnail_panel.SetSizer(thumbnail_sizer)
+        
+        # Add metadata and thumbnail panels to content sizer
+        content_sizer.Add(metadata_panel, 1, wx.EXPAND | wx.RIGHT, 10)
+        content_sizer.Add(thumbnail_panel, 0, wx.EXPAND)
+        
+        # Add content sizer to main sizer
+        main_sizer.Add(content_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        
+        # Set up the panel sizer
+        self.panel.SetSizer(main_sizer)
+        
+        # Layout and fit
+        main_sizer.Fit(self.panel)
+        
+        # Initialize UI zoom
+        self.apply_ui_zoom()
+    
+    def setup_accelerators(self):
+        """Set up keyboard shortcuts"""
+        # Update display to show warnings if present (but don't block operation)
+        if 'ExifTool:Warning' in self.metadata:
+            warning = self.metadata['ExifTool:Warning']
+            # Handle different warning formats
+            if isinstance(warning, str):
+                # Check if this is a warning we should suppress
+                if is_richtiffiptc_warning(warning):
+                    # Just log it but don't show popup
+                    logging.info(f"Suppressed warning: {warning}")
+                else:
+                    # Show other warnings
+                    logging.warning(f"ExifTool Warning: {warning}")
+                    wx.MessageBox(warning, "ExifTool Warning", wx.OK | wx.ICON_WARNING)
+            elif isinstance(warning, list):
+                # Filter warnings to show (exclude suppressed warning types)
+                warnings_to_show = [w for w in warning if not is_richtiffiptc_warning(w)]
+                
+                # Log the suppressed warnings
+                suppressed_warnings = [w for w in warning if is_richtiffiptc_warning(w)]
+                if suppressed_warnings:
+                    logging.info(f"Suppressed warnings: {suppressed_warnings}")
+                
+                # Show only non-suppressed warnings
+                if warnings_to_show:
+                    combined_warning = "\n".join(warnings_to_show)
+                    logging.warning(f"ExifTool Warning: {combined_warning}")
+                    wx.MessageBox(combined_warning, "ExifTool Warning", wx.OK | wx.ICON_WARNING)
+        
+        # Create an accelerator table for keyboard shortcuts
+        accel_entries = [
+            # File menu
+            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('O'), wx.ID_OPEN),  # Ctrl+O for Open
+            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('S'), wx.ID_SAVE),  # Ctrl+S for Save
+            # Edit menu
+            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('L'), wx.ID_CLEAR),  # Ctrl+L for Clear fields
+            # We don't add LEFT/RIGHT here because accelerator tables don't work well with them
         ]
         
-        for possible_key in possible_keys:
-            if possible_key in metadata:
-                value = metadata[possible_key]
-                # Convert to string if not already
-                if value is None:
-                    return default
-                return str(value)
+        accel_tbl = wx.AcceleratorTable(accel_entries)
+        self.SetAcceleratorTable(accel_tbl)
         
-        return default
-
-    # Populate the entry fields with existing metadata
-    entry_headline.delete(0, tk.END)
-    entry_headline.insert(0, safe_get(metadata, 'Headline'))
-    
-    entry_credit.delete(0, tk.END)
-    entry_credit.insert(0, safe_get(metadata, 'Credit'))
-    
-    entry_object_name.delete(0, tk.END)
-    entry_object_name.insert(0, safe_get(metadata, 'ObjectName'))
-    
-    entry_caption_abstract.delete(0, tk.END)
-    entry_caption_abstract.insert(0, safe_get(metadata, 'Caption-Abstract'))
-    
-    entry_writer_editor.delete(0, tk.END)
-    entry_writer_editor.insert(0, safe_get(metadata, 'Writer-Editor'))
-    
-    entry_by_line.delete(0, tk.END)
-    entry_by_line.insert(0, safe_get(metadata, 'By-line'))
-    
-    entry_source.delete(0, tk.END)
-    entry_source.insert(0, safe_get(metadata, 'Source'))
-    
-    entry_date.delete(0, tk.END)
-    entry_date.insert(0, safe_get(metadata, 'DateCreated'))
-    
-    entry_copyright_notice.delete(0, tk.END)
-    entry_copyright_notice.insert(0, safe_get(metadata, 'CopyrightNotice'))
-
-def write_metadata():
-    global status_label
-    if not selected_file:
-        print("No file selected!")
-        status_label.config(text="Error: No file selected!", fg="red")
-        return
-
-    Headline = entry_headline.get()
-    Credit = entry_credit.get()
-    ObjectName = entry_object_name.get()
-    CaptionAbstract = entry_caption_abstract.get()
-    WriterEditor = entry_writer_editor.get()
-    By_line = entry_by_line.get()
-    Source = entry_source.get()
-    Date = entry_date.get()
-    CopyrightNotice = entry_copyright_notice.get()
-
-    with exiftool.ExifTool() as et:
-        # Set the save_backup parameter to False
-        et.save_backup = False
-
-        et.execute(b"-Headline=" + Headline.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-Credit=" + Credit.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-ObjectName=" + ObjectName.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-Caption-Abstract=" + CaptionAbstract.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-Writer-Editor=" + WriterEditor.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-By-line=" + By_line.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-Source=" + Source.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-DateCreated=" + Date.encode('utf-8'), selected_file.encode('utf-8'))
-        et.execute(b"-CopyrightNotice=" + CopyrightNotice.encode('utf-8'), selected_file.encode('utf-8'))
-
-    print("Metadata written successfully!")
-    status_label.config(text="Metadata written successfully!", fg="green")
-
-def export_metadata_to_json():
-    """Export metadata from selected file to a JSON file."""
-    global status_label
-    if not selected_file:
-        print("No file selected!")
-        status_label.config(text="Error: No file selected!", fg="red")
-        return
-
-    try:
-        # Get metadata from the selected file
-        metadata = get_metadata(selected_file)
+        # Bind key events for navigation (left/right arrows)
+        self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         
-        # Extract base filename from selected_file and change extension to .json
-        base_filename = os.path.basename(selected_file)
-        base_name_without_ext = os.path.splitext(base_filename)[0]
-        default_json_filename = f"{base_name_without_ext}.json"
+        # Add keyboard shortcuts for zooming
+        self.Bind(wx.EVT_CHAR_HOOK, self.on_key_for_zoom)
         
-        # Prompt user for save location
-        file_path = filedialog.asksaveasfilename(
-            defaultextension=".json",
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            title="Save metadata as JSON",
-            initialfile=default_json_filename
-        )
+        # Also bind to the panel to ensure it catches key events when focused
+        self.panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
         
-        # If user cancels the dialog
-        if not file_path:
-            return
-            
-        # Write metadata to JSON file
-        with open(file_path, 'w', encoding='utf-8') as json_file:
-            json.dump(metadata, json_file, indent=4)
-            
-        print(f"Metadata exported successfully to {file_path}")
-        status_label.config(text=f"Metadata exported successfully!", fg="green")
+        # Ensure the panel can receive keyboard focus
+        self.panel.SetFocusIgnoringChildren()
+    def build_recent_files_menu(self):
+        """Build the recent files menu"""
+        global recent_files
         
-    except Exception as e:
-        error_msg = f"Error exporting metadata: {str(e)}"
-        print(error_msg)
-        status_label.config(text=error_msg, fg="red")
-
-def clear_metadata_fields():
-    """Clear all metadata entry fields and update status label."""
-    global status_label
-    
-    # Clear all entry fields
-    entry_headline.delete(0, tk.END)
-    entry_caption_abstract.delete(0, tk.END)
-    entry_credit.delete(0, tk.END)
-    entry_object_name.delete(0, tk.END)
-    entry_writer_editor.delete(0, tk.END)
-    entry_by_line.delete(0, tk.END)
-    entry_source.delete(0, tk.END)
-    entry_date.delete(0, tk.END)
-    entry_copyright_notice.delete(0, tk.END)
-    
-    # Update status label
-    status_label.config(text="All fields cleared", fg="green")
-def update_thumbnail():
-    """Load the selected image file and display it as a thumbnail with robust error handling."""
-    global selected_file, thumbnail_label, thumbnail_image
-    
-    logging.debug("=== THUMBNAIL DEBUGGING START ===")
-    logging.debug(f"Update thumbnail called for file: {selected_file}")
-    
-    # Clear previous thumbnail
-    if 'thumbnail_label' in globals() and thumbnail_label:
-        logging.debug("Clearing previous thumbnail")
-        thumbnail_label.config(image='')
-    else:
-        logging.debug("No thumbnail_label found in globals")
-    
-    # If no file is selected, show appropriate message and return early
-    if not selected_file:
-        logging.debug("No file selected, aborting thumbnail update")
-        if 'thumbnail_label' in globals() and thumbnail_label:
-            thumbnail_label.config(text="No image to display", image='')
-        return
-    
-    # If PIL is not available, show appropriate message and return early
-    if not PIL_AVAILABLE:
-        logging.debug("PIL/Pillow not available, cannot proceed with thumbnail creation")
-        if 'thumbnail_label' in globals() and thumbnail_label:
-            thumbnail_label.config(text="Image preview not available\n(PIL/Pillow library not installed)", image='')
-        return
-    
-    try:
-        # Try to determine if the file is an image without opening it
-        file_ext = os.path.splitext(selected_file)[1].lower()
-        image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.bmp']
+        # Clear the menu by removing all existing items
+        menu_items = self.recent_files_menu.GetMenuItems()
+        for item in menu_items:
+            self.recent_files_menu.Remove(item.GetId())
         
-        logging.debug(f"Checking file extension: {file_ext}")
-        if file_ext not in image_extensions:
-            logging.debug(f"File extension {file_ext} not recognized as an image type")
-            if 'thumbnail_label' in globals() and thumbnail_label:
-                thumbnail_label.config(text=f"Not an image file\nFile type: {file_ext}", image='')
-            return
-        
-        # Try to open the image
-        try:
-            logging.debug(f"Attempting to open image file: {selected_file}")
-            img = Image.open(selected_file)
-            # Print image info for debugging
-            original_width, original_height = img.size
-            img_format = img.format
-            img_mode = img.mode
-            
-            logging.debug(f"Image successfully opened: {img_format} format, {img_mode} mode")
-            logging.debug(f"Original dimensions: {original_width}x{original_height} pixels")
-            
-            # Also print to console for immediate feedback
-            print(f"DEBUG: Loaded image: {os.path.basename(selected_file)}")
-            print(f"DEBUG: Format: {img_format}, Mode: {img_mode}, Size: {original_width}x{original_height}")
-        except Exception as e:
-            logging.error(f"Error opening image: {str(e)}")
-            print(f"ERROR: Failed to open image: {str(e)}")
-            if 'thumbnail_label' in globals() and thumbnail_label:
-                thumbnail_label.config(text=f"Cannot open image:\n{str(e)[:30]}...", image='')
-            return
-        
-        # Calculate new dimensions while maintaining aspect ratio
-        max_size = (200, 200)
-        logging.debug(f"Resizing image to maximum dimensions: {max_size}")
-        
-        # Store original image for comparison
-        original_img = img.copy()
-        
-        try:
-            # LANCZOS was introduced in Pillow 9.1.0, use ANTIALIAS for older versions as fallback
-            try:
-                logging.debug("Attempting to resize using LANCZOS filter")
-                img.thumbnail(max_size, Image.LANCZOS)
-                logging.debug("Successfully resized using LANCZOS")
-            except AttributeError as e:
-                logging.debug(f"LANCZOS not available: {str(e)}, trying ANTIALIAS")
-                try:
-                    img.thumbnail(max_size, Image.ANTIALIAS)
-                    logging.debug("Successfully resized using ANTIALIAS")
-                except AttributeError as e2:
-                    logging.debug(f"ANTIALIAS not available: {str(e2)}, using default method")
-                    # If neither is available, use the default method
-                    img.thumbnail(max_size)
-                    logging.debug("Successfully resized using default method")
-            
-            # Log the new dimensions
-            new_width, new_height = img.size
-            logging.debug(f"Resized dimensions: {new_width}x{new_height} pixels")
-            print(f"DEBUG: Resized to: {new_width}x{new_height}")
-        except Exception as e:
-            logging.error(f"Error resizing image: {str(e)}")
-            print(f"ERROR: Failed to resize image: {str(e)}")
-            if 'thumbnail_label' in globals() and thumbnail_label:
-                thumbnail_label.config(text=f"Cannot resize image:\n{str(e)[:30]}...", image='')
-            return
-        
-        # Check if ImageTk is available before trying to create PhotoImage
-        if not IMAGETK_AVAILABLE:
-            logging.debug("ImageTk not available, cannot create PhotoImage")
-            if 'thumbnail_label' in globals() and thumbnail_label:
-                thumbnail_label.config(text="ImageTk not available\nCannot display preview", image='')
-                thumbnail_label.config(bg="light gray")  # Visual indicator
-            return
-            
-        # Try to convert to PhotoImage for tkinter display
-        try:
-            logging.debug("Creating PhotoImage from resized image")
-            photo_img = ImageTk.PhotoImage(img)
-            logging.debug(f"PhotoImage created successfully, dimensions: {photo_img.width()}x{photo_img.height()}")
-            print(f"DEBUG: PhotoImage created: {photo_img.width()}x{photo_img.height()}")
-            
-            # Check if the PhotoImage dimensions match the resized image
-            if photo_img.width() != new_width or photo_img.height() != new_height:
-                logging.warning(f"PhotoImage dimensions ({photo_img.width()}x{photo_img.height()}) don't match resized image ({new_width}x{new_height})")
-            
-            thumbnail_image = photo_img  # Store reference to prevent garbage collection
-            logging.debug("Reference to PhotoImage stored in thumbnail_image global variable")
-            
-            # Update the thumbnail display
-            if 'thumbnail_label' in globals() and thumbnail_label:
-                logging.debug("Updating thumbnail_label with the new image")
-                # Configure the label with the new image and ensure it fills the available space
-                thumbnail_label.config(image=thumbnail_image, text="", width=photo_img.width(), height=photo_img.height())
-                # Force the thumbnail_label to maintain the image's size
-                thumbnail_label.image = thumbnail_image  # Keep a reference to prevent garbage collection
-                logging.debug("Successfully updated thumbnail_label")
-                
-                # Verify that the label is visible and correctly positioned
-                logging.debug(f"thumbnail_label dimensions: {thumbnail_label.winfo_width()}x{thumbnail_label.winfo_height()}")
-                logging.debug(f"thumbnail_label visibility: {'visible' if thumbnail_label.winfo_ismapped() else 'not visible'}")
-                print(f"DEBUG: Label dimensions: {thumbnail_label.winfo_width()}x{thumbnail_label.winfo_height()}")
-                print(f"DEBUG: Label visibility: {'visible' if thumbnail_label.winfo_ismapped() else 'not visible'}")
-            else:
-                logging.error("thumbnail_label not found or not properly initialized")
-        except Exception as e:
-            logging.error(f"Error creating PhotoImage: {str(e)}")
-            print(f"ERROR: Failed to create PhotoImage: {str(e)}")
-            if 'thumbnail_label' in globals() and thumbnail_label:
-                thumbnail_label.config(text=f"Cannot create thumbnail:\n{str(e)[:30]}...", image='')
-    except Exception as e:
-        # Catch-all for any other errors
-        logging.error(f"Unexpected error in thumbnail display: {str(e)}")
-        print(f"ERROR: Unexpected error in thumbnail display: {str(e)}")
-        if 'thumbnail_label' in globals() and thumbnail_label:
-            thumbnail_label.config(text=f"Error displaying preview:\n{str(e)[:30]}...", image='')
-    
-    logging.debug("=== THUMBNAIL DEBUGGING END ===")
-    # Force update the GUI to ensure changes are visible
-    if 'root' in globals():
-        try:
-            root.update_idletasks()
-            # Print updated label dimensions for debugging
-            if 'thumbnail_label' in globals() and thumbnail_label:
-                print(f"DEBUG: After update_idletasks - Label dimensions: {thumbnail_label.winfo_width()}x{thumbnail_label.winfo_height()}")
-                print(f"DEBUG: After update_idletasks - Label visibility: {'visible' if thumbnail_label.winfo_ismapped() else 'not visible'}")
-            logging.debug("Forced GUI update via update_idletasks()")
-        except Exception as e:
-            logging.error(f"Error updating GUI: {str(e)}")
-
-def show_full_image():
-    """
-    Displays the full-sized version of the currently selected image in a new window.
-    
-    Features:
-    - Creates a new Toplevel window with the image filename as part of the title
-    - Loads the full image using PIL/Pillow, scaling down if too large for the screen
-    - Displays a button to close the window
-    - Handles potential errors gracefully with appropriate user feedback
-    """
-    global selected_file, root
-    
-    # Check if a file is selected
-    if not selected_file:
-        messagebox.showinfo("No Image", "No image file is currently selected.")
-        return
-    
-    # Check if PIL is available
-    if not PIL_AVAILABLE:
-        messagebox.showerror("Feature Unavailable", 
-                            "Cannot display full image. PIL/Pillow library is not installed.")
-        return
-    
-    try:
-        # Create new window
-        img_window = tk.Toplevel(root)
-        img_window.title(f"Full Image: {os.path.basename(selected_file)}")
-        
-        # Calculate maximum display size (80% of screen dimensions)
-        screen_width = img_window.winfo_screenwidth()
-        screen_height = img_window.winfo_screenheight()
-        max_width = int(screen_width * 0.8)
-        max_height = int(screen_height * 0.8)
-        
-        # Load the image and get original dimensions
-        img = Image.open(selected_file)
-        original_width, original_height = img.size
-        
-        # Calculate the scaling factor if image is too large
-        scale_width = max_width / original_width if original_width > max_width else 1
-        scale_height = max_height / original_height if original_height > max_height else 1
-        scale = min(scale_width, scale_height)
-        
-        # Resize image if necessary
-        if scale < 1:
-            new_width = int(original_width * scale)
-            new_height = int(original_height * scale)
-            
-            # Use appropriate resampling method based on PIL version
-            try:
-                img = img.resize((new_width, new_height), Image.LANCZOS)
-            except AttributeError:
-                try:
-                    img = img.resize((new_width, new_height), Image.ANTIALIAS)
-                except AttributeError:
-                    img = img.resize((new_width, new_height))
-        
-        # Convert to PhotoImage for display
-        if IMAGETK_AVAILABLE:
-            photo_img = ImageTk.PhotoImage(img)
-            
-            # Create label to display the image
-            image_label = tk.Label(img_window, image=photo_img, cursor="hand2")  # Add hand cursor to indicate clickability
-            image_label.image = photo_img  # Keep a reference
-            image_label.pack(padx=10, pady=10)
-            
-            # Bind mouse click to close the window
-            image_label.bind("<Button-1>", lambda e: img_window.destroy())
-            
-            # Add dimension information
-            if scale < 1:
-                info_text = f"Scaled image: {photo_img.width()}x{photo_img.height()} (Original: {original_width}x{original_height})"
-            else:
-                info_text = f"Original size: {original_width}x{original_height}"
-            
-            info_label = tk.Label(img_window, text=info_text)
-            info_label.pack(pady=5)
-            
-            # Add close button
-            close_button = tk.Button(img_window, text="Close", command=img_window.destroy)
-            close_button.pack(pady=10)
-            # Set focus to window
-            img_window.focus_set()
-            
-            # Bind Escape key to close the window
-            img_window.bind("<Escape>", lambda e: img_window.destroy())
-            
-            # Update the window to ensure it's rendered before attempting to grab
-            img_window.update()
-            
-            # Set grab after a short delay to ensure window is visible
-            def set_grab():
-                try:
-                    if img_window.winfo_exists():
-                        img_window.grab_set()
-                except Exception as e:
-                    logging.error(f"Error setting grab on image window: {str(e)}")
-                    
-            # Schedule grab_set to occur after the window is fully visible
-            img_window.after(100, set_grab)
+        # Add recent files to menu
+        if recent_files:
+            for i, file_path in enumerate(recent_files):
+                # Get the base filename for menu item
+                basename = os.path.basename(file_path)
+                item = self.recent_files_menu.Append(wx.ID_FILE1 + i, basename)
+                self.Bind(wx.EVT_MENU, lambda evt, path=file_path: self.open_recent_file(path), item)
         else:
-            # Handle case where ImageTk is not available
-            img_window.geometry("400x150")
-            error_label = tk.Label(img_window, 
-                                  text="ImageTk is not available.\nCannot display the full image.",
-                                  fg="red")
-            error_label.pack(padx=20, pady=20)
+            # If no recent files, add a disabled item
+            item = self.recent_files_menu.Append(wx.ID_ANY, "No recent files")
+            item.Enable(False)
+    
+    def open_recent_file(self, file_path):
+        """Open a file from the recent files list"""
+        if os.path.exists(file_path):
+            self.select_file(file_path)
             
-            # Add close button
-            close_button = tk.Button(img_window, text="Close", command=img_window.destroy)
-            close_button.pack(pady=10)
+            # Update status to show navigation hint
+            if directory_image_files and len(directory_image_files) > 1:
+                self.SetStatusText(f"Use ← → buttons to navigate through {len(directory_image_files)} images in folder", 0)
+        else:
+            # If the file no longer exists, show an error and update the menu
+            self.SetStatusText(f"Error: File '{os.path.basename(file_path)}' no longer exists", 0)
+            if file_path in recent_files:
+                recent_files.remove(file_path)
+                self.build_recent_files_menu()
     
-    except Exception as e:
-        # Handle any errors that might occur
-        if 'img_window' in locals() and img_window.winfo_exists():
-            img_window.destroy()  # Close the window if it exists
+    def update_char_count(self, event):
+        """Update character count for caption abstract"""
+        current_text = self.text_caption_abstract.GetValue()
+        current_length = len(current_text)
         
-        error_message = f"Error displaying image: {str(e)}"
-        logging.error(error_message)
-        messagebox.showerror("Error", error_message)
-
-
-def start_gui(initial_file=None):
-    global root, entry_headline, entry_caption_abstract, entry_credit, entry_object_name
-    global entry_writer_editor, entry_by_line, entry_source, entry_date, entry_copyright_notice, selected_file
-    global status_label, filename_label, thumbnail_label, thumbnail_image, recent_files_menu
-    # Create the GUI window
-    root = tk.Tk()
-    root.title("Metadata Tag Writer")
+        # Update character count label
+        self.caption_char_count.SetLabel(f"{current_length}/256 characters")
+        
+        # Change color if over limit
+        if current_length > 256:
+            self.caption_char_count.SetForegroundColour(wx.Colour(255, 0, 0))  # Red
+            
+            # Truncate text if over limit
+            self.text_caption_abstract.ChangeValue(current_text[:256])
+            self.text_caption_abstract.SetInsertionPointEnd()
+            
+            # Update count again after truncation
+            self.caption_char_count.SetLabel("256/256 characters")
+        else:
+            self.caption_char_count.SetForegroundColour(wx.Colour(0, 0, 0))  # Black
     
-    root.geometry("1000x600")     # sets default window size
-    root.configure(padx=5, pady=5)  # Add padding around the main window
+    def select_file(self, file_path=None):
+        """Select a file and load its metadata"""
+        global selected_file, current_file_index, directory_image_files
+        
+        if file_path:
+            if os.path.isfile(file_path):
+                selected_file = file_path
+                self.selected_file = file_path
+                
+                # Update the filename label and path in status bar
+                basename = os.path.basename(selected_file)
+                self.filename_label.SetLabel(f"File: {basename}")
+                self.SetStatusText(selected_file, 1)  # Show path in middle status section
+                # Read metadata and update UI
+                self.read_metadata()
+                self.update_thumbnail()
+                
+                # Update preview dialog if it's open
+                if self.preview_dialog and self.preview_dialog.IsShown():
+                    # Create a copy of the original image to prevent any references being lost
+                    if original_image and original_image.IsOk():
+                        new_image = original_image.Copy()
+                    else:
+                        new_image = None
+                        
+                    self.preview_dialog.image_path = file_path
+                    self.preview_dialog.original_image = new_image
+                    # Force title update and image refresh
+                    self.preview_dialog.SetTitle(f"Full Image: {os.path.basename(file_path)}")
+                    wx.CallAfter(self.preview_dialog.update_image)  # Use CallAfter to ensure UI updates properly
+                
+                update_recent_files(file_path)
+                self.build_recent_files_menu()
+                
+                # Update directory_image_files if needed
+                directory = os.path.dirname(selected_file)
+                if not directory_image_files or os.path.dirname(directory_image_files[0]) != directory:
+                    get_directory_image_files(directory)
+                
+                # Find the index of the selected file in directory_image_files
+                try:
+                    current_file_index = directory_image_files.index(selected_file)
+                except ValueError:
+                    current_file_index = -1
+                
+                # Update navigation button states
+                self.update_navigation_buttons()
+            else:
+                print(f"Error: The file '{file_path}' does not exist or is not accessible.")
+                wx.MessageBox(f"Error: The file '{file_path}' does not exist or is not accessible.",
+                              "File Error", wx.OK | wx.ICON_ERROR)
+        else:
+            # Open file dialog
+            self.on_open()
     
-    # Load recent files from config file
-    load_recent_files()
+    def read_metadata(self):
+        """Read metadata from the selected file and populate the entry fields"""
+        global selected_file
+        
+        if selected_file and os.path.isfile(selected_file):
+            try:
+                # Clear the status bar
+                self.SetStatusText("Reading metadata...", 0)
+                
+                # Get metadata using exiftool
+                # Get metadata using exiftool
+                metadata = get_metadata(selected_file)
+                
+                # Store metadata for other methods to access
+                self.metadata = metadata
+                
+                # Populate entry fields with metadata values
+                if metadata:
+                    fields_found = 0
+                    
+                    # Headline
+                    headline = metadata.get('Headline', '')
+                    self.entry_headline.SetValue(headline)
+                    if headline: fields_found += 1
+                    
+                    # Caption/Abstract
+                    caption = metadata.get('Caption-Abstract', '')
+                    self.text_caption_abstract.SetValue(caption)
+                    self.update_char_count(None)  # Update character count
+                    if caption: fields_found += 1
+                    
+                    # Credit
+                    credit = metadata.get('Credit', '')
+                    self.entry_credit.SetValue(credit)
+                    if credit: fields_found += 1
+                    
+                    # Object Name
+                    object_name = metadata.get('Object Name', '')
+                    self.entry_object_name.SetValue(object_name)
+                    if object_name: fields_found += 1
+                    
+                    # Writer/Editor
+                    writer = metadata.get('Writer-Editor', '')
+                    self.entry_writer_editor.SetValue(writer)
+                    if writer: fields_found += 1
+                    
+                    # By-line
+                    byline = metadata.get('By-line', '')
+                    self.entry_by_line.SetValue(byline)
+                    if byline: fields_found += 1
+                    
+                    # By-line Title
+                    byline_title = metadata.get('By-line Title', '')
+                    self.entry_by_line_title.SetValue(byline_title)
+                    if byline_title: fields_found += 1
+                    
+                    # Source
+                    source = metadata.get('Source', '')
+                    self.entry_source.SetValue(source)
+                    if source: fields_found += 1
+                    
+                    # Date Created
+                    date_created = metadata.get('Date Created', '')
+                    self.entry_date.SetValue(date_created)
+                    if date_created: fields_found += 1
+                    
+                    # Copyright Notice
+                    copyright_notice = metadata.get('Copyright Notice', '')
+                    self.entry_copyright_notice.SetValue(copyright_notice)
+                    if copyright_notice: fields_found += 1
+                    
+                    # Update status bar with info about fields found
+                    self.SetStatusText(f"Found {fields_found} metadata fields in {os.path.basename(selected_file)}", 0)
+                else:
+                    # Clear fields if no metadata
+                    self.clear_fields()
+                    self.SetStatusText(f"No metadata found in {os.path.basename(selected_file)}", 0)
+                
+                # Make sure path is still displayed (status text might have been updated)
+                if selected_file:
+                    self.SetStatusText(selected_file, 1)
+            
+            except Exception as e:
+                logging.error(f"Error reading metadata: {str(e)}")
+                self.SetStatusText(f"Error reading metadata: {str(e)}", 0)
+                
+                # Show error dialog
+                wx.MessageBox(f"Error reading metadata: {str(e)}", 
+                              "Metadata Error", wx.OK | wx.ICON_ERROR)
     
-    # Add function to exit application when 'q' is pressed
-    def quit_app(event=None):
-        save_recent_files()  # Save recent files before closing
-        root.destroy()
+    def update_thumbnail(self):
+        """Update the thumbnail preview with the selected image"""
+        global selected_file
+        
+        # Clear old thumbnail if exists
+        if hasattr(self, "thumbnail_bitmap"):
+            del self.thumbnail_bitmap
+        
+        # Clear the thumbnail panel by removing its children
+        for child in self.thumbnail_panel.GetChildren():
+            child.Destroy()
+        
+        # Create new sizer for the thumbnail panel
+        thumbnail_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        if selected_file and os.path.isfile(selected_file):
+            try:
+                file_ext = os.path.splitext(selected_file)[1].lower()
+                is_tiff = file_ext in ['.tif', '.tiff']
+                
+                # For TIFF files, try to use PIL if available to avoid LibTIFF warnings
+                if is_tiff and PIL_AVAILABLE:
+                    try:
+                        # Use PIL to load and convert the image
+                        logging.debug("Loading TIFF image using PIL to avoid LibTIFF warnings")
+                        pil_img = Image.open(selected_file)
+                        
+                        # Convert to a format wxPython can handle without warnings
+                        with io.BytesIO() as temp_buffer:
+                            pil_img.save(temp_buffer, format="PNG")
+                            temp_buffer.seek(0)
+                            
+                            # Load the PNG data
+                            img = wx.Image(temp_buffer, wx.BITMAP_TYPE_PNG)
+                    except Exception as pil_error:
+                        logging.warning(f"Failed to load image with PIL, falling back to wx.Image: {str(pil_error)}")
+                        # Fall back to regular loading but suppress warnings
+                        with SuppressStderr():
+                            img = wx.Image(selected_file, wx.BITMAP_TYPE_ANY)
+                else:
+                    # For non-TIFF files or if PIL isn't available, use standard loading
+                    # but suppress stderr for TIFF files to prevent warning popups
+                    if is_tiff:
+                        with SuppressStderr():
+                            img = wx.Image(selected_file, wx.BITMAP_TYPE_ANY)
+                    else:
+                        img = wx.Image(selected_file, wx.BITMAP_TYPE_ANY)
+                
+                if img.IsOk():
+                    # Save original image for potential future use
+                    global original_image
+                    original_image = img.Copy()
+                    
+                    # Scale to fit thumbnail panel (max 200x200)
+                    img_width = img.GetWidth()
+                    img_height = img.GetHeight()
+                    
+                    # Update dimensions label
+                    dimensions_text = f"Dimensions: {img_width} x {img_height} pixels"
+                    self.dimensions_label.SetLabel(dimensions_text)
+                    # Make sure the dimensions label gets properly centered and wrapped if needed
+                    self.dimensions_label.GetParent().Layout()
+                    
+                    # Calculate scaling factor to fit within thumbnail boundaries
+                    max_size = 200
+                    scale_factor = min(max_size / img_width, max_size / img_height)
+                    
+                    # Scale image
+                    new_width = int(img_width * scale_factor)
+                    new_height = int(img_height * scale_factor)
+                    img = img.Scale(new_width, new_height, wx.IMAGE_QUALITY_HIGH)
+                    
+                    # Convert to bitmap
+                    self.thumbnail_bitmap = wx.StaticBitmap(
+                        self.thumbnail_panel, 
+                        bitmap=wx.Bitmap(img),
+                        size=(new_width, new_height)
+                    )
+                    
+                    # Add to sizer with centering
+                    thumbnail_sizer.Add(self.thumbnail_bitmap, 0, wx.ALIGN_CENTER | wx.ALL, 10)
+                    
+                    # Enable full image viewing
+                    self.btn_view_full.Enable()
+                else:
+                    self.display_no_image_message(thumbnail_sizer)
+                    self.dimensions_label.SetLabel("Dimensions: --")
+            except Exception as e:
+                logging.error(f"Error loading thumbnail: {str(e)}")
+                self.display_no_image_message(thumbnail_sizer, error_message=str(e))
+                self.dimensions_label.SetLabel("Dimensions: --")
+        else:
+            self.display_no_image_message(thumbnail_sizer)
+            # Reset dimensions label when no image
+            self.dimensions_label.SetLabel("Dimensions: --")
+        
+        # Set the new sizer
+        self.thumbnail_panel.SetSizer(thumbnail_sizer)
+        self.thumbnail_panel.Layout()
     
-    # Bind the 'q' key to the quit_app function
-    root.bind('<q>', quit_app)
+    def display_no_image_message(self, sizer, error_message=None):
+        """Display message when no image is available"""
+        message = "No image to display"
+        if error_message:
+            message = f"Error: {error_message}"
+        
+        text = wx.StaticText(self.thumbnail_panel, label=message, style=wx.ALIGN_CENTER)
+        text.SetForegroundColour(wx.Colour(100, 100, 100))
+        sizer.Add(text, 1, wx.ALIGN_CENTER | wx.ALL, 10)
+        
+        # Disable full image viewing
+        self.btn_view_full.Disable()
     
-    # Function to show About dialog
-    def show_about_dialog():
-        messagebox.showinfo(
-            "About Tag Writer",
-            "Tag Writer\n\n"
-            "Version: 0.11\n\n"
-            "A tool for viewing and editing IPTC metadata in image files.\n\n"
-            "© 2025 Juren"
+    def update_navigation_buttons(self):
+        """Update navigation button states based on current file index"""
+        global current_file_index, directory_image_files
+        
+        if current_file_index >= 0 and directory_image_files:
+            # Enable prev button if not at first file
+            self.nav_prev_button.Enable(current_file_index > 0)
+            
+            # Enable next button if not at last file
+            self.nav_next_button.Enable(current_file_index < len(directory_image_files) - 1)
+            
+            # Update status bar with navigation info
+            total_files = len(directory_image_files)
+            if total_files > 1:
+                self.SetStatusText(f"Image {current_file_index + 1} of {total_files}", 0)
+                
+                # Make sure path is still displayed
+                if selected_file:
+                    self.SetStatusText(selected_file, 1)
+        else:
+            # Disable both buttons if no valid index
+            self.nav_prev_button.Disable()
+            self.nav_next_button.Disable()
+    
+    
+    def navigate_to_file(self, direction):
+        """Navigate to next/previous file in the directory"""
+        global current_file_index, directory_image_files
+        
+        # Calculate new index
+        new_index = current_file_index + direction
+        
+        # Check if the new index is valid
+        if 0 <= new_index < len(directory_image_files):
+            next_file = directory_image_files[new_index]
+            if os.path.exists(next_file):
+                # Select the next file
+                self.select_file(next_file)
+                
+                # Update status bar with navigation info
+                total_files = len(directory_image_files)
+                self.SetStatusText(f"Image {new_index + 1} of {total_files}", 0)
+        else:
+            # We've reached the end of the list
+            if new_index < 0:
+                self.SetStatusText("Already at first image", 0)
+            else:
+                self.SetStatusText("Already at last image", 0)
+    
+    def on_rotate_clockwise(self, event):
+        """Rotate the current image 90 degrees clockwise using FFmpeg, creating a backup and saving in-place"""
+        global selected_file
+        
+        if not selected_file or not os.path.isfile(selected_file):
+            wx.MessageBox("No image selected", "Rotation Error", wx.OK | wx.ICON_ERROR)
+            return
+        
+        # Ask for confirmation
+        dlg = wx.MessageDialog(
+            self,
+            f"This will create a backup of the original file and replace it with a rotated version.\n\nContinue?",
+            "Confirm In-place Rotation",
+            wx.YES_NO | wx.ICON_QUESTION
         )
+        
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        
+        dlg.Destroy()
+        
+        try:
+            # Create backup filename
+            backup_file = f"{selected_file}_backup"
+            
+            # Check if backup already exists
+            counter = 1
+            while os.path.exists(backup_file):
+                backup_file = f"{selected_file}_backup{counter}"
+                counter += 1
+            
+            # Create backup
+            shutil.copy2(selected_file, backup_file)
+            logging.debug(f"Created backup at {backup_file}")
+            
+            # Run FFmpeg to rotate the image and save to a temporary file
+            file_ext = os.path.splitext(selected_file)[1].lower()
+            temp_file = f"{os.path.splitext(selected_file)[0]}_temp{file_ext}"
+
+            logging.debug(f"Running FFmpeg command: ffmpeg -y -i {selected_file} -vf transpose=1 -map_metadata 0 {temp_file}")
+            cmd = ["ffmpeg", "-y", "-i", selected_file, "-vf", "transpose=1", "-map_metadata", "0", temp_file]
+            
+            # Show progress dialog
+            progress_dlg = wx.ProgressDialog(
+                "Rotating Image",
+                "Running FFmpeg to rotate the image...",
+                maximum=100,
+                parent=self,
+                style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE
+            )
+            progress_dlg.Update(30)
+            
+            # Run FFmpeg
+            logging.debug(f"Running FFmpeg command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            progress_dlg.Update(80)
+            
+            if result.returncode != 0:
+                logging.error(f"FFmpeg error: {result.stderr}")
+                wx.MessageBox(f"Error during FFmpeg rotation:\n{result.stderr}", "Rotation Error", wx.OK | wx.ICON_ERROR)
+                os.remove(backup_file)  # Remove backup on error
+                progress_dlg.Destroy()
+                return
+            
+            # Replace original with rotated version
+            if os.path.exists(temp_file):
+                os.replace(temp_file, selected_file)
+                logging.debug(f"Replaced original file with rotated version")
+                
+                # Copy metadata from backup to rotated file using exiftool
+                logging.debug(f"Copying IPTC metadata from backup to rotated file")
+                try:
+                    with exiftool.ExifTool() as et:
+                        cmd_result = et.execute("-TagsFromFile", backup_file, "-all:all", "-overwrite_original", selected_file)
+                        logging.debug(f"Exiftool metadata copy result: {cmd_result}")
+                except Exception as e:
+                    logging.error(f"Error copying metadata with exiftool: {str(e)}")
+                    wx.MessageBox(f"Warning: Image was rotated but metadata may not have been preserved: {str(e)}", 
+                                 "Metadata Warning", wx.OK | wx.ICON_WARNING)
+                
+                # Reload the image
+                self.select_file(selected_file)
+                
+                progress_dlg.Update(100)
+                progress_dlg.Destroy()
+                
+                # Show success message
+                wx.MessageBox(
+                    f"Image rotated clockwise successfully.\nBackup saved to: {os.path.basename(backup_file)}",
+                    "Rotation Complete",
+                    wx.OK | wx.ICON_INFORMATION
+                )
+            else:
+                raise Exception("FFmpeg output file not found")
+                
+        except Exception as e:
+            logging.error(f"Error during FFmpeg rotation: {str(e)}")
+            wx.MessageBox(f"Error rotating image: {str(e)}", "Rotation Error", wx.OK | wx.ICON_ERROR)
+            
+            # Try to clean up temporary file
+            if 'temp_file' in locals() and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
     
-    # Function to display license information
-    def show_license_dialog():
-        # Create a new toplevel window for the license dialog
-        license_window = tk.Toplevel(root)
-        license_window.title("License Information")
-        license_window.geometry("600x400")
-        license_window.resizable(True, True)
+    def on_rotate_counterclockwise(self, event):
+        """Rotate the current image 90 degrees counter-clockwise using FFmpeg, creating a backup and saving in-place"""
+        global selected_file
         
-        # Set minimum size to ensure the text is readable
-        license_window.minsize(500, 300)
+        if not selected_file or not os.path.isfile(selected_file):
+            wx.MessageBox("No image selected", "Rotation Error", wx.OK | wx.ICON_ERROR)
+            return
         
-        # Create a label with the license text using 10pt Ubuntu font
-        license_text = """         tag-writer
-
-
-tag-writer is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.
-
-tag-writer is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License along with tag-writer. If not, see: https://www.gnu.org/licenses/
-
-Source code available at https://github.com/juren53/tag-writer/blob/main/code/tag-writer.py"""
+        # Ask for confirmation
+        dlg = wx.MessageDialog(
+            self,
+            f"This will create a backup of the original file and replace it with a counter-clockwise rotated version.\n\nContinue?",
+            "Confirm In-place Rotation",
+            wx.YES_NO | wx.ICON_QUESTION
+        )
         
-        license_label = tk.Label(license_window, 
-                                text=license_text, 
-                                font=("Ubuntu", 10),
-                                justify=tk.LEFT,
-                                wraplength=550,
-                                padx=20, pady=20)
-        license_label.pack(expand=True, fill=tk.BOTH)
+        if dlg.ShowModal() != wx.ID_YES:
+            dlg.Destroy()
+            return
+        
+        dlg.Destroy()
+        
+        try:
+            # Create backup filename
+            backup_file = f"{selected_file}_backup"
+            
+            # Check if backup already exists
+            counter = 1
+            while os.path.exists(backup_file):
+                backup_file = f"{selected_file}_backup{counter}"
+                counter += 1
+            
+            # Create backup
+            shutil.copy2(selected_file, backup_file)
+            logging.debug(f"Created backup at {backup_file}")
+            
+            # Run FFmpeg to rotate the image and save to a temporary file
+            file_ext = os.path.splitext(selected_file)[1].lower()
+            temp_file = f"{os.path.splitext(selected_file)[0]}_temp{file_ext}"
+
+            # For counter-clockwise rotation, use transpose=2
+            # Add -map_metadata 0 to preserve metadata from the input
+            logging.debug(f"Running FFmpeg command: ffmpeg -y -i {selected_file} -vf transpose=2 -map_metadata 0 {temp_file}")
+            cmd = ["ffmpeg", "-y", "-i", selected_file, "-vf", "transpose=2", "-map_metadata", "0", temp_file]
+            
+            # Show progress dialog
+            progress_dlg = wx.ProgressDialog(
+                "Rotating Image",
+                "Running FFmpeg to rotate the image counter-clockwise...",
+                maximum=100,
+                parent=self,
+                style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE
+            )
+            progress_dlg.Update(30)
+            
+            # Run FFmpeg
+            logging.debug(f"Running FFmpeg command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            progress_dlg.Update(80)
+            
+            if result.returncode != 0:
+                logging.error(f"FFmpeg error: {result.stderr}")
+                wx.MessageBox(f"Error during FFmpeg rotation:\n{result.stderr}", "Rotation Error", wx.OK | wx.ICON_ERROR)
+                os.remove(backup_file)  # Remove backup on error
+                progress_dlg.Destroy()
+                return
+            
+            # Replace original with rotated version
+            if os.path.exists(temp_file):
+                os.replace(temp_file, selected_file)
+                logging.debug(f"Replaced original file with rotated version")
+                
+                # Copy metadata from backup to rotated file using exiftool
+                logging.debug(f"Copying IPTC metadata from backup to rotated file")
+                try:
+                    with exiftool.ExifTool() as et:
+                        cmd_result = et.execute("-TagsFromFile", backup_file, "-all:all", "-overwrite_original", selected_file)
+                        logging.debug(f"Exiftool metadata copy result: {cmd_result}")
+                except Exception as e:
+                    logging.error(f"Error copying metadata with exiftool: {str(e)}")
+                    wx.MessageBox(f"Warning: Image was rotated but metadata may not have been preserved: {str(e)}", 
+                                 "Metadata Warning", wx.OK | wx.ICON_WARNING)
+                
+                # Reload the image
+                self.select_file(selected_file)
+                
+                progress_dlg.Update(100)
+                progress_dlg.Destroy()
+                
+                # Show success message
+                wx.MessageBox(
+                    f"Image rotated counter-clockwise successfully.\nBackup saved to: {os.path.basename(backup_file)}",
+                    "Rotation Complete",
+                    wx.OK | wx.ICON_INFORMATION
+                )
+            else:
+                raise Exception("FFmpeg output file not found")
+                
+        except Exception as e:
+            logging.error(f"Error during FFmpeg rotation: {str(e)}")
+            wx.MessageBox(f"Error rotating image: {str(e)}", "Rotation Error", wx.OK | wx.ICON_ERROR)
+            
+            # Try to clean up temporary file
+            if 'temp_file' in locals() and os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except:
+                    pass
+    
+    def on_key_down(self, event):
+        """Handle keyboard navigation"""
+        key_code = event.GetKeyCode()
+        
+        # Navigate left/right with arrow keys
+        if key_code == wx.WXK_LEFT:
+            if self.nav_prev_button.IsEnabled():
+                self.navigate_to_file(-1)
+                return  # Don't skip event after handling it
+        elif key_code == wx.WXK_RIGHT:
+            if self.nav_next_button.IsEnabled():
+                self.navigate_to_file(1)
+                return  # Don't skip event after handling it
+        
+        # Pass event up the chain for other keys
+        event.Skip()
+    def clear_fields(self):
+        """Clear all entry fields"""
+        self.entry_headline.Clear()
+        self.text_caption_abstract.Clear()
+        self.entry_credit.Clear()
+        self.entry_object_name.Clear()
+        self.entry_writer_editor.Clear()
+        self.entry_by_line.Clear()
+        self.entry_by_line_title.Clear()
+        self.entry_source.Clear()
+        self.entry_date.Clear()
+        self.entry_copyright_notice.Clear()
+        
+        # Update character count
+        # Update character count
+        self.update_char_count(None)
+    
+    def on_clear_fields(self, event):
+        """Clear all input fields when requested via menu item"""
+        self.clear_fields()
+        self.SetStatusText("All fields have been cleared", 0)
+    
+    def on_open(self, event=None):
+        # Create file dialog
+        wildcard = "Image files (*.jpg;*.jpeg;*.tif;*.tiff;*.png;*.gif;*.bmp)|*.jpg;*.jpeg;*.tif;*.tiff;*.png;*.gif;*.bmp|All files (*.*)|*.*"
+        dlg = wx.FileDialog(
+            self, message="Choose an image file",
+            defaultDir=os.getcwd(),
+            defaultFile="",
+            wildcard=wildcard,
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+        )
+        
+        # Show dialog and process selection
+        if dlg.ShowModal() == wx.ID_OK:
+            file_path = dlg.GetPath()
+            self.select_file(file_path)
+        
+        # Clean up dialog
+        dlg.Destroy()
+    
+    def on_write_metadata(self, event):
+        """Write metadata to the selected file"""
+        global selected_file
+        
+        if not selected_file or not os.path.isfile(selected_file):
+            wx.MessageBox("No file selected. Please select an image file first.",
+                         "Write Error", wx.OK | wx.ICON_WARNING)
+            return
+        
+        try:
+            # Set status
+            self.SetStatusText(f"Writing metadata to {os.path.basename(selected_file)}...", 0)
+            
+            # Collect metadata from entry fields
+            metadata = {
+                'Headline': self.entry_headline.GetValue(),
+                'Caption-Abstract': self.text_caption_abstract.GetValue(),
+                'Credit': self.entry_credit.GetValue(),
+                'ObjectName': self.entry_object_name.GetValue(),  # Note: Changed from 'Object Name' to 'ObjectName'
+                'Writer-Editor': self.entry_writer_editor.GetValue(),
+                'By-line': self.entry_by_line.GetValue(),
+                'By-lineTitle': self.entry_by_line_title.GetValue(),  # Note: Changed from 'By-line Title' to 'By-lineTitle'
+                'Source': self.entry_source.GetValue(),
+                'DateCreated': self.entry_date.GetValue(),  # Note: Changed from 'Date Created' to 'DateCreated'
+                'Copyright': self.entry_copyright_notice.GetValue()  # Note: Changed from 'Copyright Notice' to 'Copyright'
+            }
+            
+            # Write metadata using exiftool
+            with exiftool.ExifTool() as et:
+                # Prepare command arguments
+                args = []
+                
+                # Add each metadata field - use the correct format for ExifTool's write commands
+                for tag, value in metadata.items():
+                    if value:  # Only include non-empty values
+                        # Format the tag correctly for writing - no spaces, just the tag name
+                        args.extend([f"-{tag}={value}"])
+                
+                if not args:
+                    wx.MessageBox("No metadata values to write. Please enter some values first.",
+                                 "Write Error", wx.OK | wx.ICON_WARNING)
+                    return
+                
+                # Add overwrite original flag
+                args.append("-overwrite_original")
+                
+                # Add file path at the end
+                args.append(selected_file)
+                
+                # Log the command for debugging
+                logging.debug(f"ExifTool write command: {args}")
+                
+                # Execute command
+                result = et.execute(*args)
+                logging.debug(f"ExifTool write result: {result}")
+                
+                # Check result
+                if "1 image files updated" in result:
+                    self.SetStatusText(f"Metadata written to {os.path.basename(selected_file)}", 0)
+                    wx.MessageBox("Metadata successfully written to file.",
+                                 "Success", wx.OK | wx.ICON_INFORMATION)
+                else:
+                    raise Exception(f"Unexpected result: {result}")
+                
+        except Exception as e:
+            logging.error(f"Error writing metadata: {str(e)}")
+            self.SetStatusText(f"Error writing metadata: {str(e)}", 0)
+            
+            # Show error dialog
+            wx.MessageBox(f"Error writing metadata: {str(e)}",
+                         "Write Error", wx.OK | wx.ICON_ERROR)
+    
+    # This is a duplicate method - removing it to avoid confusion
+    # The correct implementation is at line ~1206
+    def on_export_data(self, event):
+        """Export metadata to JSON file using exiftool to get all metadata directly from the image"""
+        global selected_file
+        
+        if not selected_file or not os.path.isfile(selected_file):
+            wx.MessageBox("No file selected. Please select an image file first.",
+                         "Export Error", wx.OK | wx.ICON_WARNING)
+            return
+        
+        try:
+            # Set status
+            self.SetStatusText(f"Retrieving metadata from {os.path.basename(selected_file)}...", 0)
+            
+            # Get all metadata directly from the image file using exiftool
+            raw_metadata = get_metadata(selected_file)
+            
+            if not raw_metadata:
+                wx.MessageBox("No metadata found in the selected file.",
+                             "Export Warning", wx.OK | wx.ICON_WARNING)
+                return
+                
+            # Create a structured JSON with file info and metadata
+            metadata = {
+                'file': os.path.basename(selected_file),
+                'full_path': selected_file,
+                'metadata': raw_metadata
+            }
+            
+            # Create default export file name from selected file
+            base_name = os.path.splitext(os.path.basename(selected_file))[0]
+            default_file = f"{base_name}_metadata.json"
+            
+            # Create file dialog for saving
+            wildcard = "JSON files (*.json)|*.json|All files (*.*)|*.*"
+            dlg = wx.FileDialog(
+                self, message="Save metadata as JSON",
+                defaultDir=os.path.dirname(selected_file),
+                defaultFile=default_file,
+                wildcard=wildcard,
+                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+            )
+            
+            # Show dialog and process selection
+            if dlg.ShowModal() == wx.ID_OK:
+                export_path = dlg.GetPath()
+                
+                try:
+                    # Export to JSON file with indentation for readability
+                    with open(export_path, 'w') as f:
+                        json.dump(metadata, f, indent=4)
+                    
+                    self.SetStatusText(f"All metadata exported to {export_path}", 0)
+                    wx.MessageBox(f"All metadata successfully exported to {os.path.basename(export_path)}",
+                                 "Export Successful", wx.OK | wx.ICON_INFORMATION)
+                    
+                    # Log the number of metadata fields exported
+                    field_count = len(raw_metadata) if isinstance(raw_metadata, dict) else 0
+                    logging.info(f"Exported {field_count} metadata fields to {export_path}")
+                except Exception as e:
+                    logging.error(f"Error exporting metadata: {str(e)}")
+                    self.SetStatusText(f"Error exporting metadata: {str(e)}", 0)
+                    
+                    # Show error dialog
+                    wx.MessageBox(f"Error exporting metadata: {str(e)}",
+                                 "Export Error", wx.OK | wx.ICON_ERROR)
+        except Exception as e:
+            logging.error(f"Error retrieving metadata: {str(e)}")
+            self.SetStatusText(f"Error retrieving metadata: {str(e)}", 0)
+            
+            # Show error dialog
+            wx.MessageBox(f"Error retrieving metadata: {str(e)}",
+                         "Export Error", wx.OK | wx.ICON_ERROR)
+        
+        dlg.Destroy()
+    
+    def zoom_ui(self, zoom_delta):
+        """Change the UI zoom level by the specified delta"""
+        # Calculate new zoom level
+        new_zoom = self.ui_zoom_factor + zoom_delta
+        
+        # Ensure zoom level is within bounds
+        if self.ui_min_zoom <= new_zoom <= self.ui_max_zoom:
+            self.ui_zoom_factor = new_zoom
+            self.apply_ui_zoom()
+            
+            # Update zoom label
+            if hasattr(self, 'ui_zoom_label') and self.ui_zoom_label:
+                self.ui_zoom_label.SetLabel(f"UI Zoom: {int(self.ui_zoom_factor * 100)}%")
+    
+    def reset_ui_zoom(self):
+        """Reset UI zoom to 100%"""
+        self.ui_zoom_factor = 1.0
+        self.apply_ui_zoom()
+        
+        # Update zoom label
+        if hasattr(self, 'ui_zoom_label') and self.ui_zoom_label:
+            self.ui_zoom_label.SetLabel("UI Zoom: 100%")
+    
+    def apply_ui_zoom(self):
+        """Apply the current zoom factor to all UI elements"""
+        # Create a new font with the scaled size for each text control
+        self.scale_text_control(self.entry_headline)
+        self.scale_text_control(self.text_caption_abstract)
+        self.scale_text_control(self.entry_credit)
+        self.scale_text_control(self.entry_object_name)
+        self.scale_text_control(self.entry_writer_editor)
+        self.scale_text_control(self.entry_by_line)
+        self.scale_text_control(self.entry_by_line_title)
+        self.scale_text_control(self.entry_source)
+        self.scale_text_control(self.entry_date)
+        self.scale_text_control(self.entry_copyright_notice)
+        
+        # Scale labels
+        self.scale_label_controls(self.panel)
+        
+        # Force layout refresh
+        self.panel.Layout()
+        self.Layout()
+    
+    def scale_text_control(self, control):
+        """Scale a text control font based on the current zoom factor"""
+        if control and control.IsShown():
+            # Get the current font
+            current_font = control.GetFont()
+            
+            # Calculate the new size (base size is 9 points in most systems)
+            base_size = 9
+            new_size = int(base_size * self.ui_zoom_factor)
+            
+            # Create a new font with the scaled size
+            new_font = wx.Font(
+                new_size,
+                current_font.GetFamily(),
+                current_font.GetStyle(),
+                current_font.GetWeight(),
+                current_font.GetUnderlined()
+            )
+            
+            # Apply the new font
+            control.SetFont(new_font)
+    
+    def scale_label_controls(self, parent):
+        """Recursively scale all label controls within a parent container"""
+        for child in parent.GetChildren():
+            # Check if the child is a static text (label)
+            if isinstance(child, wx.StaticText):
+                # Get the current font
+                current_font = child.GetFont()
+                
+                # Calculate the new size (base size is 9 points in most systems)
+                base_size = 9
+                new_size = int(base_size * self.ui_zoom_factor)
+                
+                # Create a new font with the scaled size
+                new_font = wx.Font(
+                    new_size,
+                    current_font.GetFamily(),
+                    current_font.GetStyle(),
+                    current_font.GetWeight(),
+                    current_font.GetUnderlined()
+                )
+                
+                # Apply the new font
+                child.SetFont(new_font)
+            
+            # If the child is a container, recursively scale its children
+            elif isinstance(child, wx.Panel) or isinstance(child, wx.Window):
+                self.scale_label_controls(child)
+    
+    def on_key_for_zoom(self, event):
+        """Handle keyboard shortcuts for UI zoom"""
+        # Check if Ctrl is pressed
+        if event.ControlDown():
+            key_code = event.GetKeyCode()
+            
+            # Ctrl+ for zoom in
+            if key_code == ord('+') or key_code == wx.WXK_ADD:
+                self.zoom_ui(self.ui_zoom_step)
+                return  # Don't skip event
+            
+            # Ctrl- for zoom out
+            elif key_code == ord('-') or key_code == wx.WXK_SUBTRACT:
+                self.zoom_ui(-self.ui_zoom_step)
+                return  # Don't skip event
+            
+            # Ctrl0 for reset zoom
+            elif key_code == ord('0'):
+                self.reset_ui_zoom()
+                return  # Don't skip event
+        
+        # For other keys, pass the event up the chain
+        event.Skip()
+
+    def on_view_full_image(self, event):
+        """Open a dialog to view the full-sized image"""
+        global selected_file, original_image
+        
+        if selected_file and os.path.isfile(selected_file) and original_image:
+            try:
+                # Check if we already have a preview dialog open
+                if self.preview_dialog is not None and self.preview_dialog:
+                    # If it exists but is hidden, show it
+                    if not self.preview_dialog.IsShown():
+                        self.preview_dialog.Show()
+                    # Bring it to the foreground
+                    self.preview_dialog.Raise()
+                    # Update the image if it changed
+                    if self.preview_dialog.image_path != selected_file:
+                        self.preview_dialog.image_path = selected_file
+                        self.preview_dialog.original_image = original_image
+                        self.preview_dialog.update_image()
+                else:
+                    # Create a new dialog and show it non-modally
+                    self.preview_dialog = FullImageDialog(self, selected_file, original_image)
+                    self.preview_dialog.Show()
+            except Exception as e:
+                logging.error(f"Error displaying full image: {str(e)}")
+                wx.MessageBox(f"Error displaying full image: {str(e)}",
+                             "Display Error", wx.OK | wx.ICON_ERROR)
+    
+    def on_about(self, event):
+        """Display about dialog"""
+        info = wx.adv.AboutDialogInfo()
+        info.SetName("Metadata Tag Writer WX")
+        info.SetVersion("0.05c")
+        info.SetDescription("A tool for editing IPTC metadata in image files")
+        info.SetCopyright("(C) 2023-2025")
+        info.SetWebSite("https://github.com/juren53/tag-writer")
+        info.AddDeveloper("Jim U'Ren")
+        
+        wx.adv.AboutBox(info)
+    
+    def on_license(self, event):
+        """Display license information"""
+        license_text = """
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+        
+        # Create and show a dialog with the license text
+        dlg = wx.Dialog(self, title="License Information", size=(600, 400))
+        
+        # Add a text control with the license
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        text = wx.TextCtrl(dlg, style=wx.TE_MULTILINE | wx.TE_READONLY, value=license_text)
+        sizer.Add(text, 1, wx.EXPAND | wx.ALL, 10)
         
         # Add a close button
-        close_button = tk.Button(license_window, text="Close", command=license_window.destroy)
-        close_button.pack(pady=10)
+        btn = wx.Button(dlg, wx.ID_CLOSE)
+        btn.Bind(wx.EVT_BUTTON, lambda evt: dlg.EndModal(wx.ID_CLOSE))
+        sizer.Add(btn, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
         
-        # Make the window modal
-        license_window.transient(root)
-        license_window.grab_set()
-        license_window.focus_set()
+        dlg.SetSizer(sizer)
+        dlg.ShowModal()
+        dlg.Destroy()
+    
+    def on_usage_guide(self, event):
+        """Open usage guide in web browser"""
+        guide_url = "https://github.com/juren53/tag-writer/blob/main/Docs/tag-writer-help.md"
+
+        # https://github.com/juren53/tag-writer/blob/main/Docs/tag-writer-help.md
         
-        # Center the window on the screen
-        license_window.update_idletasks()
-        width = license_window.winfo_width()
-        height = license_window.winfo_height()
-        x = (license_window.winfo_screenwidth() // 2) - (width // 2)
-        y = (license_window.winfo_screenheight() // 2) - (height // 2)
-        license_window.geometry(f"{width}x{height}+{x}+{y}")
+        try:
+            webbrowser.open(guide_url)
+            self.SetStatusText(f"Opening usage guide: {guide_url}", 0)
+        except Exception as e:
+            logging.error(f"Error opening usage guide: {str(e)}")
+            wx.MessageBox(f"Error opening usage guide: {str(e)}",
+                         "Browser Error", wx.OK | wx.ICON_ERROR)
+    def on_close(self, event):
+        """Handle window close event"""
+        # Save recent files to config
+        save_recent_files()
         
-    # Function to open the usage guide in web browser
-    def open_usage_guide():
-        webbrowser.open("https://github.com/juren53/tag-writer/blob/main/Docs/tag-writer-help.md")
+        # Clean up preview dialog if it exists
+        if self.preview_dialog is not None:
+            self.preview_dialog.Destroy()
+            self.preview_dialog = None
         
-    menubar = Menu(root)
-    root.config(menu=menubar)
+        # Continue with close
+        # Continue with close
+        self.Destroy()
     
-    filemenu = Menu(menubar)
-    menubar.add_cascade(label="File", menu=filemenu)
-    filemenu.add_command(label="Open", command=select_file)
+    def on_exit(self, event):
+        """Exit the application"""
+        self.Close()
+class FullImageDialog(wx.Dialog):
+    """Dialog for displaying full-sized images with zoom functionality"""
+    def __init__(self, parent, image_path, original_image):
+        """Initialize the dialog"""
+        wx.Dialog.__init__(self, parent, title="", 
+                          size=(800, 600), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        
+        self.image_path = image_path
+        self.original_image = original_image
+        self.current_zoom = 1.0
+        self.min_zoom = 0.1
+        self.max_zoom = 5.0
+        self.zoom_step = 0.1
+        
+        # Create UI components
+        self.create_ui()
+        
+        # Bind events
+        self.Bind(wx.EVT_SIZE, self.on_resize)
+        
+        # Update title and initial display
+        self.update_title()
+        self.update_image()
     
-    # Create a submenu for recently accessed files
-    global recent_files_menu
-    recent_files_menu = Menu(filemenu, tearoff=0)
-    filemenu.add_cascade(label="Recently accessed", menu=recent_files_menu)
-    build_recent_files_menu()  # Initialize the recent files menu with loaded files
+    def create_ui(self):
+        """Create the user interface"""
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        # Image scroll panel (with scrollbars)
+        self.scroll_panel = wx.ScrolledWindow(self, style=wx.HSCROLL | wx.VSCROLL)
+        self.scroll_panel.SetBackgroundColour(wx.Colour(240, 240, 240))
+        self.scroll_panel.SetScrollRate(10, 10)
+        
+        # Image display
+        self.image_panel = wx.Panel(self.scroll_panel)
+        self.image_bitmap = wx.StaticBitmap(self.image_panel)
+        
+        # Sizer for image panel
+        image_sizer = wx.BoxSizer(wx.VERTICAL)
+        image_sizer.Add(self.image_bitmap, 0, wx.ALL, 5)
+        self.image_panel.SetSizer(image_sizer)
+        
+        # Sizer for scroll panel
+        scroll_sizer = wx.BoxSizer(wx.VERTICAL)
+        scroll_sizer.Add(self.image_panel, 1, wx.EXPAND)
+        self.scroll_panel.SetSizer(scroll_sizer)
+        
+        # Add checkbox to control LibTIFF warnings (only if using TIFF files)
+        global SUPPRESS_LIBTIFF_WARNINGS
+        self.warnings_checkbox = wx.CheckBox(self, label="Suppress LibTIFF warnings")
+        self.warnings_checkbox.SetValue(SUPPRESS_LIBTIFF_WARNINGS)
+        self.warnings_checkbox.Bind(wx.EVT_CHECKBOX, self.on_toggle_warnings)
+        main_sizer.Add(self.warnings_checkbox, 0, wx.ALL, 5)
+        
+        # Add scroll panel to main sizer
+        main_sizer.Add(self.scroll_panel, 1, wx.EXPAND | wx.ALL, 5)
+        
+        # Controls panel
+        controls_panel = wx.Panel(self)
+        controls_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # Zoom controls
+        zoom_out_btn = wx.Button(controls_panel, label="-", size=(40, -1))
+        zoom_out_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom(-self.zoom_step))
+        controls_sizer.Add(zoom_out_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        self.zoom_label = wx.StaticText(controls_panel, label="Zoom: 100%")
+        controls_sizer.Add(self.zoom_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        zoom_in_btn = wx.Button(controls_panel, label="+", size=(40, -1))
+        zoom_in_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom(self.zoom_step))
+        controls_sizer.Add(zoom_in_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        # Reset zoom button
+        reset_btn = wx.Button(controls_panel, label="Reset Zoom")
+        reset_btn.Bind(wx.EVT_BUTTON, lambda evt: self.reset_zoom())
+        controls_sizer.Add(reset_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        # Fit to window button
+        fit_btn = wx.Button(controls_panel, label="Fit to Window")
+        fit_btn.Bind(wx.EVT_BUTTON, lambda evt: self.fit_to_window())
+        controls_sizer.Add(fit_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        # Image info
+        self.info_label = wx.StaticText(controls_panel, label="")
+        controls_sizer.Add(self.info_label, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        # Close button
+        close_btn = wx.Button(controls_panel, wx.ID_CLOSE, "Close")
+        close_btn.Bind(wx.EVT_BUTTON, lambda evt: self.Hide())
+        controls_sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        controls_panel.SetSizer(controls_sizer)
+        main_sizer.Add(controls_panel, 0, wx.EXPAND | wx.ALL, 5)
+        
+        # Set main sizer
+        self.SetSizer(main_sizer)
+        
+        # Bind mouse wheel for zooming
+        self.scroll_panel.Bind(wx.EVT_MOUSEWHEEL, self.on_mouse_wheel)
     
-    filemenu.add_command(label="Save")
-    filemenu.add_command(label="Exit", command=quit_app)
+    def on_toggle_warnings(self, event):
+        """Toggle LibTIFF warning suppression"""
+        global SUPPRESS_LIBTIFF_WARNINGS
+        SUPPRESS_LIBTIFF_WARNINGS = self.warnings_checkbox.GetValue()
+        logging.debug(f"LibTIFF warning suppression set to: {SUPPRESS_LIBTIFF_WARNINGS}")
     
-    # Create Edit menu
-    editmenu = Menu(menubar)
-    menubar.add_cascade(label="Edit", menu=editmenu)
-    editmenu.add_command(label="Clear Fields", command=clear_metadata_fields)
-    editmenu.add_command(label="Copy All")
-    editmenu.add_command(label="Paste All")
-    editmenu.add_command(label="Export data", command=export_metadata_to_json)
+    def update_title(self):
+        """Update the dialog title with the current image filename"""
+        if self.image_path:
+            new_title = f"Full Image: {os.path.basename(self.image_path)}"
+            if self.GetTitle() != new_title:
+                self.SetTitle(new_title)
     
-    # Create Help menu
-    # Create Help menu
-    helpmenu = Menu(menubar)
-    menubar.add_cascade(label="Help", menu=helpmenu)
-    helpmenu.add_command(label="About", command=show_about_dialog)
-    helpmenu.add_command(label="License", command=show_license_dialog)
-    helpmenu.add_command(label="Usage Guide", command=open_usage_guide)
-    selected_file = None
+    def update_image(self):
+        """Update the displayed image with current zoom level"""
+        # Update title first
+        self.update_title()
+        
+        if self.original_image and self.original_image.IsOk():
+            # Get original dimensions
+            orig_width = self.original_image.GetWidth()
+            orig_height = self.original_image.GetHeight()
+            
+            # Calculate new dimensions based on zoom
+            new_width = int(orig_width * self.current_zoom)
+            new_height = int(orig_height * self.current_zoom)
+            
+            # Scale the image
+            if new_width > 0 and new_height > 0:
+                scaled_image = self.original_image.Scale(new_width, new_height, wx.IMAGE_QUALITY_HIGH)
+                
+                # Convert to bitmap and update display
+                bitmap = wx.Bitmap(scaled_image)
+                self.image_bitmap.SetBitmap(bitmap)
+                
+                # Update image panel size
+                self.image_panel.SetSize((new_width, new_height))
+                self.scroll_panel.FitInside()
+                
+                # Update zoom and info labels
+                self.zoom_label.SetLabel(f"Zoom: {int(self.current_zoom * 100)}%")
+                self.info_label.SetLabel(f"Image Size: {orig_width} x {orig_height} pixels")
+                
+                # Update layout
+                self.Layout()
     
-    # Create a main container frame with proper padding
-    main_frame = tk.Frame(root, padx=10, pady=10)
-    main_frame.pack(fill=tk.BOTH, expand=True)
+    def zoom(self, zoom_delta):
+        """Change the zoom level by the specified delta"""
+        # Calculate new zoom level
+        new_zoom = self.current_zoom + zoom_delta
+        
+        # Ensure zoom level is within bounds
+        if self.min_zoom <= new_zoom <= self.max_zoom:
+            self.current_zoom = new_zoom
+            self.update_image()
     
-    # Top frame for buttons and file selection
-    top_frame = tk.Frame(main_frame, relief=tk.RAISED, bd=1)
-    top_frame.pack(fill=tk.X, pady=(0, 10))
+    def reset_zoom(self):
+        """Reset zoom to 100%"""
+        self.current_zoom = 1.0
+        self.update_image()
     
-    # Create select file button
-    button_select_file = tk.Button(top_frame, text="Select File", command=select_file, 
-                                  padx=10, pady=5)
-    button_select_file.pack(side=tk.LEFT, padx=10, pady=8)
+    def fit_to_window(self):
+        """Scale the image to fit in the current window"""
+        if self.original_image and self.original_image.IsOk():
+            # Get original dimensions
+            orig_width = self.original_image.GetWidth()
+            orig_height = self.original_image.GetHeight()
+            
+            # Get available size (account for scrollbars and margins)
+            client_width, client_height = self.scroll_panel.GetClientSize()
+            available_width = max(10, client_width - 20)  # Account for margins
+            available_height = max(10, client_height - 20)
+            
+            # Calculate scale factor to fit the window
+            width_scale = available_width / orig_width
+            height_scale = available_height / orig_height
+            
+            # Use the smaller scale to ensure the entire image fits
+            self.current_zoom = min(width_scale, height_scale)
+            
+            # Update the display
+            self.update_image()
     
-    # Create write button
-    button_write = tk.Button(top_frame, text="Write Metadata", command=write_metadata,
-                            padx=10, pady=5)
-    button_write.pack(side=tk.LEFT, padx=10, pady=8)
+    def on_resize(self, event):
+        """Handle window resize events"""
+        # Update the scroll panel layout
+        self.scroll_panel.FitInside()
+        event.Skip()
     
-    # Create filename display label
-    filename_label = tk.Label(top_frame, text="No file selected", font=("Arial", 10, "bold"))
-    filename_label.pack(side=tk.LEFT, padx=20, pady=8)
-    
-    # Create a frame for the main content area with two columns
-    content_frame = tk.Frame(main_frame)
-    content_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-    
-    # Create a frame for metadata entry fields (left side)
-    metadata_frame = tk.LabelFrame(content_frame, text="Metadata Fields", padx=15, pady=15, font=("Arial", 9, "bold"))
-    metadata_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
-    
-    # Create a grid inside the metadata frame for the form fields
-    metadata_grid = tk.Frame(metadata_frame)
-    metadata_grid.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-    
-    # Create labels with consistent styling
-    label_style = {"anchor": "e", "padx": 5, "pady": 3, "font": ("Arial", 9)}
-    label_headline = tk.Label(metadata_grid, text="Headline:", **label_style)
-    label_caption_abstract = tk.Label(metadata_grid, text="Caption Abstract:", **label_style)
-    label_credit = tk.Label(metadata_grid, text="Credit:", **label_style)
-    label_object_name = tk.Label(metadata_grid, text="Unique ID [Object Name]:", **label_style)
-    label_writer_editor = tk.Label(metadata_grid, text="Writer/Editor:", **label_style)
-    label_by_line = tk.Label(metadata_grid, text="By-line:", **label_style)
-    label_source = tk.Label(metadata_grid, text="Source:", **label_style)
-    label_date = tk.Label(metadata_grid, text="Date Created:", **label_style)
-    label_copyright_notice = tk.Label(metadata_grid, text="Copyright Notice:", **label_style)
-    
-    # Create input fields with consistent width
-    entry_width = 50
-    entry_style = {"width": entry_width, "font": ("Arial", 9)}
-    entry_headline = tk.Entry(metadata_grid, **entry_style)
-    entry_caption_abstract = tk.Entry(metadata_grid, **entry_style)
-    entry_credit = tk.Entry(metadata_grid, **entry_style)
-    entry_object_name = tk.Entry(metadata_grid, **entry_style)
-    entry_writer_editor = tk.Entry(metadata_grid, **entry_style)
-    entry_by_line = tk.Entry(metadata_grid, **entry_style)
-    entry_source = tk.Entry(metadata_grid, **entry_style)
-    entry_date = tk.Entry(metadata_grid, **entry_style)
-    entry_copyright_notice = tk.Entry(metadata_grid, **entry_style)
-    
-    # Arrange labels and entries in the grid
-    row = 0
-    grid_padx = (5, 5)
-    grid_pady = 3
-    
-    label_headline.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_headline.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_caption_abstract.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_caption_abstract.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_credit.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_credit.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_object_name.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_object_name.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_writer_editor.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_writer_editor.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_by_line.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_by_line.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_source.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_source.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_date.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_date.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    row += 1
-    
-    label_copyright_notice.grid(row=row, column=0, sticky=tk.E, padx=grid_padx, pady=grid_pady)
-    entry_copyright_notice.grid(row=row, column=1, sticky=tk.W, padx=grid_padx, pady=grid_pady)
-    
-    # Create a frame for the thumbnail display (right side)
-    thumbnail_frame = tk.LabelFrame(content_frame, text="Image Preview", padx=15, pady=15, font=("Arial", 9, "bold"))
-    thumbnail_frame.pack(side=tk.RIGHT, fill=tk.BOTH, padx=(0, 0))
-    
-    # Create a container for the thumbnail with fixed size
-    thumbnail_container = tk.Frame(thumbnail_frame, width=220, height=220, bd=1, relief=tk.SUNKEN)
-    thumbnail_container.pack(padx=10, pady=10)
-    thumbnail_container.pack_propagate(False)  # Prevent the frame from resizing to fit its contents
-    
-    # Create the thumbnail label inside the container
-    # Create the thumbnail label inside the container
-    thumbnail_label = tk.Label(thumbnail_container, text="No image to display", bg="light gray", 
-                              width=200, height=200)
-    thumbnail_label.pack(expand=True, fill=tk.BOTH, padx=5, pady=5)
-    # Bind mouse click to show full image function
-    thumbnail_label.bind("<Button-1>", lambda event: show_full_image())
-    # Add a button to view the full image
-    view_button = tk.Button(thumbnail_frame, text="View Full Image", command=show_full_image,
-                           padx=10, pady=5)
-    view_button.pack(pady=10)
-    
-    # Create a status bar at the bottom
-    status_frame = tk.Frame(main_frame, relief=tk.SUNKEN, bd=1)
-    status_frame.pack(side=tk.BOTTOM, fill=tk.X)
-    
-    # Status label on the left
-    status_label = tk.Label(status_frame, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W, padx=10, pady=5)
-    status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
-    
-    # Version label on the right
-    version_label = tk.Label(status_frame, text="Tag Writer v0.11", bd=1, relief=tk.SUNKEN, padx=10, pady=5)
-    version_label.pack(side=tk.RIGHT)
-    
-    # Initialize the thumbnail display if a file is selected
-    if initial_file:
-        select_file(initial_file)
-    
-    root.mainloop()
+    def on_mouse_wheel(self, event):
+        """Handle mouse wheel events for zooming"""
+        # Get wheel rotation
+        rotation = event.GetWheelRotation()
+        
+        # Determine zoom direction based on wheel rotation
+        if rotation > 0:
+            # Zoom in
+            self.zoom(self.zoom_step)
+        else:
+            # Zoom out
+            self.zoom(-self.zoom_step)
 
 def parse_arguments():
-    """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="Metadata Tag Writer for TIF and JPG images")
-    parser.add_argument("file_path", nargs="?", help="Path to the image file to process")
-    parser.add_argument("-v", "--version", action="store_true", help="Show version information and exit")
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description="Metadata Tag Writer - A tool for entering and writing IPTC metadata tags")
     
+    # Add arguments
+    parser.add_argument("file_path", nargs="?", help="Path to an image file", default=None)
+    parser.add_argument("-v", "--version", action="store_true", help="Display version information")
+    
+    # Parse arguments
     return parser.parse_args()
 
 if __name__ == "__main__":
-    args = parse_arguments()
+    # Create and start the application
+    app = TagWriterApp()
+    app.MainLoop()
     
-    # Handle version flag
-    # Handle version flag
-    if args.version:
-        version_text = "tag-writer.py  version .11  (2025-04-02)"
-        
-        # Add PIL/ImageTk status to version output
-        if not PIL_AVAILABLE:
-            version_text += " [PIL/Pillow not available]"
-        elif not IMAGETK_AVAILABLE:
-            version_text += " [ImageTk not available]"
-        else:
-            version_text += " [Full thumbnail support]"
-            
-        print(version_text)
-        sys.exit(0)
-    # Handle file path argument
-    if args.file_path:
-        try:
-            # Log PIL/ImageTk availability status
-            if not PIL_AVAILABLE:
-                logging.warning("Starting without PIL/Pillow support - thumbnail display disabled")
-            elif not IMAGETK_AVAILABLE:
-                logging.warning("Starting without ImageTk support - thumbnail display disabled")
-            else:
-                logging.info("Starting with full thumbnail support")
-                
-            start_gui(args.file_path)
-        except Exception as e:
-            error_msg = f"Error: {str(e)}"
-            print(error_msg)
-            logging.error(error_msg)
-            sys.exit(1)
-    else:
-        # No arguments provided, start with GUI only
-        # Log PIL/ImageTk availability status
-        if not PIL_AVAILABLE:
-            logging.warning("Starting without PIL/Pillow support - thumbnail display disabled")
-        elif not IMAGETK_AVAILABLE:
-            logging.warning("Starting without ImageTk support - thumbnail display disabled")
-        else:
-            logging.info("Starting with full thumbnail support")
-            
-        start_gui()
+    # Save recent files on exit
+    save_recent_files()
