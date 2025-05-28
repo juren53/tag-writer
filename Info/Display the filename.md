@@ -3,6 +3,7 @@ tag-writer.py has been modified to display the filename of the loaded file clear
 1. Added a new label (filename_label) near the top of the interface that shows the currently loaded filename
 2. Modified the select_file() function to update this label whenever a file is selected
 3. The label shows the basename of the file (just the filename without the path) for cleaner display
+    [the full path/filename is show at the bottom of the window]
 4. Added "No file selected" text as the default state when no file is loaded
 5. Made the label text bold for better visibility
 
