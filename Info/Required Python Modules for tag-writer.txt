@@ -19,6 +19,7 @@ External Dependencies
 2. PIL (Python Imaging Library / Pillow) - Used for image processing with the following components:
 •  PIL.Image
 •  PIL.ImageTk
+3. xwPython
 
 Note: The code includes fallback mechanisms for PIL/Pillow features, suggesting that while these are important for full functionality (especially for displaying image thumbnails), the application might still run with limited functionality without them.
 
