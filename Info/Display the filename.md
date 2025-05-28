@@ -7,6 +7,7 @@ I've modified the tag-writer.py script to display the filename of the loaded fil
 5. Made the label text bold for better visibility
 
 Now, when you run the application:
+
 •  The label will show "No file selected" initially
 •  After selecting a file (either through the GUI or command line argument), it will display "File: [filename]"
 •  The label is positioned directly beneath the "Select File" and "Write Metadata" buttons
