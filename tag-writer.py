@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer-wx.py  Ver 0.05d ################
+# ############   tag-writer-wx.py  Ver 0.06a ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using wxPython libraries.
@@ -20,6 +20,7 @@
 #  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05b
 #  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05c 
 #  Updated Wed 28 May 2025 12:44:00 AM CDT v 0.05d Caption Abstract increased to 1000 char
+#  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06a Added View/List all tags menu item
 #-----------------------------------------------------------
 
 import wx
@@ -31,6 +32,7 @@ import os
 import sys
 import logging
 import json
+import datetime
 import re
 import shutil
 import subprocess
@@ -310,7 +312,7 @@ class TagWriterApp(wx.App):
         
         # Handle version flag
         if args.version:
-            version_text = "tag-writer-wx.py  version 0.05d  (2025-05-28)"
+            version_text = "tag-writer-wx.py  version 0.06a  (2025-05-30)"
             # Add PIL status to version output
             if not PIL_AVAILABLE:
                 version_text += " [PIL/Pillow not available]"
@@ -494,10 +496,15 @@ class TagWriterFrame(wx.Frame):
         editmenu = wx.Menu()
         item_clear = editmenu.Append(wx.ID_CLEAR, "Clear Fields", "Clear all input fields")
         editmenu.AppendSeparator()
-        item_export = editmenu.Append(wx.ID_ANY, "Export data", "Export metadata to JSON")
+        item_export = editmenu.Append(wx.ID_ANY, "Export IPTC tags", "Export IPTC metadata to JSON")
+        item_import = editmenu.Append(wx.ID_ANY, "Import IPTC tags", "Import IPTC metadata from JSON")
         editmenu.AppendSeparator()
         item_rotate_clockwise = editmenu.Append(wx.ID_ANY, "Rotate Clockwise", "Rotate the image 90° clockwise using FFmpeg and save in-place (creates backup)")
         item_rotate_counterclockwise = editmenu.Append(wx.ID_ANY, "Rotate Counter-clockwise", "Rotate the image 90° counter-clockwise using FFmpeg and save in-place (creates backup)")
+        
+        # View menu
+        viewmenu = wx.Menu()
+        item_show_all_tags = viewmenu.Append(wx.ID_ANY, "Show ALL Metatags", "Display all metadata tags for the current image")
         
         # Help menu
         helpmenu = wx.Menu()
@@ -508,6 +515,7 @@ class TagWriterFrame(wx.Frame):
         # Add menus to menubar
         menubar.Append(filemenu, "&File")
         menubar.Append(editmenu, "&Edit")
+        menubar.Append(viewmenu, "&View")
         menubar.Append(helpmenu, "&Help")
         self.SetMenuBar(menubar)
         
@@ -517,8 +525,10 @@ class TagWriterFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_exit, item_exit)
         self.Bind(wx.EVT_MENU, self.on_clear_fields, item_clear)
         self.Bind(wx.EVT_MENU, self.on_export_data, item_export)
+        self.Bind(wx.EVT_MENU, self.on_import_iptc, item_import)
         self.Bind(wx.EVT_MENU, self.on_rotate_clockwise, item_rotate_clockwise)
         self.Bind(wx.EVT_MENU, self.on_rotate_counterclockwise, item_rotate_counterclockwise)
+        self.Bind(wx.EVT_MENU, self.on_show_all_metatags, item_show_all_tags)
         self.Bind(wx.EVT_MENU, self.on_about, item_about)
         self.Bind(wx.EVT_MENU, self.on_license, item_license)
         self.Bind(wx.EVT_MENU, self.on_usage_guide, item_guide)
@@ -529,7 +539,7 @@ class TagWriterFrame(wx.Frame):
         self.statusbar.SetStatusWidths([200, -1, 200])
         self.SetStatusText("Ready", 0)
         self.SetStatusText("", 1)  # Middle section for file path
-        self.SetStatusText("Ver 0.05d (2025-05-28)", 2)
+        self.SetStatusText("Ver 0.06a (2025-05-30)", 2)
     
     def create_layout(self):
         """Create the main application layout"""
@@ -1552,44 +1562,51 @@ class TagWriterFrame(wx.Frame):
             wx.MessageBox(f"Error writing metadata: {str(e)}",
                          "Write Error", wx.OK | wx.ICON_ERROR)
     
-    # This is a duplicate method - removing it to avoid confusion
-    # The correct implementation is at line ~1206
     def on_export_data(self, event):
-        """Export metadata to JSON file using exiftool to get all metadata directly from the image"""
+        """Export IPTC metadata to a JSON file"""
         global selected_file
         
         if not selected_file or not os.path.isfile(selected_file):
-            wx.MessageBox("No file selected. Please select an image file first.",
+            wx.MessageBox("No image selected. Please select an image file first.",
                          "Export Error", wx.OK | wx.ICON_WARNING)
             return
         
         try:
-            # Set status
-            self.SetStatusText(f"Retrieving metadata from {os.path.basename(selected_file)}...", 0)
+            self.SetStatusText(f"Retrieving IPTC metadata from {os.path.basename(selected_file)}...", 0)
             
-            # Get all metadata directly from the image file using exiftool
-            raw_metadata = get_metadata(selected_file)
-            
-            if not raw_metadata:
-                wx.MessageBox("No metadata found in the selected file.",
-                             "Export Warning", wx.OK | wx.ICON_WARNING)
-                return
+            # Get IPTC metadata using exiftool
+            with exiftool.ExifTool() as et:
+                # Focus specifically on IPTC tags
+                metadata_json = et.execute_json("-j", "-a", "-IPTC:all", selected_file)
                 
-            # Create a structured JSON with file info and metadata
-            metadata = {
-                'file': os.path.basename(selected_file),
-                'full_path': selected_file,
-                'metadata': raw_metadata
+                if not metadata_json or len(metadata_json) == 0:
+                    wx.MessageBox("No IPTC metadata found in the selected file.",
+                                 "Export Warning", wx.OK | wx.ICON_WARNING)
+                    return
+                
+                iptc_metadata = metadata_json[0]
+            
+            # Prepare a cleaner JSON structure specifically for IPTC data
+            # Filter out unnecessary fields and focus on IPTC tags
+            filtered_metadata = {}
+            for key, value in iptc_metadata.items():
+                if key.startswith('IPTC:') or key.startswith('XMP:') or key.startswith('XMP-iptc:'):
+                    filtered_metadata[key] = value
+            
+            export_data = {
+                'filename': os.path.basename(selected_file),
+                'export_date': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'IPTC_metadata': filtered_metadata
             }
             
-            # Create default export file name from selected file
+            # Create a more descriptive default filename
             base_name = os.path.splitext(os.path.basename(selected_file))[0]
-            default_file = f"{base_name}_metadata.json"
+            default_file = f"{base_name}_iptc_tags.json"
             
             # Create file dialog for saving
             wildcard = "JSON files (*.json)|*.json|All files (*.*)|*.*"
             dlg = wx.FileDialog(
-                self, message="Save metadata as JSON",
+                self, message="Save IPTC metadata as JSON",
                 defaultDir=os.path.dirname(selected_file),
                 defaultFile=default_file,
                 wildcard=wildcard,
@@ -1603,31 +1620,190 @@ class TagWriterFrame(wx.Frame):
                 try:
                     # Export to JSON file with indentation for readability
                     with open(export_path, 'w') as f:
-                        json.dump(metadata, f, indent=4)
+                        json.dump(export_data, f, indent=4)
                     
-                    self.SetStatusText(f"All metadata exported to {export_path}", 0)
-                    wx.MessageBox(f"All metadata successfully exported to {os.path.basename(export_path)}",
+                    self.SetStatusText(f"IPTC metadata exported to {export_path}", 0)
+                    wx.MessageBox(f"IPTC metadata successfully exported to {os.path.basename(export_path)}",
                                  "Export Successful", wx.OK | wx.ICON_INFORMATION)
                     
                     # Log the number of metadata fields exported
-                    field_count = len(raw_metadata) if isinstance(raw_metadata, dict) else 0
-                    logging.info(f"Exported {field_count} metadata fields to {export_path}")
+                    field_count = len(filtered_metadata)
+                    logging.info(f"Exported {field_count} IPTC metadata fields to {export_path}")
                 except Exception as e:
-                    logging.error(f"Error exporting metadata: {str(e)}")
-                    self.SetStatusText(f"Error exporting metadata: {str(e)}", 0)
+                    logging.error(f"Error exporting IPTC metadata: {str(e)}")
+                    self.SetStatusText(f"Error exporting IPTC metadata: {str(e)}", 0)
                     
                     # Show error dialog
-                    wx.MessageBox(f"Error exporting metadata: {str(e)}",
+                    wx.MessageBox(f"Error exporting IPTC metadata: {str(e)}",
                                  "Export Error", wx.OK | wx.ICON_ERROR)
+            
+            # Clean up dialog
+            dlg.Destroy()
+                
+        except Exception as e:
+            logging.error(f"Error retrieving IPTC metadata: {str(e)}")
+            self.SetStatusText(f"Error retrieving IPTC metadata: {str(e)}", 0)
+            
+            # Show error dialog
+            wx.MessageBox(f"Error retrieving IPTC metadata: {str(e)}",
+                         "Export Error", wx.OK | wx.ICON_ERROR)
+    
+    def on_import_iptc(self, event):
+        """Import IPTC metadata from a JSON file and apply to the current image"""
+        global selected_file
+        
+        if not selected_file or not os.path.isfile(selected_file):
+            wx.MessageBox("No image selected. Please select an image file first.",
+                         "Import Error", wx.OK | wx.ICON_WARNING)
+            return
+        
+        # Create file dialog for selecting JSON file
+        wildcard = "JSON files (*.json)|*.json|All files (*.*)|*.*"
+        dlg = wx.FileDialog(
+            self, message="Select IPTC metadata JSON file to import",
+            defaultDir=os.path.dirname(selected_file),
+            defaultFile="",
+            wildcard=wildcard,
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST
+        )
+        
+        # Show dialog and process selection
+        if dlg.ShowModal() == wx.ID_OK:
+            import_path = dlg.GetPath()
+            
+            try:
+                # Read JSON file
+                with open(import_path, 'r') as f:
+                    import_data = json.load(f)
+                
+                # Check if the JSON has the expected structure
+                iptc_metadata = None
+                
+                # Handle both formats: new (with IPTC_metadata) and older format (with metadata)
+                if 'IPTC_metadata' in import_data:
+                    iptc_metadata = import_data['IPTC_metadata']
+                elif 'metadata' in import_data:
+                    # Extract IPTC tags from older format
+                    iptc_metadata = {}
+                    for key, value in import_data['metadata'].items():
+                        if key.startswith('IPTC:') or key.startswith('XMP:') or key.startswith('XMP-iptc:'):
+                            iptc_metadata[key] = value
+                
+                if not iptc_metadata:
+                    wx.MessageBox("No IPTC metadata found in the selected JSON file.",
+                                 "Import Error", wx.OK | wx.ICON_WARNING)
+                    dlg.Destroy()
+                    return
+                
+                # Extract IPTC data and apply to UI fields
+                self.populate_fields_from_iptc(iptc_metadata)
+                
+                # Ask if user wants to save the imported metadata to the current image
+                save_dlg = wx.MessageDialog(
+                    self,
+                    "IPTC metadata imported to form fields.\n\nDo you want to save these changes to the current image?",
+                    "Save Changes?",
+                    wx.YES_NO | wx.ICON_QUESTION
+                )
+                
+                if save_dlg.ShowModal() == wx.ID_YES:
+                    # Trigger the save operation
+                    self.on_write_metadata(None)
+                else:
+                    self.SetStatusText(f"IPTC metadata imported from {import_path} (not saved to image)", 0)
+                
+                save_dlg.Destroy()
+                
+            except Exception as e:
+                logging.error(f"Error importing IPTC metadata: {str(e)}")
+                self.SetStatusText(f"Error importing IPTC metadata: {str(e)}", 0)
+                
+                # Show error dialog
+                wx.MessageBox(f"Error importing IPTC metadata: {str(e)}",
+                             "Import Error", wx.OK | wx.ICON_ERROR)
+        
+        # Clean up dialog
+        dlg.Destroy()
+    
+    def populate_fields_from_iptc(self, iptc_metadata):
+        """Populate UI fields from IPTC metadata"""
+        # Define mappings from IPTC tags to UI fields
+        tag_field_map = {
+            'IPTC:Headline': self.entry_headline,
+            'IPTC:Caption-Abstract': self.text_caption_abstract,
+            'IPTC:Credit': self.entry_credit,
+            'IPTC:ObjectName': self.entry_object_name,
+            'IPTC:Writer-Editor': self.entry_writer_editor,
+            'IPTC:By-line': self.entry_by_line,
+            'IPTC:By-lineTitle': self.entry_by_line_title,
+            'IPTC:Source': self.entry_source,
+            'IPTC:DateCreated': self.entry_date,
+            'IPTC:CopyrightNotice': self.entry_copyright_notice,
+            
+            # Also handle XMP tags that might be in the file
+            'XMP:Title': self.entry_headline,
+            'XMP:Description': self.text_caption_abstract,
+            'XMP:Credit': self.entry_credit,
+            'XMP:Creator': self.entry_by_line,
+            'XMP:Rights': self.entry_copyright_notice,
+            'XMP:Source': self.entry_source
+        }
+        
+        # Apply metadata to UI fields
+        fields_populated = 0
+        for tag, field in tag_field_map.items():
+            if tag in iptc_metadata and iptc_metadata[tag]:
+                value = iptc_metadata[tag]
+                
+                # Handle list values (some fields might be lists)
+                if isinstance(value, list):
+                    value = value[0]  # Take the first item from the list
+                
+                # Set the field value
+                field.SetValue(str(value))
+                fields_populated += 1
+        
+        # Update character count for caption abstract
+        self.update_char_count(None)
+        
+        # Update status
+        self.SetStatusText(f"Populated {fields_populated} fields from imported IPTC metadata", 0)
+
+    def on_show_all_metatags(self, event):
+        """Show all metadata tags for the current image"""
+        global selected_file
+        
+        if not selected_file or not os.path.isfile(selected_file):
+            wx.MessageBox("No image selected. Please select an image file first.",
+                         "No Image", wx.OK | wx.ICON_WARNING)
+            return
+        
+        try:
+            # Set status
+            self.SetStatusText(f"Retrieving all metadata from {os.path.basename(selected_file)}...", 0)
+            
+            # Get all metadata directly from the image file using exiftool
+            with exiftool.ExifTool() as et:
+                # Use -a flag to get all tags including duplicates
+                # Use -G flag to show group names
+                # Use -s flag for shorter output format
+                metadata_json = et.execute_json("-j", "-a", "-G", "-s", selected_file)
+                
+                if metadata_json and len(metadata_json) > 0:
+                    # Show the metadata viewer window
+                    viewer = MetadataViewerFrame(self, selected_file, metadata_json[0])
+                    viewer.Show()
+                else:
+                    wx.MessageBox("No metadata found in the selected file.",
+                                 "No Metadata", wx.OK | wx.ICON_WARNING)
+        
         except Exception as e:
             logging.error(f"Error retrieving metadata: {str(e)}")
             self.SetStatusText(f"Error retrieving metadata: {str(e)}", 0)
             
             # Show error dialog
             wx.MessageBox(f"Error retrieving metadata: {str(e)}",
-                         "Export Error", wx.OK | wx.ICON_ERROR)
-        
-        dlg.Destroy()
+                         "Metadata Error", wx.OK | wx.ICON_ERROR)
     
     def zoom_ui(self, zoom_delta):
         """Change the UI zoom level by the specified delta"""
@@ -1753,7 +1929,7 @@ class TagWriterFrame(wx.Frame):
         
         if selected_file and os.path.isfile(selected_file) and original_image:
             try:
-                # Check if we already have a preview dialog open
+                # Check if we already have a preview frame open
                 if self.preview_dialog is not None and self.preview_dialog:
                     # If it exists but is hidden, show it
                     if not self.preview_dialog.IsShown():
@@ -1766,7 +1942,7 @@ class TagWriterFrame(wx.Frame):
                         self.preview_dialog.original_image = original_image
                         self.preview_dialog.update_image()
                 else:
-                    # Create a new dialog and show it non-modally
+                    # Create a new frame and show it
                     self.preview_dialog = FullImageDialog(self, selected_file, original_image)
                     self.preview_dialog.Show()
             except Exception as e:
@@ -1778,7 +1954,7 @@ class TagWriterFrame(wx.Frame):
         """Display about dialog"""
         info = wx.adv.AboutDialogInfo()
         info.SetName("Metadata Tag Writer WX")
-        info.SetVersion("0.05d")
+        info.SetVersion("0.06a")
         info.SetDescription("A tool for editing IPTC metadata in image files")
         info.SetCopyright("(C) 2023-2025")
         info.SetWebSite("https://github.com/juren53/tag-writer")
@@ -1857,12 +2033,12 @@ SOFTWARE.
     def on_exit(self, event):
         """Exit the application"""
         self.Close()
-class FullImageDialog(wx.Dialog):
-    """Dialog for displaying full-sized images with zoom functionality"""
+class FullImageDialog(wx.Frame):
+    """Frame for displaying full-sized images with zoom functionality"""
     def __init__(self, parent, image_path, original_image):
-        """Initialize the dialog"""
-        wx.Dialog.__init__(self, parent, title="", 
-                          size=(800, 600), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
+        """Initialize the frame"""
+        wx.Frame.__init__(self, parent, title="", 
+                          size=(800, 600), style=wx.DEFAULT_FRAME_STYLE)
         
         self.image_path = image_path
         self.original_image = original_image
@@ -1946,7 +2122,7 @@ class FullImageDialog(wx.Dialog):
         
         # Close button
         close_btn = wx.Button(controls_panel, wx.ID_CLOSE, "Close")
-        close_btn.Bind(wx.EVT_BUTTON, lambda evt: self.Hide())
+        close_btn.Bind(wx.EVT_BUTTON, lambda evt: self.Close())
         controls_sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         
         controls_panel.SetSizer(controls_sizer)
@@ -2059,6 +2235,188 @@ class FullImageDialog(wx.Dialog):
         else:
             # Zoom out
             self.zoom(-self.zoom_step)
+
+class MetadataViewerFrame(wx.Frame):
+    """Frame for displaying all metadata tags"""
+    def __init__(self, parent, image_path, metadata):
+        """Initialize the frame"""
+        wx.Frame.__init__(self, parent, title=f"All Metadata Tags: {os.path.basename(image_path)}", 
+                          size=(700, 500), style=wx.DEFAULT_FRAME_STYLE)
+        
+        self.metadata = metadata
+        self.image_path = image_path
+        
+        # Create UI components
+        self.create_ui()
+        
+        # Center on parent
+        self.CenterOnParent()
+    
+    def create_ui(self):
+        """Create the user interface"""
+        main_panel = wx.Panel(self)
+        main_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        # Add a header
+        header_text = wx.StaticText(main_panel, label=f"All metadata tags for: {os.path.basename(self.image_path)}")
+        header_text.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
+        main_sizer.Add(header_text, 0, wx.ALL | wx.EXPAND, 10)
+        
+        # Add a list control for the metadata
+        self.list_ctrl = wx.ListCtrl(main_panel, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
+        self.list_ctrl.InsertColumn(0, "Group", width=120)
+        self.list_ctrl.InsertColumn(1, "Tag Name", width=180)
+        self.list_ctrl.InsertColumn(2, "Value", width=370)
+        
+        # Populate the list control
+        self.populate_list()
+        
+        main_sizer.Add(self.list_ctrl, 1, wx.ALL | wx.EXPAND, 10)
+        
+        # Add a search box
+        search_panel = wx.Panel(main_panel)
+        search_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        search_label = wx.StaticText(search_panel, label="Search:")
+        search_sizer.Add(search_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        self.search_box = wx.TextCtrl(search_panel)
+        self.search_box.Bind(wx.EVT_TEXT, self.on_search)
+        search_sizer.Add(self.search_box, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        search_panel.SetSizer(search_sizer)
+        main_sizer.Add(search_panel, 0, wx.ALL | wx.EXPAND, 5)
+        
+        # Create a copy button for copying all data to clipboard
+        btn_copy = wx.Button(main_panel, label="Copy All to Clipboard")
+        btn_copy.Bind(wx.EVT_BUTTON, self.on_copy_all)
+        main_sizer.Add(btn_copy, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        
+        # Add a close button
+        btn_close = wx.Button(main_panel, wx.ID_CLOSE, "Close")
+        btn_close.Bind(wx.EVT_BUTTON, lambda evt: self.Close())
+        main_sizer.Add(btn_close, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
+        
+        main_panel.SetSizer(main_sizer)
+    
+    def populate_list(self):
+        """Populate the list control with metadata"""
+        # Clear existing items
+        self.list_ctrl.DeleteAllItems()
+        
+        # Add metadata items
+        row_idx = 0
+        sorted_keys = sorted(self.metadata.keys())
+        
+        for key in sorted_keys:
+            # Skip SourceFile which is redundant
+            if key == 'SourceFile':
+                continue
+                
+            value = self.metadata[key]
+            
+            # Split key into group and tag name
+            if ':' in key:
+                group, tag = key.split(':', 1)
+            else:
+                group = 'Other'
+                tag = key
+            
+            # Convert value to string representation
+            if isinstance(value, list):
+                value_str = ", ".join(str(v) for v in value)
+            else:
+                value_str = str(value)
+            
+            # Add to list control
+            self.list_ctrl.InsertItem(row_idx, group)
+            self.list_ctrl.SetItem(row_idx, 1, tag)
+            self.list_ctrl.SetItem(row_idx, 2, value_str)
+            row_idx += 1
+        
+        # Auto-size columns
+        for i in range(3):
+            self.list_ctrl.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+    
+    def on_search(self, event):
+        """Filter the list based on search text"""
+        search_text = self.search_box.GetValue().lower()
+        
+        # Repopulate with filter
+        self.list_ctrl.DeleteAllItems()
+        
+        if not search_text:
+            # If search box is empty, show all
+            self.populate_list()
+            return
+        
+        # Add only matching items
+        row_idx = 0
+        sorted_keys = sorted(self.metadata.keys())
+        
+        for key in sorted_keys:
+            # Skip SourceFile which is redundant
+            if key == 'SourceFile':
+                continue
+                
+            value = self.metadata[key]
+            
+            # Split key into group and tag name
+            if ':' in key:
+                group, tag = key.split(':', 1)
+            else:
+                group = 'Other'
+                tag = key
+            
+            # Convert value to string representation
+            if isinstance(value, list):
+                value_str = ", ".join(str(v) for v in value)
+            else:
+                value_str = str(value)
+            
+            # Check if search text is in any field
+            if (search_text in group.lower() or 
+                search_text in tag.lower() or 
+                search_text in value_str.lower()):
+                
+                # Add to list control
+                self.list_ctrl.InsertItem(row_idx, group)
+                self.list_ctrl.SetItem(row_idx, 1, tag)
+                self.list_ctrl.SetItem(row_idx, 2, value_str)
+                row_idx += 1
+        
+        # Auto-size columns
+        for i in range(3):
+            self.list_ctrl.SetColumnWidth(i, wx.LIST_AUTOSIZE)
+    
+    def on_copy_all(self, event):
+        """Copy all metadata to clipboard"""
+        # Build a string with all the metadata
+        metadata_text = f"Metadata for: {self.image_path}\n"
+        metadata_text += "=" * 50 + "\n\n"
+        
+        sorted_keys = sorted(self.metadata.keys())
+        for key in sorted_keys:
+            if key == 'SourceFile':
+                continue
+                
+            value = self.metadata[key]
+            
+            # Format value as string
+            if isinstance(value, list):
+                value_str = ", ".join(str(v) for v in value)
+            else:
+                value_str = str(value)
+            
+            metadata_text += f"{key}: {value_str}\n"
+        
+        # Copy to clipboard
+        if wx.TheClipboard.Open():
+            wx.TheClipboard.SetData(wx.TextDataObject(metadata_text))
+            wx.TheClipboard.Close()
+            wx.MessageBox("All metadata copied to clipboard", "Copy Complete", wx.OK | wx.ICON_INFORMATION)
+        else:
+            wx.MessageBox("Unable to access the clipboard", "Copy Failed", wx.OK | wx.ICON_ERROR)
 
 def parse_arguments():
     """Parse command line arguments"""
