@@ -1,0 +1,14 @@
+"Recently accessed" feature added to the File menu of tag-writer.py. Here's what was added:
+
+1. A global list variable recent_files to track up to 5 recently accessed files
+2. Three new functions:
+•  update_recent_files(file_path) - Maintains the recent files list by adding new files, removing duplicates, and limiting to 5 entries
+•  build_recent_files_menu() - Creates the menu entries for each recent file
+•  open_recent_file(file_path) - Opens a file from the recent files list, with error handling for files that no longer exist
+3. Modified the select_file() function to update the recent files list whenever a file is opened
+4. Added a "Recently accessed" submenu to the File menu
+5. Connected the "Open" menu item to the select_file() function (it wasn't connected before)
+
+Now when a user opens a file, it will be tracked in the "Recently accessed" submenu, showing up to 5 of the most recently opened files. Selecting a file from this submenu will open it and display its metadata. If a file in the list no longer exists, the user will see an error message and the file will be removed from the list.
+
+This feature provides a convenient way for users to quickly access files they've been working with recently without having to navigate through the file system repeatedly.

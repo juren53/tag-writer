@@ -6,32 +6,6 @@ This is an implementation of the Tag Writer application using PyQt6
 that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
-#-----------------------------------------------------------
-# ############   tag-writer-wx.py  Ver 0.07a ################
-# This program creates a GUI interface for entering and    
-# writing IPTC metadata tags to TIF and JPG images selected   
-# from a directory pick list using wxPython libraries.
-# This program is intended as a free form metadata tagger
-# when metada can not be pulled from an online database. 
-#  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
-#  Updated Sun 02 Jul 2023 04:53:41 PM CDT added no-backup	
-#  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
-#  Updated Sun 30 Mar 2025 03:20:00 AM CDT added command-line argument support & status msg after write
-#  Updated Tue 01 Apr 2025 08:55:00 AM CDT Ver .09 added export to JSON feature & clear data to Edit menu
-#  Updated Wed 02 APr 2025 11:23:01 AM CSD Ver .10 added full image viewer from thumbnail & License window under Help
-#
-#  Updated Sat 05 Apr 2025 11:24:00 PM CDT Converted from tkinter to wxPython
-#  Updated Sun 13 Apr 2025 10:20:00 AM CDT v 0.04c Load last image on startup
-#  Updated Sun 13 Apr 2025 12:44:00 AM CDT v 0.04d Key board arrow keys scroll								 
-#  Updated Sun 25 May 2025 12:44:00 AM CDT v 0.05a Key board arrow keys scroll through CWD
-#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05b
-#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05c 
-#  Updated Wed 28 May 2025 12:44:00 AM CDT v 0.05d Caption Abstract increased to 1000 char
-#  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06a Added View/List all tags menu item
-#  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06b Fixed bug in the Caption Abstract text box editor
-
-#  Updated Sat 31 May 2025 01:49:56 PM CDT v 0.07a Converted from wxPyton to PyQt6
-#-----------------------------------------------------------
 
 import os
 import sys

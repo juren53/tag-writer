@@ -1,0 +1,37 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+ENV/
+kivy_venv/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.bak
+*.tmp
+*~
+
+# Application specific files
+*.jpg.bak
+*.tif.bak
+code/.buildozer/android/platform/python-for-android/
+# Buildozer build files
+code/.buildozer/

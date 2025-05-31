@@ -1,0 +1,8 @@
+grep -r "0.06" --include="*.py" .
+./utils/config.py:        self.app_version = "0.06b"
+./setup.py:    version="0.06b",
+
+
+
+
+
