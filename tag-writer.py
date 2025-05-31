@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer-wx.py  Ver 0.06a ################
+# ############   tag-writer-wx.py  Ver 0.06b ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using wxPython libraries.
@@ -21,6 +21,7 @@
 #  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05c 
 #  Updated Wed 28 May 2025 12:44:00 AM CDT v 0.05d Caption Abstract increased to 1000 char
 #  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06a Added View/List all tags menu item
+#  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06b Fixed bug in the Caption Abstract text box editor
 #-----------------------------------------------------------
 
 import wx
@@ -312,7 +313,7 @@ class TagWriterApp(wx.App):
         
         # Handle version flag
         if args.version:
-            version_text = "tag-writer-wx.py  version 0.06a  (2025-05-30)"
+            version_text = "tag-writer-wx.py  version 0.06b  (2025-05-30)"
             # Add PIL status to version output
             if not PIL_AVAILABLE:
                 version_text += " [PIL/Pillow not available]"
@@ -539,7 +540,7 @@ class TagWriterFrame(wx.Frame):
         self.statusbar.SetStatusWidths([200, -1, 200])
         self.SetStatusText("Ready", 0)
         self.SetStatusText("", 1)  # Middle section for file path
-        self.SetStatusText("Ver 0.06a (2025-05-30)", 2)
+        self.SetStatusText("Ver 0.06b (2025-05-30)", 2)
     
     def create_layout(self):
         """Create the main application layout"""
@@ -873,27 +874,59 @@ class TagWriterFrame(wx.Frame):
         # Update character count label
         self.caption_char_count.SetLabel(f"{current_length}/1000 characters")
         
-        # Apply appropriate styling based on text length
-        self.text_caption_abstract.Freeze()  # Freeze to prevent flickering
+        # Get current position BEFORE freezing the control
+        current_position = self.text_caption_abstract.GetInsertionPoint()
         
-        # Save current cursor position
-        current_position = self.text_caption_abstract.GetCaretPosition()
+        # Check if cursor is at the end of the text
+        cursor_at_end = (current_position == current_length)
         
-        # Create text attributes for default (white) and exceeded (red) text
-        default_attr = wx.TextAttr(wx.Colour(255, 255, 255))
-        exceeded_attr = wx.TextAttr(wx.Colour(255, 255, 0))
+        # Get selection information using RichTextCtrl specific methods
+        selection = self.text_caption_abstract.GetSelection()
+        has_selection = selection.GetRange().GetStart() != selection.GetRange().GetEnd()
         
-        # Reset all text to default color first
-        self.text_caption_abstract.SetStyle(0, current_length, default_attr)
+        # Store current state to determine if we actually need to apply styling
+        needs_styling = False
         
-        # If text is longer than 256 characters, color the excess in red
+        # Determine if styling needs to be applied
         if current_length > 256:
-            # Apply red color to text after position 256
-            self.text_caption_abstract.SetStyle(256, current_length, exceeded_attr)
+            # Only apply styling if we're not already past 256 chars or the length crosses the 256 threshold
+            if not hasattr(self, '_last_styled_length') or self._last_styled_length <= 256 or current_length != self._last_styled_length:
+                needs_styling = True
+        elif hasattr(self, '_last_styled_length') and self._last_styled_length > 256:
+            # We've gone back below 256 chars, need to reset styling
+            needs_styling = True
         
-        # Restore cursor position
-        self.text_caption_abstract.SetInsertionPoint(current_position)
-        self.text_caption_abstract.Thaw()  # Unfreeze the control
+        # Save the current length for comparison next time
+        self._last_styled_length = current_length
+        
+        # Only apply styling if needed
+        if needs_styling:
+            self.text_caption_abstract.Freeze()  # Freeze to prevent flickering
+            
+            # Create text attributes for default (white) and exceeded (yellow) text
+            default_attr = wx.TextAttr(wx.Colour(255, 255, 255))
+            exceeded_attr = wx.TextAttr(wx.Colour(255, 255, 0))
+            
+            # Reset all text to default color first
+            self.text_caption_abstract.SetStyle(0, current_length, default_attr)
+            
+            # If text is longer than 256 characters, color the excess in yellow
+            if current_length > 256:
+                # Apply yellow color to text after position 256
+                self.text_caption_abstract.SetStyle(256, current_length, exceeded_attr)
+            
+            # Restore selection if there was one
+            if has_selection:
+                # For RichTextCtrl, we need to use SetSelection with the original selection object
+                self.text_caption_abstract.SetSelection(selection)
+            else:
+                # Otherwise restore insertion point based on whether cursor was at the end
+                if cursor_at_end:
+                    self.text_caption_abstract.SetInsertionPointEnd()
+                else:
+                    self.text_caption_abstract.SetInsertionPoint(current_position)
+            
+            self.text_caption_abstract.Thaw()  # Unfreeze the control
         
         # Change label color if over maximum limit
         if current_length > 1000:
@@ -1954,7 +1987,7 @@ class TagWriterFrame(wx.Frame):
         """Display about dialog"""
         info = wx.adv.AboutDialogInfo()
         info.SetName("Metadata Tag Writer WX")
-        info.SetVersion("0.06a")
+        info.SetVersion("0.06b")
         info.SetDescription("A tool for editing IPTC metadata in image files")
         info.SetCopyright("(C) 2023-2025")
         info.SetWebSite("https://github.com/juren53/tag-writer")
