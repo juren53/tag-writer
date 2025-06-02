@@ -31,7 +31,7 @@ This metadata stays with your files and can be read by most image management sof
 - ExifTool (must be installed separately)
 
 ### Installing ExifTool
-Tag Writer uses Phil Harvey's ExifTool for reading and writing metadata. You must install it before using Tag Writer:
+Tag Writer uses Phil Harvey's ExifTool for reading and writing metadata. You must install ExifTool before using Tag Writer:
 
 - **Windows**: Download from [exiftool.org](https://exiftool.org) and add to your PATH
 - **macOS**: Install via Homebrew with `brew install exiftool`
