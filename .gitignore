@@ -29,3 +29,19 @@ ENV/
 # Ignore spec files
 *.spec
 
+# Ignore generated metadata JSON files
+*_metadata.json
+
+# Ignore temporary files
+temp.txt
+
+# Ignore local directories not for version control
+Issues/
+dev/
+photos/
+tag-writer-latest/
+tag-writer-updated/
+
+# Ignore specific text files
+PROMPT_to-fix-Win11-arrow-button-bug.txt
+
