@@ -362,6 +362,11 @@ class TagWriterFrame(wx.Frame):
         self.thumbnail_image = None
         self.thumbnail_panel = None
         self.zoom_info_label = None
+        self.ui_zoom_factor = 1.0
+        self.ui_min_zoom = 0.8
+        self.ui_max_zoom = 1.5
+        self.ui_zoom_step = 0.1
+        self.ui_zoom_label = None
         self.recent_files_menu = None
         self.metadata = {}
         self.preview_dialog = None
@@ -467,6 +472,7 @@ class TagWriterFrame(wx.Frame):
         filemenu.AppendSubMenu(self.recent_files_menu, "Recently accessed\tAlt+R")
         self.build_recent_files_menu()
         
+        item_save = filemenu.Append(wx.ID_SAVE, "&Save", "Save metadata to the current file")
         filemenu.AppendSeparator()
         item_exit = filemenu.Append(wx.ID_EXIT, "E&xit", "Exit the application")
         
@@ -493,6 +499,7 @@ class TagWriterFrame(wx.Frame):
         
         # Bind menu events
         self.Bind(wx.EVT_MENU, self.on_open, item_open)
+        self.Bind(wx.EVT_MENU, self.on_write_metadata, item_save)
         self.Bind(wx.EVT_MENU, self.on_exit, item_exit)
         self.Bind(wx.EVT_MENU, self.on_clear_fields, item_clear)
         self.Bind(wx.EVT_MENU, self.on_export_data, item_export)
@@ -534,6 +541,32 @@ class TagWriterFrame(wx.Frame):
         self.nav_next_button.Bind(wx.EVT_BUTTON, lambda evt: self.navigate_to_file(1))
         self.nav_next_button.Disable()
         top_sizer.Add(self.nav_next_button, 0, wx.ALL, 5)
+        
+        # Add UI zoom controls
+        zoom_panel = wx.Panel(top_panel)
+        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # Zoom out button
+        zoom_out_btn = wx.Button(zoom_panel, label="-", size=(30, -1))
+        zoom_out_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom_ui(-self.ui_zoom_step))
+        zoom_sizer.Add(zoom_out_btn, 0, wx.ALL, 5)
+        
+        # Zoom info label
+        self.ui_zoom_label = wx.StaticText(zoom_panel, label="UI Zoom: 100%")
+        zoom_sizer.Add(self.ui_zoom_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+        
+        # Zoom in button
+        zoom_in_btn = wx.Button(zoom_panel, label="+", size=(30, -1))
+        zoom_in_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom_ui(self.ui_zoom_step))
+        zoom_sizer.Add(zoom_in_btn, 0, wx.ALL, 5)
+        
+        # Reset zoom button
+        reset_zoom_btn = wx.Button(zoom_panel, label="Reset", size=(50, -1))
+        reset_zoom_btn.Bind(wx.EVT_BUTTON, lambda evt: self.reset_ui_zoom())
+        zoom_sizer.Add(reset_zoom_btn, 0, wx.ALL, 5)
+        
+        zoom_panel.SetSizer(zoom_sizer)
+        top_sizer.Add(zoom_panel, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         
         # Write metadata button
         self.btn_write = wx.Button(top_panel, label="Write Metadata")
@@ -679,10 +712,16 @@ class TagWriterFrame(wx.Frame):
         self.btn_view_full.Bind(wx.EVT_BUTTON, self.on_view_full_image)
         thumbnail_sizer.Add(self.btn_view_full, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
         
-        # Add dimensions label
-        self.dimensions_label = wx.StaticText(thumbnail_panel, label="Dimensions: --")
+        # Add dimensions label - create a panel to contain the centered label
+        dim_panel = wx.Panel(thumbnail_panel)
+        dim_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        self.dimensions_label = wx.StaticText(dim_panel, label="Dimensions: --", style=wx.ALIGN_CENTER_HORIZONTAL)
         self.dimensions_label.SetFont(wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        thumbnail_sizer.Add(self.dimensions_label, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
+        dim_panel_sizer.Add(self.dimensions_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
+        
+        dim_panel.SetSizer(dim_panel_sizer)
+        thumbnail_sizer.Add(dim_panel, 0, wx.EXPAND | wx.BOTTOM, 10)
         
         # Bind click on thumbnail to view full image
         self.thumbnail_panel.Bind(wx.EVT_LEFT_DOWN, self.on_view_full_image)
@@ -701,6 +740,9 @@ class TagWriterFrame(wx.Frame):
         
         # Layout and fit
         main_sizer.Fit(self.panel)
+        
+        # Initialize UI zoom
+        self.apply_ui_zoom()
     
     def setup_accelerators(self):
         """Set up keyboard shortcuts"""
@@ -736,6 +778,7 @@ class TagWriterFrame(wx.Frame):
         accel_entries = [
             # File menu
             wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('O'), wx.ID_OPEN),  # Ctrl+O for Open
+            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('S'), wx.ID_SAVE),  # Ctrl+S for Save
             # Edit menu
             wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('L'), wx.ID_CLEAR),  # Ctrl+L for Clear fields
             # We don't add LEFT/RIGHT here because accelerator tables don't work well with them
@@ -746,6 +789,9 @@ class TagWriterFrame(wx.Frame):
         
         # Bind key events for navigation (left/right arrows)
         self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        
+        # Add keyboard shortcuts for zooming
+        self.Bind(wx.EVT_CHAR_HOOK, self.on_key_for_zoom)
         
         # Also bind to the panel to ensure it catches key events when focused
         self.panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
@@ -1007,7 +1053,10 @@ class TagWriterFrame(wx.Frame):
                     img_height = img.GetHeight()
                     
                     # Update dimensions label
-                    self.dimensions_label.SetLabel(f"Dimensions: {img_width} x {img_height} pixels")
+                    dimensions_text = f"Dimensions: {img_width} x {img_height} pixels"
+                    self.dimensions_label.SetLabel(dimensions_text)
+                    # Make sure the dimensions label gets properly centered and wrapped if needed
+                    self.dimensions_label.GetParent().Layout()
                     
                     # Calculate scaling factor to fit within thumbnail boundaries
                     max_size = 200
@@ -1530,6 +1579,123 @@ class TagWriterFrame(wx.Frame):
         
         dlg.Destroy()
     
+    def zoom_ui(self, zoom_delta):
+        """Change the UI zoom level by the specified delta"""
+        # Calculate new zoom level
+        new_zoom = self.ui_zoom_factor + zoom_delta
+        
+        # Ensure zoom level is within bounds
+        if self.ui_min_zoom <= new_zoom <= self.ui_max_zoom:
+            self.ui_zoom_factor = new_zoom
+            self.apply_ui_zoom()
+            
+            # Update zoom label
+            if hasattr(self, 'ui_zoom_label') and self.ui_zoom_label:
+                self.ui_zoom_label.SetLabel(f"UI Zoom: {int(self.ui_zoom_factor * 100)}%")
+    
+    def reset_ui_zoom(self):
+        """Reset UI zoom to 100%"""
+        self.ui_zoom_factor = 1.0
+        self.apply_ui_zoom()
+        
+        # Update zoom label
+        if hasattr(self, 'ui_zoom_label') and self.ui_zoom_label:
+            self.ui_zoom_label.SetLabel("UI Zoom: 100%")
+    
+    def apply_ui_zoom(self):
+        """Apply the current zoom factor to all UI elements"""
+        # Create a new font with the scaled size for each text control
+        self.scale_text_control(self.entry_headline)
+        self.scale_text_control(self.text_caption_abstract)
+        self.scale_text_control(self.entry_credit)
+        self.scale_text_control(self.entry_object_name)
+        self.scale_text_control(self.entry_writer_editor)
+        self.scale_text_control(self.entry_by_line)
+        self.scale_text_control(self.entry_source)
+        self.scale_text_control(self.entry_date)
+        self.scale_text_control(self.entry_copyright_notice)
+        
+        # Scale labels
+        self.scale_label_controls(self.panel)
+        
+        # Force layout refresh
+        self.panel.Layout()
+        self.Layout()
+    
+    def scale_text_control(self, control):
+        """Scale a text control font based on the current zoom factor"""
+        if control and control.IsShown():
+            # Get the current font
+            current_font = control.GetFont()
+            
+            # Calculate the new size (base size is 9 points in most systems)
+            base_size = 9
+            new_size = int(base_size * self.ui_zoom_factor)
+            
+            # Create a new font with the scaled size
+            new_font = wx.Font(
+                new_size,
+                current_font.GetFamily(),
+                current_font.GetStyle(),
+                current_font.GetWeight(),
+                current_font.GetUnderlined()
+            )
+            
+            # Apply the new font
+            control.SetFont(new_font)
+    
+    def scale_label_controls(self, parent):
+        """Recursively scale all label controls within a parent container"""
+        for child in parent.GetChildren():
+            # Check if the child is a static text (label)
+            if isinstance(child, wx.StaticText):
+                # Get the current font
+                current_font = child.GetFont()
+                
+                # Calculate the new size (base size is 9 points in most systems)
+                base_size = 9
+                new_size = int(base_size * self.ui_zoom_factor)
+                
+                # Create a new font with the scaled size
+                new_font = wx.Font(
+                    new_size,
+                    current_font.GetFamily(),
+                    current_font.GetStyle(),
+                    current_font.GetWeight(),
+                    current_font.GetUnderlined()
+                )
+                
+                # Apply the new font
+                child.SetFont(new_font)
+            
+            # If the child is a container, recursively scale its children
+            elif isinstance(child, wx.Panel) or isinstance(child, wx.Window):
+                self.scale_label_controls(child)
+    
+    def on_key_for_zoom(self, event):
+        """Handle keyboard shortcuts for UI zoom"""
+        # Check if Ctrl is pressed
+        if event.ControlDown():
+            key_code = event.GetKeyCode()
+            
+            # Ctrl+ for zoom in
+            if key_code == ord('+') or key_code == wx.WXK_ADD:
+                self.zoom_ui(self.ui_zoom_step)
+                return  # Don't skip event
+            
+            # Ctrl- for zoom out
+            elif key_code == ord('-') or key_code == wx.WXK_SUBTRACT:
+                self.zoom_ui(-self.ui_zoom_step)
+                return  # Don't skip event
+            
+            # Ctrl0 for reset zoom
+            elif key_code == ord('0'):
+                self.reset_ui_zoom()
+                return  # Don't skip event
+        
+        # For other keys, pass the event up the chain
+        event.Skip()
+
     def on_view_full_image(self, event):
         """Open a dialog to view the full-sized image"""
         global selected_file, original_image

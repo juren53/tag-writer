@@ -1,43 +1,27 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer-wx.py  Ver 0.06a ################
+# ############   tag-writer-wx.py  Ver 0.04c ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using wxPython libraries.
 # This program is intended as a free form metadata tagger
 # when metada can not be pulled from an online database. 
 #  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
-#  Updated Sun 02 Jul 2023 04:53:41 PM CDT added no-backup	
-#  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
-#  Updated Sun 30 Mar 2025 03:20:00 AM CDT added command-line argument support & status msg after write
-#  Updated Tue 01 Apr 2025 08:55:00 AM CDT Ver .09 added export to JSON feature & clear data to Edit menu
-#  Updated Wed 02 APr 2025 11:23:01 AM CSD Ver .10 added full image viewer from thumbnail & License window under Help
-#
 #  Updated Sat 05 Apr 2025 11:24:00 PM CDT Converted from tkinter to wxPython
-#  Updated Sun 13 Apr 2025 10:20:00 AM CDT v 0.04c Load last image on startup
-#  Updated Sun 13 Apr 2025 12:44:00 AM CDT v 0.04d Key board arrow keys scroll								 
-#  Updated Sun 25 May 2025 12:44:00 AM CDT v 0.05a Key board arrow keys scroll through CWD
-#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05b 
-#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05c 
-#  Updated Wed 28 May 2025 12:44:00 AM CDT v 0.05d Caption Abstract increased to 1000 char
-#  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06a Added View/List all tags menu item
 #-----------------------------------------------------------
 
 import wx
 import wx.adv
-import wx.richtext
 import exiftool
 import argparse
 import os
 import sys
+import io
 import logging
 import json
-import re
-import shutil
-import subprocess
-import io
 import webbrowser
-from PIL import Image
+from pathlib import Path
+
 # Global list to store recently accessed files (max 5)
 recent_files = []
 # Global variables for full image preview zoom functionality
@@ -269,7 +253,6 @@ def process_metadata(raw_metadata):
         'Object Name': ['IPTC:ObjectName', 'IPTC:Object Name', 'XMP:Title'],
         'Writer-Editor': ['IPTC:Writer-Editor', 'XMP:CaptionWriter', 'XMP-photoshop:CaptionWriter'],
         'By-line': ['IPTC:By-line', 'XMP:Creator', 'EXIF:Artist'],
-        'By-line Title': ['IPTC:By-lineTitle', 'XMP:AuthorsPosition', 'XMP-photoshop:AuthorsPosition'],
         'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
         'Date Created': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
         'Copyright Notice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright']
@@ -311,7 +294,7 @@ class TagWriterApp(wx.App):
         
         # Handle version flag
         if args.version:
-            version_text = "tag-writer-wx.py  version 0.06a  (2025-05-30)"
+            version_text = "tag-writer-wx.py  version .04c  (2025-04-13)"
             # Add PIL status to version output
             if not PIL_AVAILABLE:
                 version_text += " [PIL/Pillow not available]"
@@ -375,15 +358,9 @@ class TagWriterFrame(wx.Frame):
         self.thumbnail_image = None
         self.thumbnail_panel = None
         self.zoom_info_label = None
-        self.ui_zoom_factor = 1.0
-        self.ui_min_zoom = 0.8
-        self.ui_max_zoom = 1.5
-        self.ui_zoom_step = 0.1
-        self.ui_zoom_label = None
         self.recent_files_menu = None
         self.metadata = {}
         self.preview_dialog = None
-        self.dimensions_label = None
         
         # Entry fields
         self.entry_headline = None
@@ -392,7 +369,6 @@ class TagWriterFrame(wx.Frame):
         self.entry_object_name = None
         self.entry_writer_editor = None
         self.entry_by_line = None
-        self.entry_by_line_title = None
         self.entry_source = None
         self.entry_date = None
         self.entry_copyright_notice = None
@@ -412,10 +388,6 @@ class TagWriterFrame(wx.Frame):
         
         # Set up events
         self.Bind(wx.EVT_CLOSE, self.on_close)
-        
-        # Set focus to the panel to enable keyboard navigation
-        # Use CallAfter to ensure focus is set after all initialization is complete
-        wx.CallAfter(self.panel.SetFocusIgnoringChildren)
     
     def setup_icons(self):
         """Set up application icons"""
@@ -442,37 +414,9 @@ class TagWriterFrame(wx.Frame):
         # Create the status bar
         self.create_status_bar()
         
-        
         # Create the main layout
         self.create_layout()
-        
-        # Bind key events to all input controls for better keyboard navigation
-        self.entry_headline.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.text_caption_abstract.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.entry_credit.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.entry_object_name.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.entry_writer_editor.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.entry_by_line.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.entry_by_line_title.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.entry_date.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        self.entry_copyright_notice.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        
-        # Set focus handling for keyboard navigation
-        self.panel.SetFocus()
-        self.panel.Bind(wx.EVT_SET_FOCUS, self.on_panel_focus)
-        self.Bind(wx.EVT_ACTIVATE, self.on_window_activate)
     
-    def on_panel_focus(self, event):
-        """Handle panel focus events"""
-        event.Skip()  # Allow focus to propagate
-
-    def on_window_activate(self, event):
-        """Handle window activation"""
-        if event.GetActive():
-            # When window becomes active, set focus to panel for keyboard navigation
-            wx.CallAfter(self.panel.SetFocus)
-        event.Skip()
-        
     def create_menu_bar(self):
         """Create the application menu bar"""
         # Create menubar
@@ -487,7 +431,6 @@ class TagWriterFrame(wx.Frame):
         filemenu.AppendSubMenu(self.recent_files_menu, "Recently accessed\tAlt+R")
         self.build_recent_files_menu()
         
-        item_save = filemenu.Append(wx.ID_SAVE, "&Save", "Save metadata to the current file")
         filemenu.AppendSeparator()
         item_exit = filemenu.Append(wx.ID_EXIT, "E&xit", "Exit the application")
         
@@ -496,13 +439,6 @@ class TagWriterFrame(wx.Frame):
         item_clear = editmenu.Append(wx.ID_CLEAR, "Clear Fields", "Clear all input fields")
         editmenu.AppendSeparator()
         item_export = editmenu.Append(wx.ID_ANY, "Export data", "Export metadata to JSON")
-        editmenu.AppendSeparator()
-        item_rotate_clockwise = editmenu.Append(wx.ID_ANY, "Rotate Clockwise", "Rotate the image 90° clockwise using FFmpeg and save in-place (creates backup)")
-        item_rotate_counterclockwise = editmenu.Append(wx.ID_ANY, "Rotate Counter-clockwise", "Rotate the image 90° counter-clockwise using FFmpeg and save in-place (creates backup)")
-        
-        # View menu
-        viewmenu = wx.Menu()
-        item_show_all_tags = viewmenu.Append(wx.ID_ANY, "Show ALL Metatags", "Display all metadata tags for the current image")
         
         # Help menu
         helpmenu = wx.Menu()
@@ -513,19 +449,14 @@ class TagWriterFrame(wx.Frame):
         # Add menus to menubar
         menubar.Append(filemenu, "&File")
         menubar.Append(editmenu, "&Edit")
-        menubar.Append(viewmenu, "&View")
         menubar.Append(helpmenu, "&Help")
         self.SetMenuBar(menubar)
         
         # Bind menu events
         self.Bind(wx.EVT_MENU, self.on_open, item_open)
-        self.Bind(wx.EVT_MENU, self.on_write_metadata, item_save)
         self.Bind(wx.EVT_MENU, self.on_exit, item_exit)
         self.Bind(wx.EVT_MENU, self.on_clear_fields, item_clear)
         self.Bind(wx.EVT_MENU, self.on_export_data, item_export)
-        self.Bind(wx.EVT_MENU, self.on_rotate_clockwise, item_rotate_clockwise)
-        self.Bind(wx.EVT_MENU, self.on_rotate_counterclockwise, item_rotate_counterclockwise)
-        self.Bind(wx.EVT_MENU, self.on_show_all_metatags, item_show_all_tags)
         self.Bind(wx.EVT_MENU, self.on_about, item_about)
         self.Bind(wx.EVT_MENU, self.on_license, item_license)
         self.Bind(wx.EVT_MENU, self.on_usage_guide, item_guide)
@@ -536,7 +467,7 @@ class TagWriterFrame(wx.Frame):
         self.statusbar.SetStatusWidths([200, -1, 200])
         self.SetStatusText("Ready", 0)
         self.SetStatusText("", 1)  # Middle section for file path
-        self.SetStatusText("Ver 0.06a (2025-05-30)", 2)
+        self.SetStatusText("Ver 0.04c (2025-04-13)", 2)
     
     def create_layout(self):
         """Create the main application layout"""
@@ -562,32 +493,6 @@ class TagWriterFrame(wx.Frame):
         self.nav_next_button.Bind(wx.EVT_BUTTON, lambda evt: self.navigate_to_file(1))
         self.nav_next_button.Disable()
         top_sizer.Add(self.nav_next_button, 0, wx.ALL, 5)
-        
-        # Add UI zoom controls
-        zoom_panel = wx.Panel(top_panel)
-        zoom_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
-        # Zoom out button
-        zoom_out_btn = wx.Button(zoom_panel, label="-", size=(30, -1))
-        zoom_out_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom_ui(-self.ui_zoom_step))
-        zoom_sizer.Add(zoom_out_btn, 0, wx.ALL, 5)
-        
-        # Zoom info label
-        self.ui_zoom_label = wx.StaticText(zoom_panel, label="UI Zoom: 100%")
-        zoom_sizer.Add(self.ui_zoom_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        
-        # Zoom in button
-        zoom_in_btn = wx.Button(zoom_panel, label="+", size=(30, -1))
-        zoom_in_btn.Bind(wx.EVT_BUTTON, lambda evt: self.zoom_ui(self.ui_zoom_step))
-        zoom_sizer.Add(zoom_in_btn, 0, wx.ALL, 5)
-        
-        # Reset zoom button
-        reset_zoom_btn = wx.Button(zoom_panel, label="Reset", size=(50, -1))
-        reset_zoom_btn.Bind(wx.EVT_BUTTON, lambda evt: self.reset_ui_zoom())
-        zoom_sizer.Add(reset_zoom_btn, 0, wx.ALL, 5)
-        
-        zoom_panel.SetSizer(zoom_sizer)
-        top_sizer.Add(zoom_panel, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         
         # Write metadata button
         self.btn_write = wx.Button(top_panel, label="Write Metadata")
@@ -636,12 +541,12 @@ class TagWriterFrame(wx.Frame):
         caption_panel = wx.Panel(metadata_panel)
         caption_sizer = wx.BoxSizer(wx.VERTICAL)
         
-        self.text_caption_abstract = wx.richtext.RichTextCtrl(caption_panel, size=(400, 100), 
-                                              style=wx.richtext.RE_MULTILINE)
+        self.text_caption_abstract = wx.TextCtrl(caption_panel, size=(400, 100), 
+                                              style=wx.TE_MULTILINE | wx.TE_PROCESS_ENTER)
         caption_sizer.Add(self.text_caption_abstract, 1, wx.EXPAND)
         
         # Character count label
-        self.caption_char_count = wx.StaticText(caption_panel, label="0/1000 characters")
+        self.caption_char_count = wx.StaticText(caption_panel, label="0/256 characters")
         self.caption_char_count.SetFont(wx.Font(8, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
         caption_sizer.Add(self.caption_char_count, 0, wx.ALIGN_RIGHT | wx.TOP, 2)
         
@@ -678,13 +583,6 @@ class TagWriterFrame(wx.Frame):
                          pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
         self.entry_by_line = wx.TextCtrl(metadata_panel, size=(400, -1))
         fields_sizer.Add(self.entry_by_line, pos=(row, 1), flag=wx.EXPAND)
-        
-        # By-line Title
-        row += 1
-        fields_sizer.Add(wx.StaticText(metadata_panel, label="By-line Title:"), 
-                         pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
-        self.entry_by_line_title = wx.TextCtrl(metadata_panel, size=(400, -1))
-        fields_sizer.Add(self.entry_by_line_title, pos=(row, 1), flag=wx.EXPAND)
         
         # Source
         row += 1
@@ -740,17 +638,6 @@ class TagWriterFrame(wx.Frame):
         self.btn_view_full.Bind(wx.EVT_BUTTON, self.on_view_full_image)
         thumbnail_sizer.Add(self.btn_view_full, 0, wx.ALIGN_CENTER | wx.BOTTOM, 10)
         
-        # Add dimensions label - create a panel to contain the centered label
-        dim_panel = wx.Panel(thumbnail_panel)
-        dim_panel_sizer = wx.BoxSizer(wx.VERTICAL)
-        
-        self.dimensions_label = wx.StaticText(dim_panel, label="Dimensions: --", style=wx.ALIGN_CENTER_HORIZONTAL)
-        self.dimensions_label.SetFont(wx.Font(9, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL))
-        dim_panel_sizer.Add(self.dimensions_label, 0, wx.ALIGN_CENTER_HORIZONTAL)
-        
-        dim_panel.SetSizer(dim_panel_sizer)
-        thumbnail_sizer.Add(dim_panel, 0, wx.EXPAND | wx.BOTTOM, 10)
-        
         # Bind click on thumbnail to view full image
         self.thumbnail_panel.Bind(wx.EVT_LEFT_DOWN, self.on_view_full_image)
         
@@ -768,9 +655,6 @@ class TagWriterFrame(wx.Frame):
         
         # Layout and fit
         main_sizer.Fit(self.panel)
-        
-        # Initialize UI zoom
-        self.apply_ui_zoom()
     
     def setup_accelerators(self):
         """Set up keyboard shortcuts"""
@@ -806,10 +690,11 @@ class TagWriterFrame(wx.Frame):
         accel_entries = [
             # File menu
             wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('O'), wx.ID_OPEN),  # Ctrl+O for Open
-            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('S'), wx.ID_SAVE),  # Ctrl+S for Save
             # Edit menu
             wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('L'), wx.ID_CLEAR),  # Ctrl+L for Clear fields
-            # We don't add LEFT/RIGHT here because accelerator tables don't work well with them
+            # Navigation 
+            wx.AcceleratorEntry(wx.ACCEL_NORMAL, wx.WXK_LEFT, wx.ID_ANY),  # Left arrow
+            wx.AcceleratorEntry(wx.ACCEL_NORMAL, wx.WXK_RIGHT, wx.ID_ANY)  # Right arrow
         ]
         
         accel_tbl = wx.AcceleratorTable(accel_entries)
@@ -817,15 +702,7 @@ class TagWriterFrame(wx.Frame):
         
         # Bind key events for navigation (left/right arrows)
         self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        
-        # Add keyboard shortcuts for zooming
-        self.Bind(wx.EVT_CHAR_HOOK, self.on_key_for_zoom)
-        
-        # Also bind to the panel to ensure it catches key events when focused
-        self.panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-        
-        # Ensure the panel can receive keyboard focus
-        self.panel.SetFocusIgnoringChildren()
+    
     def build_recent_files_menu(self):
         """Build the recent files menu"""
         global recent_files
@@ -868,42 +745,20 @@ class TagWriterFrame(wx.Frame):
         current_length = len(current_text)
         
         # Update character count label
-        self.caption_char_count.SetLabel(f"{current_length}/1000 characters")
+        self.caption_char_count.SetLabel(f"{current_length}/256 characters")
         
-        # Apply appropriate styling based on text length
-        self.text_caption_abstract.Freeze()  # Freeze to prevent flickering
-        
-        # Save current cursor position
-        current_position = self.text_caption_abstract.GetCaretPosition()
-        
-        # Create text attributes for default (white) and exceeded (red) text
-        default_attr = wx.TextAttr(wx.Colour(255, 255, 255))
-        exceeded_attr = wx.TextAttr(wx.Colour(255, 255, 0))
-        
-        # Reset all text to default color first
-        self.text_caption_abstract.SetStyle(0, current_length, default_attr)
-        
-        # If text is longer than 256 characters, color the excess in red
+        # Change color if over limit
         if current_length > 256:
-            # Apply red color to text after position 256
-            self.text_caption_abstract.SetStyle(256, current_length, exceeded_attr)
-        
-        # Restore cursor position
-        self.text_caption_abstract.SetInsertionPoint(current_position)
-        self.text_caption_abstract.Thaw()  # Unfreeze the control
-        
-        # Change label color if over maximum limit
-        if current_length > 1000:
             self.caption_char_count.SetForegroundColour(wx.Colour(255, 0, 0))  # Red
             
             # Truncate text if over limit
-            self.text_caption_abstract.SetValue(current_text[:1000])
+            self.text_caption_abstract.ChangeValue(current_text[:256])
             self.text_caption_abstract.SetInsertionPointEnd()
             
             # Update count again after truncation
-            self.caption_char_count.SetLabel("1000/1000 characters")
+            self.caption_char_count.SetLabel("256/256 characters")
         else:
-            self.caption_char_count.SetForegroundColour(wx.Colour(255, 255, 255))  # White
+            self.caption_char_count.SetForegroundColour(wx.Colour(0, 0, 0))  # Black
     
     def select_file(self, file_path=None):
         """Select a file and load its metadata"""
@@ -1011,11 +866,6 @@ class TagWriterFrame(wx.Frame):
                     self.entry_by_line.SetValue(byline)
                     if byline: fields_found += 1
                     
-                    # By-line Title
-                    byline_title = metadata.get('By-line Title', '')
-                    self.entry_by_line_title.SetValue(byline_title)
-                    if byline_title: fields_found += 1
-                    
                     # Source
                     source = metadata.get('Source', '')
                     self.entry_source.SetValue(source)
@@ -1107,12 +957,6 @@ class TagWriterFrame(wx.Frame):
                     img_width = img.GetWidth()
                     img_height = img.GetHeight()
                     
-                    # Update dimensions label
-                    dimensions_text = f"Dimensions: {img_width} x {img_height} pixels"
-                    self.dimensions_label.SetLabel(dimensions_text)
-                    # Make sure the dimensions label gets properly centered and wrapped if needed
-                    self.dimensions_label.GetParent().Layout()
-                    
                     # Calculate scaling factor to fit within thumbnail boundaries
                     max_size = 200
                     scale_factor = min(max_size / img_width, max_size / img_height)
@@ -1136,15 +980,11 @@ class TagWriterFrame(wx.Frame):
                     self.btn_view_full.Enable()
                 else:
                     self.display_no_image_message(thumbnail_sizer)
-                    self.dimensions_label.SetLabel("Dimensions: --")
             except Exception as e:
                 logging.error(f"Error loading thumbnail: {str(e)}")
                 self.display_no_image_message(thumbnail_sizer, error_message=str(e))
-                self.dimensions_label.SetLabel("Dimensions: --")
         else:
             self.display_no_image_message(thumbnail_sizer)
-            # Reset dimensions label when no image
-            self.dimensions_label.SetLabel("Dimensions: --")
         
         # Set the new sizer
         self.thumbnail_panel.SetSizer(thumbnail_sizer)
@@ -1187,7 +1027,6 @@ class TagWriterFrame(wx.Frame):
             self.nav_prev_button.Disable()
             self.nav_next_button.Disable()
     
-    
     def navigate_to_file(self, direction):
         """Navigate to next/previous file in the directory"""
         global current_file_index, directory_image_files
@@ -1195,240 +1034,10 @@ class TagWriterFrame(wx.Frame):
         # Calculate new index
         new_index = current_file_index + direction
         
-        # Check if the new index is valid
+        # Validate index
         if 0 <= new_index < len(directory_image_files):
-            next_file = directory_image_files[new_index]
-            if os.path.exists(next_file):
-                # Select the next file
-                self.select_file(next_file)
-                
-                # Update status bar with navigation info
-                total_files = len(directory_image_files)
-                self.SetStatusText(f"Image {new_index + 1} of {total_files}", 0)
-        else:
-            # We've reached the end of the list
-            if new_index < 0:
-                self.SetStatusText("Already at first image", 0)
-            else:
-                self.SetStatusText("Already at last image", 0)
-    
-    def on_rotate_clockwise(self, event):
-        """Rotate the current image 90 degrees clockwise using FFmpeg, creating a backup and saving in-place"""
-        global selected_file
-        
-        if not selected_file or not os.path.isfile(selected_file):
-            wx.MessageBox("No image selected", "Rotation Error", wx.OK | wx.ICON_ERROR)
-            return
-        
-        # Ask for confirmation
-        dlg = wx.MessageDialog(
-            self,
-            f"This will create a backup of the original file and replace it with a rotated version.\n\nContinue?",
-            "Confirm In-place Rotation",
-            wx.YES_NO | wx.ICON_QUESTION
-        )
-        
-        if dlg.ShowModal() != wx.ID_YES:
-            dlg.Destroy()
-            return
-        
-        dlg.Destroy()
-        
-        try:
-            # Create backup filename
-            backup_file = f"{selected_file}_backup"
-            
-            # Check if backup already exists
-            counter = 1
-            while os.path.exists(backup_file):
-                backup_file = f"{selected_file}_backup{counter}"
-                counter += 1
-            
-            # Create backup
-            shutil.copy2(selected_file, backup_file)
-            logging.debug(f"Created backup at {backup_file}")
-            
-            # Run FFmpeg to rotate the image and save to a temporary file
-            file_ext = os.path.splitext(selected_file)[1].lower()
-            temp_file = f"{os.path.splitext(selected_file)[0]}_temp{file_ext}"
-
-            logging.debug(f"Running FFmpeg command: ffmpeg -y -i {selected_file} -vf transpose=1 -map_metadata 0 {temp_file}")
-            cmd = ["ffmpeg", "-y", "-i", selected_file, "-vf", "transpose=1", "-map_metadata", "0", temp_file]
-            
-            # Show progress dialog
-            progress_dlg = wx.ProgressDialog(
-                "Rotating Image",
-                "Running FFmpeg to rotate the image...",
-                maximum=100,
-                parent=self,
-                style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE
-            )
-            progress_dlg.Update(30)
-            
-            # Run FFmpeg
-            logging.debug(f"Running FFmpeg command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            
-            progress_dlg.Update(80)
-            
-            if result.returncode != 0:
-                logging.error(f"FFmpeg error: {result.stderr}")
-                wx.MessageBox(f"Error during FFmpeg rotation:\n{result.stderr}", "Rotation Error", wx.OK | wx.ICON_ERROR)
-                os.remove(backup_file)  # Remove backup on error
-                progress_dlg.Destroy()
-                return
-            
-            # Replace original with rotated version
-            if os.path.exists(temp_file):
-                os.replace(temp_file, selected_file)
-                logging.debug(f"Replaced original file with rotated version")
-                
-                # Copy metadata from backup to rotated file using exiftool
-                logging.debug(f"Copying IPTC metadata from backup to rotated file")
-                try:
-                    with exiftool.ExifTool() as et:
-                        cmd_result = et.execute("-TagsFromFile", backup_file, "-all:all", "-overwrite_original", selected_file)
-                        logging.debug(f"Exiftool metadata copy result: {cmd_result}")
-                except Exception as e:
-                    logging.error(f"Error copying metadata with exiftool: {str(e)}")
-                    wx.MessageBox(f"Warning: Image was rotated but metadata may not have been preserved: {str(e)}", 
-                                 "Metadata Warning", wx.OK | wx.ICON_WARNING)
-                
-                # Reload the image
-                self.select_file(selected_file)
-                
-                progress_dlg.Update(100)
-                progress_dlg.Destroy()
-                
-                # Show success message
-                wx.MessageBox(
-                    f"Image rotated clockwise successfully.\nBackup saved to: {os.path.basename(backup_file)}",
-                    "Rotation Complete",
-                    wx.OK | wx.ICON_INFORMATION
-                )
-            else:
-                raise Exception("FFmpeg output file not found")
-                
-        except Exception as e:
-            logging.error(f"Error during FFmpeg rotation: {str(e)}")
-            wx.MessageBox(f"Error rotating image: {str(e)}", "Rotation Error", wx.OK | wx.ICON_ERROR)
-            
-            # Try to clean up temporary file
-            if 'temp_file' in locals() and os.path.exists(temp_file):
-                try:
-                    os.remove(temp_file)
-                except:
-                    pass
-    
-    def on_rotate_counterclockwise(self, event):
-        """Rotate the current image 90 degrees counter-clockwise using FFmpeg, creating a backup and saving in-place"""
-        global selected_file
-        
-        if not selected_file or not os.path.isfile(selected_file):
-            wx.MessageBox("No image selected", "Rotation Error", wx.OK | wx.ICON_ERROR)
-            return
-        
-        # Ask for confirmation
-        dlg = wx.MessageDialog(
-            self,
-            f"This will create a backup of the original file and replace it with a counter-clockwise rotated version.\n\nContinue?",
-            "Confirm In-place Rotation",
-            wx.YES_NO | wx.ICON_QUESTION
-        )
-        
-        if dlg.ShowModal() != wx.ID_YES:
-            dlg.Destroy()
-            return
-        
-        dlg.Destroy()
-        
-        try:
-            # Create backup filename
-            backup_file = f"{selected_file}_backup"
-            
-            # Check if backup already exists
-            counter = 1
-            while os.path.exists(backup_file):
-                backup_file = f"{selected_file}_backup{counter}"
-                counter += 1
-            
-            # Create backup
-            shutil.copy2(selected_file, backup_file)
-            logging.debug(f"Created backup at {backup_file}")
-            
-            # Run FFmpeg to rotate the image and save to a temporary file
-            file_ext = os.path.splitext(selected_file)[1].lower()
-            temp_file = f"{os.path.splitext(selected_file)[0]}_temp{file_ext}"
-
-            # For counter-clockwise rotation, use transpose=2
-            # Add -map_metadata 0 to preserve metadata from the input
-            logging.debug(f"Running FFmpeg command: ffmpeg -y -i {selected_file} -vf transpose=2 -map_metadata 0 {temp_file}")
-            cmd = ["ffmpeg", "-y", "-i", selected_file, "-vf", "transpose=2", "-map_metadata", "0", temp_file]
-            
-            # Show progress dialog
-            progress_dlg = wx.ProgressDialog(
-                "Rotating Image",
-                "Running FFmpeg to rotate the image counter-clockwise...",
-                maximum=100,
-                parent=self,
-                style=wx.PD_APP_MODAL | wx.PD_AUTO_HIDE
-            )
-            progress_dlg.Update(30)
-            
-            # Run FFmpeg
-            logging.debug(f"Running FFmpeg command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            
-            progress_dlg.Update(80)
-            
-            if result.returncode != 0:
-                logging.error(f"FFmpeg error: {result.stderr}")
-                wx.MessageBox(f"Error during FFmpeg rotation:\n{result.stderr}", "Rotation Error", wx.OK | wx.ICON_ERROR)
-                os.remove(backup_file)  # Remove backup on error
-                progress_dlg.Destroy()
-                return
-            
-            # Replace original with rotated version
-            if os.path.exists(temp_file):
-                os.replace(temp_file, selected_file)
-                logging.debug(f"Replaced original file with rotated version")
-                
-                # Copy metadata from backup to rotated file using exiftool
-                logging.debug(f"Copying IPTC metadata from backup to rotated file")
-                try:
-                    with exiftool.ExifTool() as et:
-                        cmd_result = et.execute("-TagsFromFile", backup_file, "-all:all", "-overwrite_original", selected_file)
-                        logging.debug(f"Exiftool metadata copy result: {cmd_result}")
-                except Exception as e:
-                    logging.error(f"Error copying metadata with exiftool: {str(e)}")
-                    wx.MessageBox(f"Warning: Image was rotated but metadata may not have been preserved: {str(e)}", 
-                                 "Metadata Warning", wx.OK | wx.ICON_WARNING)
-                
-                # Reload the image
-                self.select_file(selected_file)
-                
-                progress_dlg.Update(100)
-                progress_dlg.Destroy()
-                
-                # Show success message
-                wx.MessageBox(
-                    f"Image rotated counter-clockwise successfully.\nBackup saved to: {os.path.basename(backup_file)}",
-                    "Rotation Complete",
-                    wx.OK | wx.ICON_INFORMATION
-                )
-            else:
-                raise Exception("FFmpeg output file not found")
-                
-        except Exception as e:
-            logging.error(f"Error during FFmpeg rotation: {str(e)}")
-            wx.MessageBox(f"Error rotating image: {str(e)}", "Rotation Error", wx.OK | wx.ICON_ERROR)
-            
-            # Try to clean up temporary file
-            if 'temp_file' in locals() and os.path.exists(temp_file):
-                try:
-                    os.remove(temp_file)
-                except:
-                    pass
+            # Select the file at the new index
+            self.select_file(directory_image_files[new_index])
     
     def on_key_down(self, event):
         """Handle keyboard navigation"""
@@ -1438,14 +1047,12 @@ class TagWriterFrame(wx.Frame):
         if key_code == wx.WXK_LEFT:
             if self.nav_prev_button.IsEnabled():
                 self.navigate_to_file(-1)
-                return  # Don't skip event after handling it
         elif key_code == wx.WXK_RIGHT:
             if self.nav_next_button.IsEnabled():
                 self.navigate_to_file(1)
-                return  # Don't skip event after handling it
-        
-        # Pass event up the chain for other keys
-        event.Skip()
+        else:
+            event.Skip()  # Process other keys normally
+    
     def clear_fields(self):
         """Clear all entry fields"""
         self.entry_headline.Clear()
@@ -1454,7 +1061,6 @@ class TagWriterFrame(wx.Frame):
         self.entry_object_name.Clear()
         self.entry_writer_editor.Clear()
         self.entry_by_line.Clear()
-        self.entry_by_line_title.Clear()
         self.entry_source.Clear()
         self.entry_date.Clear()
         self.entry_copyright_notice.Clear()
@@ -1508,7 +1114,6 @@ class TagWriterFrame(wx.Frame):
                 'ObjectName': self.entry_object_name.GetValue(),  # Note: Changed from 'Object Name' to 'ObjectName'
                 'Writer-Editor': self.entry_writer_editor.GetValue(),
                 'By-line': self.entry_by_line.GetValue(),
-                'By-lineTitle': self.entry_by_line_title.GetValue(),  # Note: Changed from 'By-line Title' to 'By-lineTitle'
                 'Source': self.entry_source.GetValue(),
                 'DateCreated': self.entry_date.GetValue(),  # Note: Changed from 'Date Created' to 'DateCreated'
                 'Copyright': self.entry_copyright_notice.GetValue()  # Note: Changed from 'Copyright Notice' to 'Copyright'
@@ -1562,7 +1167,7 @@ class TagWriterFrame(wx.Frame):
     # This is a duplicate method - removing it to avoid confusion
     # The correct implementation is at line ~1206
     def on_export_data(self, event):
-        """Export metadata to JSON file using exiftool to get all metadata directly from the image"""
+        """Export metadata to JSON file"""
         global selected_file
         
         if not selected_file or not os.path.isfile(selected_file):
@@ -1570,233 +1175,65 @@ class TagWriterFrame(wx.Frame):
                          "Export Error", wx.OK | wx.ICON_WARNING)
             return
         
-        try:
-            # Set status
-            self.SetStatusText(f"Retrieving metadata from {os.path.basename(selected_file)}...", 0)
-            
-            # Get all metadata directly from the image file using exiftool
-            raw_metadata = get_metadata(selected_file)
-            
-            if not raw_metadata:
-                wx.MessageBox("No metadata found in the selected file.",
-                             "Export Warning", wx.OK | wx.ICON_WARNING)
-                return
-                
-            # Create a structured JSON with file info and metadata
-            metadata = {
-                'file': os.path.basename(selected_file),
-                'full_path': selected_file,
-                'metadata': raw_metadata
+        # Collect metadata from entry fields
+        metadata = {
+            'file': os.path.basename(selected_file),
+            'metadata': {
+                'Headline': self.entry_headline.GetValue(),
+                'Caption-Abstract': self.text_caption_abstract.GetValue(),
+                'Credit': self.entry_credit.GetValue(),
+                'Object Name': self.entry_object_name.GetValue(),
+                'Writer-Editor': self.entry_writer_editor.GetValue(),
+                'By-line': self.entry_by_line.GetValue(),
+                'Source': self.entry_source.GetValue(),
+                'Date Created': self.entry_date.GetValue(),
+                'Copyright Notice': self.entry_copyright_notice.GetValue()
             }
+        }
+        
+        # Create default export file name from selected file
+        base_name = os.path.splitext(os.path.basename(selected_file))[0]
+        default_file = f"{base_name}_metadata.json"
+        
+        # Create file dialog for saving
+        wildcard = "JSON files (*.json)|*.json|All files (*.*)|*.*"
+        dlg = wx.FileDialog(
+            self, message="Save metadata as JSON",
+            defaultDir=os.path.dirname(selected_file),
+            defaultFile=default_file,
+            wildcard=wildcard,
+            style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
+        )
+        
+        # Show dialog and process selection
+        if dlg.ShowModal() == wx.ID_OK:
+            export_path = dlg.GetPath()
             
-            # Create default export file name from selected file
-            base_name = os.path.splitext(os.path.basename(selected_file))[0]
-            default_file = f"{base_name}_metadata.json"
-            
-            # Create file dialog for saving
-            wildcard = "JSON files (*.json)|*.json|All files (*.*)|*.*"
-            dlg = wx.FileDialog(
-                self, message="Save metadata as JSON",
-                defaultDir=os.path.dirname(selected_file),
-                defaultFile=default_file,
-                wildcard=wildcard,
-                style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT
-            )
-            
-            # Show dialog and process selection
-            if dlg.ShowModal() == wx.ID_OK:
-                export_path = dlg.GetPath()
+            try:
+                # Export to JSON file
+                with open(export_path, 'w') as f:
+                    json.dump(metadata, f, indent=4)
                 
-                try:
-                    # Export to JSON file with indentation for readability
-                    with open(export_path, 'w') as f:
-                        json.dump(metadata, f, indent=4)
-                    
-                    self.SetStatusText(f"All metadata exported to {export_path}", 0)
-                    wx.MessageBox(f"All metadata successfully exported to {os.path.basename(export_path)}",
-                                 "Export Successful", wx.OK | wx.ICON_INFORMATION)
-                    
-                    # Log the number of metadata fields exported
-                    field_count = len(raw_metadata) if isinstance(raw_metadata, dict) else 0
-                    logging.info(f"Exported {field_count} metadata fields to {export_path}")
-                except Exception as e:
-                    logging.error(f"Error exporting metadata: {str(e)}")
-                    self.SetStatusText(f"Error exporting metadata: {str(e)}", 0)
-                    
-                    # Show error dialog
-                    wx.MessageBox(f"Error exporting metadata: {str(e)}",
-                                 "Export Error", wx.OK | wx.ICON_ERROR)
-        except Exception as e:
-            logging.error(f"Error retrieving metadata: {str(e)}")
-            self.SetStatusText(f"Error retrieving metadata: {str(e)}", 0)
-            
-            # Show error dialog
-            wx.MessageBox(f"Error retrieving metadata: {str(e)}",
-                         "Export Error", wx.OK | wx.ICON_ERROR)
+                self.SetStatusText(f"Metadata exported to {export_path}", 0)
+                wx.MessageBox(f"Metadata successfully exported to {os.path.basename(export_path)}",
+                             "Export Successful", wx.OK | wx.ICON_INFORMATION)
+            except Exception as e:
+                logging.error(f"Error exporting metadata: {str(e)}")
+                self.SetStatusText(f"Error exporting metadata: {str(e)}", 0)
+                
+                # Show error dialog
+                wx.MessageBox(f"Error exporting metadata: {str(e)}",
+                             "Export Error", wx.OK | wx.ICON_ERROR)
         
         dlg.Destroy()
-
-    def on_show_all_metatags(self, event):
-        """Show all metadata tags for the current image"""
-        global selected_file
-        
-        if not selected_file or not os.path.isfile(selected_file):
-            wx.MessageBox("No image selected. Please select an image file first.",
-                         "No Image", wx.OK | wx.ICON_WARNING)
-            return
-        
-        try:
-            # Set status
-            self.SetStatusText(f"Retrieving all metadata from {os.path.basename(selected_file)}...", 0)
-            
-            # Get all metadata directly from the image file using exiftool
-            with exiftool.ExifTool() as et:
-                # Use -a flag to get all tags including duplicates
-                # Use -G flag to show group names
-                # Use -s flag for shorter output format
-                metadata_json = et.execute_json("-j", "-a", "-G", "-s", selected_file)
-                
-                if metadata_json and len(metadata_json) > 0:
-                    # Show the metadata viewer window
-                    viewer = MetadataViewerFrame(self, selected_file, metadata_json[0])
-                    viewer.Show()
-                else:
-                    wx.MessageBox("No metadata found in the selected file.",
-                                 "No Metadata", wx.OK | wx.ICON_WARNING)
-        
-        except Exception as e:
-            logging.error(f"Error retrieving metadata: {str(e)}")
-            self.SetStatusText(f"Error retrieving metadata: {str(e)}", 0)
-            
-            # Show error dialog
-            wx.MessageBox(f"Error retrieving metadata: {str(e)}",
-                         "Metadata Error", wx.OK | wx.ICON_ERROR)
     
-    def zoom_ui(self, zoom_delta):
-        """Change the UI zoom level by the specified delta"""
-        # Calculate new zoom level
-        new_zoom = self.ui_zoom_factor + zoom_delta
-        
-        # Ensure zoom level is within bounds
-        if self.ui_min_zoom <= new_zoom <= self.ui_max_zoom:
-            self.ui_zoom_factor = new_zoom
-            self.apply_ui_zoom()
-            
-            # Update zoom label
-            if hasattr(self, 'ui_zoom_label') and self.ui_zoom_label:
-                self.ui_zoom_label.SetLabel(f"UI Zoom: {int(self.ui_zoom_factor * 100)}%")
-    
-    def reset_ui_zoom(self):
-        """Reset UI zoom to 100%"""
-        self.ui_zoom_factor = 1.0
-        self.apply_ui_zoom()
-        
-        # Update zoom label
-        if hasattr(self, 'ui_zoom_label') and self.ui_zoom_label:
-            self.ui_zoom_label.SetLabel("UI Zoom: 100%")
-    
-    def apply_ui_zoom(self):
-        """Apply the current zoom factor to all UI elements"""
-        # Create a new font with the scaled size for each text control
-        self.scale_text_control(self.entry_headline)
-        self.scale_text_control(self.text_caption_abstract)
-        self.scale_text_control(self.entry_credit)
-        self.scale_text_control(self.entry_object_name)
-        self.scale_text_control(self.entry_writer_editor)
-        self.scale_text_control(self.entry_by_line)
-        self.scale_text_control(self.entry_by_line_title)
-        self.scale_text_control(self.entry_source)
-        self.scale_text_control(self.entry_date)
-        self.scale_text_control(self.entry_copyright_notice)
-        
-        # Scale labels
-        self.scale_label_controls(self.panel)
-        
-        # Force layout refresh
-        self.panel.Layout()
-        self.Layout()
-    
-    def scale_text_control(self, control):
-        """Scale a text control font based on the current zoom factor"""
-        if control and control.IsShown():
-            # Get the current font
-            current_font = control.GetFont()
-            
-            # Calculate the new size (base size is 9 points in most systems)
-            base_size = 9
-            new_size = int(base_size * self.ui_zoom_factor)
-            
-            # Create a new font with the scaled size
-            new_font = wx.Font(
-                new_size,
-                current_font.GetFamily(),
-                current_font.GetStyle(),
-                current_font.GetWeight(),
-                current_font.GetUnderlined()
-            )
-            
-            # Apply the new font
-            control.SetFont(new_font)
-    
-    def scale_label_controls(self, parent):
-        """Recursively scale all label controls within a parent container"""
-        for child in parent.GetChildren():
-            # Check if the child is a static text (label)
-            if isinstance(child, wx.StaticText):
-                # Get the current font
-                current_font = child.GetFont()
-                
-                # Calculate the new size (base size is 9 points in most systems)
-                base_size = 9
-                new_size = int(base_size * self.ui_zoom_factor)
-                
-                # Create a new font with the scaled size
-                new_font = wx.Font(
-                    new_size,
-                    current_font.GetFamily(),
-                    current_font.GetStyle(),
-                    current_font.GetWeight(),
-                    current_font.GetUnderlined()
-                )
-                
-                # Apply the new font
-                child.SetFont(new_font)
-            
-            # If the child is a container, recursively scale its children
-            elif isinstance(child, wx.Panel) or isinstance(child, wx.Window):
-                self.scale_label_controls(child)
-    
-    def on_key_for_zoom(self, event):
-        """Handle keyboard shortcuts for UI zoom"""
-        # Check if Ctrl is pressed
-        if event.ControlDown():
-            key_code = event.GetKeyCode()
-            
-            # Ctrl+ for zoom in
-            if key_code == ord('+') or key_code == wx.WXK_ADD:
-                self.zoom_ui(self.ui_zoom_step)
-                return  # Don't skip event
-            
-            # Ctrl- for zoom out
-            elif key_code == ord('-') or key_code == wx.WXK_SUBTRACT:
-                self.zoom_ui(-self.ui_zoom_step)
-                return  # Don't skip event
-            
-            # Ctrl0 for reset zoom
-            elif key_code == ord('0'):
-                self.reset_ui_zoom()
-                return  # Don't skip event
-        
-        # For other keys, pass the event up the chain
-        event.Skip()
-
     def on_view_full_image(self, event):
         """Open a dialog to view the full-sized image"""
         global selected_file, original_image
         
         if selected_file and os.path.isfile(selected_file) and original_image:
             try:
-                # Check if we already have a preview frame open
+                # Check if we already have a preview dialog open
                 if self.preview_dialog is not None and self.preview_dialog:
                     # If it exists but is hidden, show it
                     if not self.preview_dialog.IsShown():
@@ -1809,7 +1246,7 @@ class TagWriterFrame(wx.Frame):
                         self.preview_dialog.original_image = original_image
                         self.preview_dialog.update_image()
                 else:
-                    # Create a new frame and show it
+                    # Create a new dialog and show it non-modally
                     self.preview_dialog = FullImageDialog(self, selected_file, original_image)
                     self.preview_dialog.Show()
             except Exception as e:
@@ -1821,7 +1258,7 @@ class TagWriterFrame(wx.Frame):
         """Display about dialog"""
         info = wx.adv.AboutDialogInfo()
         info.SetName("Metadata Tag Writer WX")
-        info.SetVersion("0.06a")
+        info.SetVersion("0.04c")
         info.SetDescription("A tool for editing IPTC metadata in image files")
         info.SetCopyright("(C) 2023-2025")
         info.SetWebSite("https://github.com/juren53/tag-writer")
@@ -1894,18 +1331,19 @@ SOFTWARE.
             self.preview_dialog = None
         
         # Continue with close
-        # Continue with close
+        self.Destroy()
         self.Destroy()
     
     def on_exit(self, event):
         """Exit the application"""
         self.Close()
-class FullImageDialog(wx.Frame):
-    """Frame for displaying full-sized images with zoom functionality"""
+
+class FullImageDialog(wx.Dialog):
+    """Dialog for displaying full-sized images with zoom functionality"""
     def __init__(self, parent, image_path, original_image):
-        """Initialize the frame"""
-        wx.Frame.__init__(self, parent, title="", 
-                          size=(800, 600), style=wx.DEFAULT_FRAME_STYLE)
+        """Initialize the dialog"""
+        wx.Dialog.__init__(self, parent, title="", 
+                          size=(800, 600), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         
         self.image_path = image_path
         self.original_image = original_image
@@ -1989,7 +1427,7 @@ class FullImageDialog(wx.Frame):
         
         # Close button
         close_btn = wx.Button(controls_panel, wx.ID_CLOSE, "Close")
-        close_btn.Bind(wx.EVT_BUTTON, lambda evt: self.Close())
+        close_btn.Bind(wx.EVT_BUTTON, lambda evt: self.Hide())
         controls_sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         
         controls_panel.SetSizer(controls_sizer)
@@ -2102,188 +1540,6 @@ class FullImageDialog(wx.Frame):
         else:
             # Zoom out
             self.zoom(-self.zoom_step)
-
-class MetadataViewerFrame(wx.Frame):
-    """Frame for displaying all metadata tags"""
-    def __init__(self, parent, image_path, metadata):
-        """Initialize the frame"""
-        wx.Frame.__init__(self, parent, title=f"All Metadata Tags: {os.path.basename(image_path)}", 
-                          size=(700, 500), style=wx.DEFAULT_FRAME_STYLE)
-        
-        self.metadata = metadata
-        self.image_path = image_path
-        
-        # Create UI components
-        self.create_ui()
-        
-        # Center on parent
-        self.CenterOnParent()
-    
-    def create_ui(self):
-        """Create the user interface"""
-        main_panel = wx.Panel(self)
-        main_sizer = wx.BoxSizer(wx.VERTICAL)
-        
-        # Add a header
-        header_text = wx.StaticText(main_panel, label=f"All metadata tags for: {os.path.basename(self.image_path)}")
-        header_text.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        main_sizer.Add(header_text, 0, wx.ALL | wx.EXPAND, 10)
-        
-        # Add a list control for the metadata
-        self.list_ctrl = wx.ListCtrl(main_panel, style=wx.LC_REPORT | wx.BORDER_SUNKEN)
-        self.list_ctrl.InsertColumn(0, "Group", width=120)
-        self.list_ctrl.InsertColumn(1, "Tag Name", width=180)
-        self.list_ctrl.InsertColumn(2, "Value", width=370)
-        
-        # Populate the list control
-        self.populate_list()
-        
-        main_sizer.Add(self.list_ctrl, 1, wx.ALL | wx.EXPAND, 10)
-        
-        # Add a search box
-        search_panel = wx.Panel(main_panel)
-        search_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        
-        search_label = wx.StaticText(search_panel, label="Search:")
-        search_sizer.Add(search_label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        
-        self.search_box = wx.TextCtrl(search_panel)
-        self.search_box.Bind(wx.EVT_TEXT, self.on_search)
-        search_sizer.Add(self.search_box, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
-        
-        search_panel.SetSizer(search_sizer)
-        main_sizer.Add(search_panel, 0, wx.ALL | wx.EXPAND, 5)
-        
-        # Create a copy button for copying all data to clipboard
-        btn_copy = wx.Button(main_panel, label="Copy All to Clipboard")
-        btn_copy.Bind(wx.EVT_BUTTON, self.on_copy_all)
-        main_sizer.Add(btn_copy, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
-        
-        # Add a close button
-        btn_close = wx.Button(main_panel, wx.ID_CLOSE, "Close")
-        btn_close.Bind(wx.EVT_BUTTON, lambda evt: self.Close())
-        main_sizer.Add(btn_close, 0, wx.ALL | wx.ALIGN_RIGHT, 10)
-        
-        main_panel.SetSizer(main_sizer)
-    
-    def populate_list(self):
-        """Populate the list control with metadata"""
-        # Clear existing items
-        self.list_ctrl.DeleteAllItems()
-        
-        # Add metadata items
-        row_idx = 0
-        sorted_keys = sorted(self.metadata.keys())
-        
-        for key in sorted_keys:
-            # Skip SourceFile which is redundant
-            if key == 'SourceFile':
-                continue
-                
-            value = self.metadata[key]
-            
-            # Split key into group and tag name
-            if ':' in key:
-                group, tag = key.split(':', 1)
-            else:
-                group = 'Other'
-                tag = key
-            
-            # Convert value to string representation
-            if isinstance(value, list):
-                value_str = ", ".join(str(v) for v in value)
-            else:
-                value_str = str(value)
-            
-            # Add to list control
-            self.list_ctrl.InsertItem(row_idx, group)
-            self.list_ctrl.SetItem(row_idx, 1, tag)
-            self.list_ctrl.SetItem(row_idx, 2, value_str)
-            row_idx += 1
-        
-        # Auto-size columns
-        for i in range(3):
-            self.list_ctrl.SetColumnWidth(i, wx.LIST_AUTOSIZE)
-    
-    def on_search(self, event):
-        """Filter the list based on search text"""
-        search_text = self.search_box.GetValue().lower()
-        
-        # Repopulate with filter
-        self.list_ctrl.DeleteAllItems()
-        
-        if not search_text:
-            # If search box is empty, show all
-            self.populate_list()
-            return
-        
-        # Add only matching items
-        row_idx = 0
-        sorted_keys = sorted(self.metadata.keys())
-        
-        for key in sorted_keys:
-            # Skip SourceFile which is redundant
-            if key == 'SourceFile':
-                continue
-                
-            value = self.metadata[key]
-            
-            # Split key into group and tag name
-            if ':' in key:
-                group, tag = key.split(':', 1)
-            else:
-                group = 'Other'
-                tag = key
-            
-            # Convert value to string representation
-            if isinstance(value, list):
-                value_str = ", ".join(str(v) for v in value)
-            else:
-                value_str = str(value)
-            
-            # Check if search text is in any field
-            if (search_text in group.lower() or 
-                search_text in tag.lower() or 
-                search_text in value_str.lower()):
-                
-                # Add to list control
-                self.list_ctrl.InsertItem(row_idx, group)
-                self.list_ctrl.SetItem(row_idx, 1, tag)
-                self.list_ctrl.SetItem(row_idx, 2, value_str)
-                row_idx += 1
-        
-        # Auto-size columns
-        for i in range(3):
-            self.list_ctrl.SetColumnWidth(i, wx.LIST_AUTOSIZE)
-    
-    def on_copy_all(self, event):
-        """Copy all metadata to clipboard"""
-        # Build a string with all the metadata
-        metadata_text = f"Metadata for: {self.image_path}\n"
-        metadata_text += "=" * 50 + "\n\n"
-        
-        sorted_keys = sorted(self.metadata.keys())
-        for key in sorted_keys:
-            if key == 'SourceFile':
-                continue
-                
-            value = self.metadata[key]
-            
-            # Format value as string
-            if isinstance(value, list):
-                value_str = ", ".join(str(v) for v in value)
-            else:
-                value_str = str(value)
-            
-            metadata_text += f"{key}: {value_str}\n"
-        
-        # Copy to clipboard
-        if wx.TheClipboard.Open():
-            wx.TheClipboard.SetData(wx.TextDataObject(metadata_text))
-            wx.TheClipboard.Close()
-            wx.MessageBox("All metadata copied to clipboard", "Copy Complete", wx.OK | wx.ICON_INFORMATION)
-        else:
-            wx.MessageBox("Unable to access the clipboard", "Copy Failed", wx.OK | wx.ICON_ERROR)
 
 def parse_arguments():
     """Parse command line arguments"""

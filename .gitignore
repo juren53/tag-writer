@@ -1,0 +1,31 @@
+# Ignore build artifacts
+build/
+dist/
+
+# Ignore executable files
+*.exe
+
+# Ignore backups
+*.backup
+
+# Ignore specific temp directories
+temp_backup/
+
+# Ignore Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore environment directories
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Ignore PyCharm files
+.idea/
+
+# Ignore spec files
+*.spec
+

@@ -1,0 +1,3 @@
+tag-writer-wx.py currently requires the user to clost the preview image window before adding/editing metadata.
+
+Modify code to allow Preview image to stay open while adding/editing metadata tag #3
