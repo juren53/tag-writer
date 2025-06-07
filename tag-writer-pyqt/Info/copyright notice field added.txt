@@ -1,0 +1,14 @@
+Summary of the changes made to add a copyright notice field to tag-writer.py:
+
+1. Added entry_copyright_notice to the global variables in the start_gui function
+2. Created a new tk.Entry widget for copyright notice
+3. Created a corresponding label with the text "Copyright Notice:"
+4. Positioned the label and entry field on row 10 in the GUI grid
+5. Added code to read the "CopyrightNotice" value from metadata in the read_metadata() function
+6. Added code to write the copyright notice to metadata with the tag "-CopyrightNotice=" in the write_metadata() function
+7. Adjusted the row position of the status label from 10 to 11
+8. Increased the rowspan of the thumbnail frame from 8 to 9 to properly display alongside the new field
+
+The program has been successfully tested and runs without errors. The new copyright notice field is displayed in the GUI and works as expected, allowing users to view and edit copyright information for their images.
+
+

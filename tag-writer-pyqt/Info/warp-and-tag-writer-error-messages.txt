@@ -1,0 +1,14 @@
+Error writing metadata: Unexpected result: 0 image files updated
+  1 files weren't updated due to errors
+  
+
+00:21:18: Incorrect value for "RichTIFFIPTC"; tag ignored (in module "TIFFFetchNormalTag")
+00:21:18: Incorrect value for "RichTIFFIPTC"; tag ignored (in module "TIFFFetchNormalTag")
+reading /home/juren/Projects/tag-writer/photos/58-151.tif
+
+
+recurring Warp error message:
+I'm sorry, I couldn't complete that request.
+
+Internal server error occurred: Anthropic API error: POST "https://api.anthropic.com/v1/messages": 400 Bad Request {"type":"error","error":{"type":"invalid_request_error","message":"messages: text content blocks must be non-empty"}}
+

@@ -1,0 +1,125 @@
+wxPython doesn't have a direct "rotate image" feature, but you can rotate images using several approaches. Here are the main methods:
+
+## Using wx.Image.Rotate()
+
+The most straightforward approach uses the built-in `Rotate` method of `wx.Image`:
+
+```python
+import wx
+import math
+
+# Load an image
+image = wx.Image("your_image.jpg", wx.BITMAP_TYPE_JPEG)
+
+# Rotate by angle (in radians)
+angle_radians = math.radians(45)  # 45 degrees
+rotated_image = image.Rotate(angle_radians, (image.GetWidth()/2, image.GetHeight()/2))
+
+# Convert back to bitmap for display
+bitmap = wx.Bitmap(rotated_image)
+```
+
+## Parameters for Rotate()
+
+The `Rotate` method takes several parameters:
+- `angle` - rotation angle in radians (not degrees)
+- `center_of_rotation` - point around which to rotate (x, y tuple)
+- `interpolating` - whether to use interpolation (default True)
+- `offset_after_rotation` - offset point after rotation (optional)
+
+## Complete Example
+
+```python
+import wx
+import math
+
+class ImageRotationFrame(wx.Frame):
+    def __init__(self):
+        super().__init__(None, title="Image Rotation")
+        
+        panel = wx.Panel(self)
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        
+        # Load original image
+        self.original_image = wx.Image("image.jpg", wx.BITMAP_TYPE_JPEG)
+        self.current_angle = 0
+        
+        # Display area
+        self.image_ctrl = wx.StaticBitmap(panel)
+        self.update_image()
+        
+        # Rotation controls
+        btn_rotate_left = wx.Button(panel, label="Rotate Left")
+        btn_rotate_right = wx.Button(panel, label="Rotate Right")
+        
+        btn_rotate_left.Bind(wx.EVT_BUTTON, self.on_rotate_left)
+        btn_rotate_right.Bind(wx.EVT_BUTTON, self.on_rotate_right)
+        
+        sizer.Add(self.image_ctrl, 0, wx.ALL | wx.CENTER, 5)
+        sizer.Add(btn_rotate_left, 0, wx.ALL | wx.CENTER, 5)
+        sizer.Add(btn_rotate_right, 0, wx.ALL | wx.CENTER, 5)
+        
+        panel.SetSizer(sizer)
+        self.Fit()
+    
+    def on_rotate_left(self, event):
+        self.current_angle -= 15  # Rotate 15 degrees left
+        self.update_image()
+    
+    def on_rotate_right(self, event):
+        self.current_angle += 15  # Rotate 15 degrees right
+        self.update_image()
+    
+    def update_image(self):
+        # Create a copy of the original image
+        image = self.original_image.Copy()
+        
+        # Calculate rotation center
+        center_x = image.GetWidth() / 2
+        center_y = image.GetHeight() / 2
+        
+        # Rotate the image
+        angle_radians = math.radians(self.current_angle)
+        rotated = image.Rotate(angle_radians, (center_x, center_y))
+        
+        # Convert to bitmap and display
+        bitmap = wx.Bitmap(rotated)
+        self.image_ctrl.SetBitmap(bitmap)
+        self.Layout()
+```
+
+## Using PIL/Pillow with wxPython
+
+For more advanced rotation features, you can combine PIL (Pillow) with wxPython:
+
+```python
+from PIL import Image as PILImage
+import wx
+
+def rotate_with_pil(image_path, angle):
+    # Open with PIL
+    pil_image = PILImage.open(image_path)
+    
+    # Rotate (PIL uses degrees, not radians)
+    rotated = pil_image.rotate(angle, expand=True)
+    
+    # Convert to wx.Image
+    wx_image = wx.Image(rotated.size[0], rotated.size[1])
+    wx_image.SetData(rotated.convert('RGB').tobytes())
+    
+    return wx_image
+```
+
+## Important Notes
+
+1. **Angle Units**: `wx.Image.Rotate()` uses radians, not degrees. Use `math.radians()` to convert.
+
+2. **Image Quality**: Repeated rotations can degrade image quality. Always rotate from the original image rather than rotating a previously rotated version.
+
+3. **Size Changes**: Rotation often changes the image dimensions. The rotated image may be larger than the original to accommodate the new orientation.
+
+4. **Performance**: For real-time rotation (like with sliders), consider caching rotated versions or using lower resolution previews.
+
+5. **Background Fill**: Rotated images may have transparent or black areas where the original image doesn't cover. You can specify fill colors in some cases.
+
+The `wx.Image.Rotate()` method handles most basic rotation needs, while combining with libraries like PIL gives you more advanced options for complex image manipulations.

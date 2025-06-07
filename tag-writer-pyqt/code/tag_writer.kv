@@ -1,0 +1,352 @@
+#:kivy 2.0.0
+# tag_writer.kv - Kivy layout for Tag Writer Android app
+
+<MetadataEditorLayout>:
+    orientation: 'vertical'
+    padding: 10
+    spacing: 10
+
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    
+    # Status bar that displays app version and status messages
+    BoxLayout:
+        size_hint_y: None
+        height: 30
+        
+        Label:
+            id: status_label
+            text: root.status_text
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle'
+            padding: 5, 0
+        
+        Label:
+            text: 'Ver 0.13'
+            size_hint_x: None
+            width: 100
+            text_size: self.size
+            halign: 'right'
+            valign: 'middle'
+            padding: 0, 5
+    
+    # Header with file selection and navigation controls
+    BoxLayout:
+        size_hint_y: None
+        height: 50
+        spacing: 10
+        padding: 5
+        
+        Button:
+            text: 'Select File'
+            size_hint_x: None
+            width: 120
+            on_release: root.show_file_chooser
+        
+        BoxLayout:
+            size_hint_x: None
+            width: 100
+            spacing: 5
+            
+            Button:
+                id: prev_btn
+                text: '←'
+                on_release: root.prev_file()
+                disabled: True
+            
+            Button:
+                id: next_btn
+                text: '→'
+                on_release: root.next_file()
+                disabled: True
+        
+        Button:
+            text: 'Write Metadata'
+            size_hint_x: None
+            width: 150
+            on_release: root.write_metadata()
+        
+        Label:
+            id: filename_label
+            text: 'No file selected'
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle'
+    
+    # Main content area with metadata form and image preview
+    BoxLayout:
+        orientation: 'horizontal'
+        
+        # Metadata form in a scroll view (left side)
+        ScrollView:
+            size_hint_x: 0.7
+            
+            GridLayout:
+                cols: 2
+                spacing: 10
+                padding: 10
+                size_hint_y: None
+                height: self.minimum_height
+                
+                # Headline
+                Label:
+                    text: 'Headline:'
+                    size_hint_y: None
+                    height: 40
+                    size_hint_x: 0.3
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+                
+                TextInput:
+                    id: headline_input
+                    multiline: False
+                    size_hint_y: None
+                    height: 40
+                    size_hint_x: 0.7
+                
+                # Caption Abstract
+                Label:
+                    text: 'Caption Abstract:'
+                    size_hint_y: None
+                    height: 120
+                    size_hint_x: 0.3
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'top'
+                
+                TextInput:
+                    id: caption_input
+                    multiline: True
+                    size_hint_y: None
+                    height: 120
+                    size_hint_x: 0.7
+                
+                # Credit
+                Label:
+                    text: 'Credit:'
+                    size_hint_y: None
+                    height: 40
+                    size_hint_x: 0.3
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+                
+                TextInput:
+                    id: credit_input
+                    multiline: False
+                    size_hint_y: None
+                    height: 40
+                    size_hint_x: 0.7
+                
+                # Object Name
+                Label:
+                    text: 'Unique ID [Object Name]:'
+                    size_hint_y: None
+                    height: 40
+                    size_hint_x: 0.3
+                    text_size: self.size
+                    halign: 'right'
+                    valign: 'middle'
+
+#:kivy 2.1.0
+#: import platform kivy.utils.platform
+
+# Define app-wide styles
+<Label>:
+    font_size: '14sp'
+    color: 0.1, 0.1, 0.1, 1
+    canvas.before:
+        Color:
+            rgba: 0.95, 0.95, 0.95, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+<Button>:
+    font_size: '15sp'
+    background_color: 0.2, 0.6, 0.8, 1
+    color: 1, 1, 1, 1
+    size_hint: None, None
+    size: 120, 40
+    padding: 10, 10
+
+<TextInput>:
+    font_size: '14sp'
+    padding: [10, 5]
+    multiline: False
+    cursor_color: 0.3, 0.4, 0.6, 1
+    background_color: 0.9, 0.9, 0.9, 1 if self.focus else 0.95, 0.95, 0.95, 1
+    foreground_color: 0.1, 0.1, 0.1, 1
+
+# Main app layout
+<MetadataEditorLayout>:
+    orientation: 'vertical'
+    padding: 10
+    spacing: 10
+    
+    # Header with file controls
+    BoxLayout:
+        id: header
+        size_hint: 1, None
+        height: 50
+        spacing: 10
+        padding: 5
+        
+        Button:
+            text: 'Select File'
+            size_hint: None, 1
+            width: 120
+            on_release: root.show_file_chooser(self)
+        
+        BoxLayout:
+            id: nav_box
+            size_hint: None, 1
+            width: 100
+            spacing: 5
+            
+            Button:
+                id: prev_btn
+                text: '←'
+                on_release: root.prev_file(self)
+                disabled: True
+                size_hint: 0.5, 1
+                width: 40
+            
+            Button:
+                id: next_btn
+                text: '→'
+                on_release: root.next_file(self)
+                disabled: True
+                size_hint: 0.5, 1
+                width: 40
+        
+        Button:
+            text: 'Write Metadata'
+            size_hint: None, 1
+            width: 150
+            on_release: root.write_metadata(self)
+            background_color: 0.2, 0.7, 0.3, 1  # Green for action button
+        
+        Label:
+            id: filename_label
+            text: 'No file selected'
+            size_hint: 1, 1
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+            padding: 10, 0
+    
+    # Main content with form and preview
+    BoxLayout:
+        orientation: 'horizontal'
+        size_hint: 1, 1
+        spacing: 10
+        
+        # Left side - metadata form
+        ScrollView:
+            size_hint: 0.7, 1
+            
+            GridLayout:
+                id: metadata_form
+                cols: 2
+                spacing: 10
+                size_hint_y: None
+                height: self.minimum_height
+                
+                # Form fields will be added by Python code
+                # This demonstrates how Python code and .kv can work together
+        
+        # Right side - image preview
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint: 0.3, 1
+            spacing: 10
+            padding: 10
+            canvas.before:
+                Color:
+                    rgba: 0.9, 0.9, 0.9, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            
+            Label:
+                text: 'Image Preview'
+                size_hint: 1, 0.1
+                font_size: '16sp'
+                bold: True
+                color: 0.2, 0.2, 0.2, 1
+            
+            Image:
+                id: thumbnail
+                source: root.thumbnail_source
+                size_hint: 1, 0.8
+                allow_stretch: True
+                keep_ratio: True
+            
+            Button:
+                text: 'View Full Image'
+                size_hint: 1, 0.1
+                on_release: root.show_full_image(self)
+                background_color: 0.3, 0.5, 0.7, 1
+    
+    # Footer with status and version
+    BoxLayout:
+        id: footer
+        size_hint: 1, None
+        height: 30
+        spacing: 10
+        canvas.before:
+            Color:
+                rgba: 0.8, 0.8, 0.8, 1
+            Rectangle:
+                pos: self.pos
+                size: self.size
+        
+        Label:
+            id: status_label
+            text: root.status_text
+            size_hint: 0.7, 1
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+            padding: 10, 0
+            canvas.before:
+                Color:
+                    rgba: 0.85, 0.85, 0.85, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+        
+        Label:
+            text: 'Ver ' + app.version + ' (' + app.date + ')'
+            size_hint: 0.3, 1
+            halign: 'right'
+            valign: 'middle'
+            text_size: self.size
+            padding: 10, 0
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 0.8, 1  # Light yellow background
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+# Define a style for the caption text input that's different from other text inputs
+<MetadataEditorLayout>:
+    caption_input: caption_input
+    
+    # Apply this to the caption text input created in Python code
+    TextInput:
+        id: caption_input
+        multiline: True
+        size_hint: 0.7, None
+        height: 120
+        background_color: 0.95, 0.95, 1, 1  # Light blue background
+        font_size: '14sp'
+

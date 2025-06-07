@@ -1,0 +1,18 @@
+The GUI has been improved with these changes:
+
+1. Better Organization:
+•  Added proper frames with borders and titles
+•  Separated the interface into logical sections
+•  Added a proper status bar at the bottom
+2. Visual Improvements:
+•  Consistent spacing and padding
+•  Improved visual hierarchy with labeled frames
+•  Better alignment of form fields and labels
+3. Usability Enhancements:
+•  Clear image preview area with title
+•  Both clickable thumbnail and a dedicated "View Full Image" button
+•  Status information in a dedicated status bar
+4. Technical Improvements:
+•  Removed the dynamically positioned version label
+•  Better use of Tkinter's layout managers
+•  More maintainable code structure
