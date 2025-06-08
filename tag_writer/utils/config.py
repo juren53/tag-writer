@@ -28,7 +28,7 @@ class Config:
         """Initialize configuration with default values."""
         # Application info
         self.app_name = "Tag Writer"
-        self.app_version = "0.07a"
+        self.app_version = "0.07b"
         
         # File management
         self.recent_files: List[str] = []

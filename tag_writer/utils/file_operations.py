@@ -98,6 +98,7 @@ def read_metadata(file_path: str) -> Dict[str, Any]:
             "Source": ["Source"],
             "DateCreated": ["DateCreated", "Date Created"],
             "Copyright": ["Copyright", "CopyrightNotice", "Copyright Notice"],
+            "CopyrightNotice": ["CopyrightNotice", "Copyright Notice"],
         }
         
         # Extract fields using the mapping
@@ -105,6 +106,8 @@ def read_metadata(file_path: str) -> Dict[str, Any]:
             for source_field in source_fields:
                 if source_field in raw_metadata:
                     metadata[target_field] = raw_metadata[source_field]
+                    if target_field == "Copyright" or source_field == "CopyrightNotice":
+                        logger.info(f"Found copyright: {source_field} = {raw_metadata[source_field]}")
                     break
         
         logger.info(f"Successfully read metadata from {file_path}")

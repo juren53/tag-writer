@@ -91,7 +91,7 @@ class MainFrame(wx.Frame):
         self.statusbar.SetStatusWidths([200, -1, 200])  # Left, Center, Right
         self.statusbar.SetStatusText("Ready", 0)
         self.statusbar.SetStatusText("", 1)  # Middle section for file path
-        self.statusbar.SetStatusText(f"Ver {config.app_version} (2025-05-31)", 2)
+        self.statusbar.SetStatusText(f"Ver {config.app_version} (2025-06-08)", 2)
         
         logger.info("Main frame initialized")
     

@@ -326,7 +326,12 @@ class MetadataPanel(wx.Panel):
         credit = self.metadata_manager.get_field("Credit", "")
         source = self.metadata_manager.get_field("Source", "")
         date_created = self.metadata_manager.get_field("DateCreated", "")
-        copyright_notice = self.metadata_manager.get_field("Copyright", "")
+        # Special handling for copyright notice - check multiple field names
+        copyright_notice = self.metadata_manager.get_field("Copyright Notice", "")
+        if not copyright_notice:
+            copyright_notice = self.metadata_manager.get_field("CopyrightNotice", "")
+        if not copyright_notice:
+            copyright_notice = self.metadata_manager.get_field("Copyright", "")
         
         # Update UI fields
         self.headline_field.SetValue(headline)
@@ -369,7 +374,7 @@ class MetadataPanel(wx.Panel):
         self.metadata_manager.set_field("Credit", credit)
         self.metadata_manager.set_field("Source", source)
         self.metadata_manager.set_field("DateCreated", date_created)
-        self.metadata_manager.set_field("Copyright", copyright_notice)
+        self.metadata_manager.set_field("CopyrightNotice", copyright_notice)
         
         logger.info("Updated metadata manager from UI")
     
