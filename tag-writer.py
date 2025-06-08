@@ -251,7 +251,7 @@ class MetadataPanel(QWidget):
         count = len(text)
         
         # Update the label
-        self.char_count_label.setText(f"{count}/1000 characters")
+        self.char_count_label.setText(f"{count} characters")
         
         # Apply visual feedback based on count
         if count > 1000:
@@ -264,7 +264,7 @@ class MetadataPanel(QWidget):
             self.caption.blockSignals(False)
             
             # Update count after truncation
-            self.char_count_label.setText("1000/1000 characters")
+            self.char_count_label.setText("1000 characters")
         elif count > 256:
             # Yellow for approaching limit
             self.char_count_label.setStyleSheet("font-size: 8pt; color: #FF9900;")  # Orange-yellow
@@ -355,8 +355,8 @@ class ImageViewer(QWidget):
         # Information container for filename, dimensions, and file size with minimal spacing
         info_container = QWidget()
         info_layout = QVBoxLayout(info_container)
-        info_layout.setContentsMargins(0, 0, 0, 0)
-        info_layout.setSpacing(0)  # Zero spacing between labels for tight grouping
+        info_layout.setContentsMargins(0, 5, 0, 0)  # Small top margin for spacing from button
+        info_layout.setSpacing(8)  # Single-spaced appearance between labels
         
         # File name label
         self.filename_label = QLabel("File: --")
@@ -372,6 +372,16 @@ class ImageViewer(QWidget):
         self.file_size_label = QLabel("File size: --")
         self.file_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         info_layout.addWidget(self.file_size_label)
+        
+        # X/Y Resolution label
+        self.resolution_label = QLabel("Resolution: --")
+        self.resolution_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_layout.addWidget(self.resolution_label)
+        
+        # Pixel count label
+        self.pixel_count_label = QLabel("Pixel count: --")
+        self.pixel_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_layout.addWidget(self.pixel_count_label)
         
         # Add the container to the main layout
         layout.addWidget(info_container)
@@ -419,6 +429,33 @@ class ImageViewer(QWidget):
             else:
                 file_size_str = f"{file_size_bytes / (1024 * 1024):.1f} MB"
             self.file_size_label.setText(f"File size: {file_size_str}")
+            
+            # Update resolution label
+            try:
+                # Try to get DPI/resolution info from the image
+                dpi = getattr(self.pil_image, 'info', {}).get('dpi', None)
+                if dpi and isinstance(dpi, (tuple, list)) and len(dpi) >= 2:
+                    # DPI is available
+                    x_dpi, y_dpi = dpi[0], dpi[1]
+                    if x_dpi == y_dpi:
+                        self.resolution_label.setText(f"Resolution: {x_dpi:.0f} DPI")
+                    else:
+                        self.resolution_label.setText(f"Resolution: {x_dpi:.0f} x {y_dpi:.0f} DPI")
+                else:
+                    # No DPI info available, show pixel density
+                    self.resolution_label.setText("Resolution: --")
+            except Exception:
+                self.resolution_label.setText("Resolution: --")
+            
+            # Update pixel count label
+            pixel_count = width * height
+            if pixel_count >= 1_000_000:
+                megapixels = pixel_count / 1_000_000
+                self.pixel_count_label.setText(f"Pixel count: {megapixels:.1f} MP")
+            else:
+                # Format with commas for readability
+                formatted_count = f"{pixel_count:,}"
+                self.pixel_count_label.setText(f"Pixel count: {formatted_count} pixels")
             
             # Store path
             self.current_image_path = image_path
@@ -478,6 +515,8 @@ class ImageViewer(QWidget):
         self.filename_label.setText("File: --")
         self.dimensions_label.setText("Dimensions: --")
         self.file_size_label.setText("File size: --")
+        self.resolution_label.setText("Resolution: --")
+        self.pixel_count_label.setText("Pixel count: --")
         self.current_image_path = None
         self.pil_image = None
         self.original_thumbnail = None
