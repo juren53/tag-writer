@@ -187,7 +187,7 @@ class MetadataPanel(QWidget):
         
     def update_from_manager(self):
         """Update UI fields from metadata manager."""
-        # Map field names to UI controls
+        # Use field mappings for all fields
         field_mappings = {
             "Headline": self.headline,
             "Caption-Abstract": self.caption,
@@ -198,16 +198,27 @@ class MetadataPanel(QWidget):
             "By-lineTitle": self.byline_title,
             "Source": self.source,
             "DateCreated": self.date,
-            "Copyright": self.copyright
+            "Copyright Notice": self.copyright
         }
         
-        # Update each field
+        # Special handling for copyright notice - check multiple field names
+        copyright_value = self.metadata_manager.get_field("Copyright Notice", "")
+        if not copyright_value:
+            copyright_value = self.metadata_manager.get_field("CopyrightNotice", "")
+        if not copyright_value:
+            copyright_value = self.metadata_manager.get_field("Copyright", "")
+        
+        self.copyright.setText(copyright_value)
+        print(f"Setting Copyright Notice field to: {copyright_value}")
+        
+        # Update each field (except copyright which we handle separately)
         for field_name, control in field_mappings.items():
-            value = self.metadata_manager.get_field(field_name, "")
-            if isinstance(control, QTextEdit):
-                control.setPlainText(str(value))
-            else:
-                control.setText(str(value))
+            if field_name != "Copyright Notice":  # Skip copyright, handled above
+                value = self.metadata_manager.get_field(field_name, "")
+                if isinstance(control, QTextEdit):
+                    control.setPlainText(str(value))
+                else:
+                    control.setText(str(value))
         
         logger.info("Updated UI from metadata manager")
     
@@ -224,7 +235,7 @@ class MetadataPanel(QWidget):
             "By-lineTitle": self.byline_title.text(),
             "Source": self.source.text(),
             "DateCreated": self.date.text(),
-            "Copyright": self.copyright.text()
+            "CopyrightNotice": self.copyright.text()  # Use correct IPTC field name
         }
         
         # Update metadata manager
@@ -805,7 +816,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(self.path_label, 1)
         
         # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-05-31)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-08)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer

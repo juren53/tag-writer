@@ -37,10 +37,10 @@ class MetadataManager:
         "Source": "Source",
         "DateCreated": "DateCreated",
         "Copyright": "Copyright",
+        "CopyrightNotice": "CopyrightNotice",  # Direct mapping for IPTC field
         "Object Name": "ObjectName",  # Added for compatibility with UI labels
-        "By-line Title": "By-lineTitle",  # Added for compatibility with UI labels
         "Date Created": "DateCreated",  # Added for compatibility with UI labels
-        "Copyright Notice": "Copyright"  # Added for compatibility with UI labels
+        "Copyright Notice": "CopyrightNotice"  # Map to correct IPTC field name
     }
     
     # Field mappings from the original application
@@ -118,15 +118,20 @@ class MetadataManager:
                     elif field == "Date Created":
                         processed["DateCreated"] = raw_metadata[name]
                     elif field == "Copyright Notice":
-                        processed["Copyright"] = raw_metadata[name]
+                        # Only store as CopyrightNotice to avoid field conflicts
+                        processed["CopyrightNotice"] = raw_metadata[name]
+                        logger.info(f"Found copyright: CopyrightNotice = {raw_metadata[name]}")
                     else:
                         processed[field] = raw_metadata[name]
                     logger.debug(f"Found '{field}' in '{name}': {raw_metadata[name]}")
                     break
         
-        # Also try direct field names
+        # Also try direct field names (but skip Copyright variants to avoid conflicts)
         for display_name, exif_name in self.FIELD_MAPPING.items():
             if display_name not in processed and exif_name in raw_metadata:
+                # Skip Copyright Notice variants if we already have CopyrightNotice
+                if display_name in ["Copyright Notice", "Copyright"] and "CopyrightNotice" in processed:
+                    continue
                 processed[display_name] = raw_metadata[exif_name]
         
         return processed
@@ -231,6 +236,20 @@ class MetadataManager:
         """
         if field_name in self.current_metadata and self.current_metadata[field_name] == value:
             return  # No change
+        
+        # Special handling for Copyright Notice fields to avoid conflicts
+        if field_name == "CopyrightNotice":
+            # Clear other copyright field variations to avoid conflicts
+            for copyright_field in ["Copyright Notice", "Copyright"]:
+                if copyright_field in self.current_metadata:
+                    del self.current_metadata[copyright_field]
+        elif field_name == "Copyright Notice":
+            # Map to CopyrightNotice for consistency
+            field_name = "CopyrightNotice"
+            # Clear other copyright field variations
+            for copyright_field in ["Copyright Notice", "Copyright"]:
+                if copyright_field in self.current_metadata:
+                    del self.current_metadata[copyright_field]
         
         self.current_metadata[field_name] = value
         self.modified = True
