@@ -54,7 +54,7 @@ class MetadataManager:
         'By-line Title': ['IPTC:By-lineTitle', 'XMP:AuthorsPosition', 'XMP-photoshop:AuthorsPosition'],
         'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
         'Date Created': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
-        'Copyright Notice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright']
+        'Copyright Notice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright', 'Copyright', 'Copyright Notice']
     }
     
     def __init__(self):
