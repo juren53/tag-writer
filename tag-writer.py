@@ -341,10 +341,29 @@ class ImageViewer(QWidget):
         self.view_button.clicked.connect(self.on_view_full_image)
         layout.addWidget(self.view_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         
+        # Information container for filename, dimensions, and file size with minimal spacing
+        info_container = QWidget()
+        info_layout = QVBoxLayout(info_container)
+        info_layout.setContentsMargins(0, 0, 0, 0)
+        info_layout.setSpacing(0)  # Zero spacing between labels for tight grouping
+        
+        # File name label
+        self.filename_label = QLabel("File: --")
+        self.filename_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_layout.addWidget(self.filename_label)
+        
         # Dimensions label
         self.dimensions_label = QLabel("Dimensions: --")
         self.dimensions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(self.dimensions_label)
+        info_layout.addWidget(self.dimensions_label)
+        
+        # File size label
+        self.file_size_label = QLabel("File size: --")
+        self.file_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        info_layout.addWidget(self.file_size_label)
+        
+        # Add the container to the main layout
+        layout.addWidget(info_container)
         
     def load_image(self, image_path):
         """Load and display an image."""
@@ -371,9 +390,24 @@ class ImageViewer(QWidget):
             # Update the thumbnail to fit the current view size
             self.update_thumbnail()
             
+            # Update filename label
+            filename = os.path.basename(image_path)
+            self.filename_label.setText(f"File: {filename}")
+            
             # Update dimensions label
             width, height = self.pil_image.size
             self.dimensions_label.setText(f"Dimensions: {width} x {height} pixels")
+            
+            # Update file size label
+            file_size_bytes = os.path.getsize(image_path)
+            # Format file size for display
+            if file_size_bytes < 1024:
+                file_size_str = f"{file_size_bytes} bytes"
+            elif file_size_bytes < 1024 * 1024:
+                file_size_str = f"{file_size_bytes / 1024:.1f} KB"
+            else:
+                file_size_str = f"{file_size_bytes / (1024 * 1024):.1f} MB"
+            self.file_size_label.setText(f"File size: {file_size_str}")
             
             # Store path
             self.current_image_path = image_path
@@ -430,7 +464,9 @@ class ImageViewer(QWidget):
         """Clear the image display."""
         self.image_label.clear()
         self.image_label.setText("No image loaded")
+        self.filename_label.setText("File: --")
         self.dimensions_label.setText("Dimensions: --")
+        self.file_size_label.setText("File size: --")
         self.current_image_path = None
         self.pil_image = None
         self.original_thumbnail = None
