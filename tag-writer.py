@@ -32,6 +32,8 @@ from the existing codebase.
 
 #  Updated Sat 31 May 2025 01:49:56 PM CDT v 0.07a Converted from wxPyton to PyQt6
 #  Updated Sun 09 Jun 2025 05:12:00 PM CDT v 0.07b Fixed resolution detection using EXIF metadata
+#  Updated Sun 09 Jun 2025 05:20:00 PM CDT v 0.07c Fixed Full Image window - added maximize/minimize buttons and improved scroll bars
+#  Updated Sun 09 Jun 2025 05:22:00 PM CDT v 0.07d Added image navigation to Full Image window with sync to main window
 #-----------------------------------------------------------
 
 import os
@@ -611,14 +613,20 @@ class ImageViewer(QWidget):
             QMessageBox.warning(self, "No Image", "No image is currently loaded.")
             return
             
-        # Create and show full image viewer dialog
-        viewer = FullImageViewer(self, self.current_image_path, self.pil_image)
-        viewer.exec()
+        # Create and show full image viewer window
+        # Pass the main window instead of just self so navigation works
+        main_window = self
+        while main_window.parent() is not None:
+            main_window = main_window.parent()
+        
+        viewer = FullImageViewer(main_window, self.current_image_path, self.pil_image)
+        viewer.show()
 
-class FullImageViewer(QDialog):
-    """Dialog for viewing full-sized images."""
+class FullImageViewer(QMainWindow):
+    """Main window for viewing full-sized images with maximize/minimize controls."""
     def __init__(self, parent, image_path, pil_image):
         super().__init__(parent)
+        self.parent_window = parent  # Store reference to main window
         self.image_path = image_path
         self.pil_image = pil_image
         self.zoom_factor = 1.0
@@ -634,25 +642,36 @@ class FullImageViewer(QDialog):
         # Set focus policy to accept keyboard focus
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         
+        # Auto-fit the image to the window on startup
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(100, self.fit_to_window)  # Delay to ensure window is fully rendered
+        
+        # Update navigation button states
+        self.update_navigation_buttons()
+        
     def setup_ui(self):
         """Set up the user interface."""
         self.resize(800, 600)
         
-        layout = QVBoxLayout(self)
+        # Create central widget
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        layout = QVBoxLayout(central_widget)
         layout.setSpacing(5)
         layout.setContentsMargins(5, 5, 5, 5)
         
-        # Image display in a scroll area
+        # Image display in a scroll area with explicit scroll bar policies
         self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll_area.setWidgetResizable(False)  # Important: False for proper scroll bar behavior with zoomed images
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         
-        # Image container
-        self.image_container = QWidget()
+        # Image container - simpler layout for better image display
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setMinimumSize(200, 200)
+        self.image_label.setScaledContents(False)  # Don't scale contents, we handle scaling manually
         
         # Enable mouse tracking for dragging/panning
         self.image_label.setMouseTracking(True)
@@ -664,16 +683,29 @@ class FullImageViewer(QDialog):
         # Install event filter for keyboard events
         self.image_label.installEventFilter(self)
         
-        container_layout = QVBoxLayout(self.image_container)
-        container_layout.addWidget(self.image_label)
-        container_layout.addStretch(1)
-        
-        self.scroll_area.setWidget(self.image_container)
+        # Set the image label directly as the scroll area widget
+        self.scroll_area.setWidget(self.image_label)
         layout.addWidget(self.scroll_area)
         
         # Controls at the bottom
         controls_layout = QHBoxLayout()
         controls_layout.setSpacing(10)
+        
+        # Navigation controls
+        self.nav_prev_btn = QPushButton("◀ Previous")
+        self.nav_prev_btn.clicked.connect(self.navigate_previous)
+        controls_layout.addWidget(self.nav_prev_btn)
+        
+        self.nav_next_btn = QPushButton("Next ▶")
+        self.nav_next_btn.clicked.connect(self.navigate_next)
+        controls_layout.addWidget(self.nav_next_btn)
+        
+        # Add a separator widget
+        from PyQt6.QtWidgets import QFrame
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        controls_layout.addWidget(separator)
         
         # Zoom controls
         zoom_out_btn = QPushButton("-")
@@ -703,7 +735,7 @@ class FullImageViewer(QDialog):
         
         # Close button
         close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.accept)
+        close_btn.clicked.connect(self.close)
         controls_layout.addWidget(close_btn)
         
         layout.addLayout(controls_layout)
@@ -746,6 +778,9 @@ class FullImageViewer(QDialog):
                 
             self.image_label.setPixmap(pixmap)
             
+            # Update the image label size to match the pixmap size
+            self.image_label.setFixedSize(pixmap.size())
+            
             # Update zoom label and status bar
             zoom_percent = int(self.zoom_factor * 100)
             self.zoom_label.setText(f"Zoom: {zoom_percent}%")
@@ -760,10 +795,6 @@ class FullImageViewer(QDialog):
                 f"Zoomed: {zoomed_width}x{zoomed_height} - " +
                 f"Zoom: {zoom_percent}%"
             )
-            
-            # Adjust scroll area
-            self.scroll_area.setWidgetResizable(False)
-            self.image_label.adjustSize()
         except Exception as e:
             logger.error(f"Error updating image display: {e}")
     
@@ -807,8 +838,15 @@ class FullImageViewer(QDialog):
             
         # Get image and viewport dimensions
         img_width, img_height = self.pil_image.size
-        viewport_width = self.scroll_area.width() - 20  # Account for scrollbar
-        viewport_height = self.scroll_area.height() - 20
+        
+        # Get the viewport size from the scroll area
+        viewport_size = self.scroll_area.viewport().size()
+        viewport_width = viewport_size.width() - 20  # Account for potential scrollbars
+        viewport_height = viewport_size.height() - 20
+        
+        # Ensure minimum viewport size
+        viewport_width = max(viewport_width, 100)
+        viewport_height = max(viewport_height, 100)
         
         # Calculate scale factors
         width_scale = viewport_width / img_width
@@ -816,6 +854,9 @@ class FullImageViewer(QDialog):
         
         # Use the smaller scale to ensure the entire image fits
         self.zoom_factor = min(width_scale, height_scale)
+        
+        # Ensure zoom factor is within bounds
+        self.zoom_factor = max(self.min_zoom, min(self.max_zoom, self.zoom_factor))
         
         # Update display and center
         self.update_display()
@@ -831,8 +872,12 @@ class FullImageViewer(QDialog):
             self.reset_zoom()
         elif event.key() == Qt.Key.Key_F:
             self.fit_to_window()
+        elif event.key() == Qt.Key.Key_Left:
+            self.navigate_previous()
+        elif event.key() == Qt.Key.Key_Right:
+            self.navigate_next()
         elif event.key() == Qt.Key.Key_Escape:
-            self.accept()  # Close dialog
+            self.close()  # Close window
         else:
             super().keyPressEvent(event)
     
@@ -874,6 +919,119 @@ class FullImageViewer(QDialog):
         
         # Prevent event from propagating to parent
         event.accept()
+    
+    def navigate_previous(self):
+        """Navigate to the previous image in the directory."""
+        # Get the main window's parent (which should be the main app window)
+        main_window = None
+        parent = self.parent_window
+        while parent and not hasattr(parent, 'on_previous'):
+            parent = parent.parent()
+        
+        if parent and hasattr(parent, 'on_previous'):
+            main_window = parent
+        
+        if main_window:
+            # Call the main window's previous navigation
+            main_window.on_previous()
+            
+            # Update this window with the new image
+            if hasattr(config, 'selected_file') and config.selected_file:
+                self.update_image_from_path(config.selected_file)
+        else:
+            # Fallback: try to navigate using config directly
+            self.navigate_using_config(-1)
+    
+    def navigate_next(self):
+        """Navigate to the next image in the directory."""
+        # Get the main window's parent (which should be the main app window)
+        main_window = None
+        parent = self.parent_window
+        while parent and not hasattr(parent, 'on_next'):
+            parent = parent.parent()
+        
+        if parent and hasattr(parent, 'on_next'):
+            main_window = parent
+        
+        if main_window:
+            # Call the main window's next navigation
+            main_window.on_next()
+            
+            # Update this window with the new image
+            if hasattr(config, 'selected_file') and config.selected_file:
+                self.update_image_from_path(config.selected_file)
+        else:
+            # Fallback: try to navigate using config directly
+            self.navigate_using_config(1)
+    
+    def navigate_using_config(self, direction):
+        """Fallback navigation using config directly."""
+        if not hasattr(config, 'directory_image_files') or not config.directory_image_files:
+            return
+        
+        if not hasattr(config, 'current_file_index') or config.current_file_index < 0:
+            return
+        
+        new_index = config.current_file_index + direction
+        
+        if 0 <= new_index < len(config.directory_image_files):
+            new_file = config.directory_image_files[new_index]
+            config.current_file_index = new_index
+            config.selected_file = new_file
+            self.update_image_from_path(new_file)
+    
+    def update_image_from_path(self, image_path):
+        """Update the full image viewer with a new image."""
+        try:
+            # Load the new image using PIL
+            from tag_writer.utils.image_processing import load_image
+            
+            new_pil_image = load_image(image_path)
+            if new_pil_image is None:
+                logger.error(f"Failed to load new image: {image_path}")
+                return
+            
+            # Update instance variables
+            self.image_path = image_path
+            self.pil_image = new_pil_image
+            
+            # Reset zoom to fit window for new image
+            self.fit_to_window()
+            
+            # Update window title
+            self.setWindowTitle(f"Full Image: {os.path.basename(image_path)}")
+            
+            # Update navigation buttons
+            self.update_navigation_buttons()
+            
+        except Exception as e:
+            logger.error(f"Error updating image in full viewer: {e}")
+    
+    def update_navigation_buttons(self):
+        """Update the state of navigation buttons based on current position."""
+        if not hasattr(config, 'directory_image_files') or not config.directory_image_files:
+            self.nav_prev_btn.setEnabled(False)
+            self.nav_next_btn.setEnabled(False)
+            return
+        
+        if not hasattr(config, 'current_file_index') or config.current_file_index < 0:
+            self.nav_prev_btn.setEnabled(False)
+            self.nav_next_btn.setEnabled(False)
+            return
+        
+        # Enable/disable based on position in list
+        self.nav_prev_btn.setEnabled(config.current_file_index > 0)
+        self.nav_next_btn.setEnabled(config.current_file_index < len(config.directory_image_files) - 1)
+        
+        # Update status bar with position info
+        total_files = len(config.directory_image_files)
+        current_pos = config.current_file_index + 1
+        self.status_bar.showMessage(
+            f"Image: {os.path.basename(self.image_path)} - " +
+            f"Image {current_pos} of {total_files} - " +
+            f"Original: {self.pil_image.size[0]}x{self.pil_image.size[1]} - " +
+            f"Zoom: {int(self.zoom_factor * 100)}%"
+        )
     
     def eventFilter(self, obj, event):
         """Event filter to capture events from child widgets."""
