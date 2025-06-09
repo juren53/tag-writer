@@ -31,6 +31,7 @@ from the existing codebase.
 #  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06b Fixed bug in the Caption Abstract text box editor
 
 #  Updated Sat 31 May 2025 01:49:56 PM CDT v 0.07a Converted from wxPyton to PyQt6
+#  Updated Sun 09 Jun 2025 05:12:00 PM CDT v 0.07b Fixed resolution detection using EXIF metadata
 #-----------------------------------------------------------
 
 import os
@@ -330,17 +331,108 @@ class MetadataPanel(QWidget):
 
 class ImageViewer(QWidget):
     """Widget for displaying and interacting with images."""
+    
     def __init__(self, parent=None):
+        """Initialize the image viewer."""
         super().__init__(parent)
         self.current_image_path = None
         self.pil_image = None
         self.original_thumbnail = None
         self.setup_ui()
-        
+    
+    def _get_image_resolution(self, image_path):
+        """Get image resolution from multiple sources with fallback."""
+        try:
+            import subprocess
+            import json
+            
+            # Method 1: Try to get resolution from EXIF metadata using exiftool
+            try:
+                cmd = ["exiftool", "-j", "-XResolution", "-YResolution", "-ResolutionUnit", image_path]
+                result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=10)
+                
+                if result.returncode == 0 and result.stdout.strip():
+                    metadata_list = json.loads(result.stdout)
+                    if metadata_list and isinstance(metadata_list, list) and len(metadata_list) > 0:
+                        metadata = metadata_list[0]
+                        
+                        x_res = metadata.get('XResolution')
+                        y_res = metadata.get('YResolution')
+                        res_unit = metadata.get('ResolutionUnit', '').lower()
+                        
+                        if x_res and y_res:
+                            # Handle different resolution unit formats
+                            unit_suffix = "DPI"
+                            if 'cm' in res_unit or 'centimeter' in res_unit:
+                                unit_suffix = "DPC"  # Dots per centimeter
+                            
+                            # Convert to float and format
+                            try:
+                                x_val = float(x_res)
+                                y_val = float(y_res)
+                                
+                                if x_val == y_val:
+                                    return f"Resolution: {x_val:.0f} {unit_suffix}"
+                                else:
+                                    return f"Resolution: {x_val:.0f} x {y_val:.0f} {unit_suffix}"
+                            except (ValueError, TypeError):
+                                pass
+            except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError) as e:
+                logger.debug(f"Exiftool resolution detection failed: {e}")
+            
+            # Method 2: Try PIL's DPI info as fallback
+            if self.pil_image:
+                dpi = getattr(self.pil_image, 'info', {}).get('dpi', None)
+                if dpi and isinstance(dpi, (tuple, list)) and len(dpi) >= 2:
+                    x_dpi, y_dpi = dpi[0], dpi[1]
+                    if x_dpi and y_dpi and x_dpi > 0 and y_dpi > 0:
+                        if x_dpi == y_dpi:
+                            return f"Resolution: {x_dpi:.0f} DPI"
+                        else:
+                            return f"Resolution: {x_dpi:.0f} x {y_dpi:.0f} DPI"
+            
+            # Method 3: Try PIL's getexif() for JPEG files
+            if self.pil_image and hasattr(self.pil_image, 'getexif'):
+                try:
+                    exif = self.pil_image.getexif()
+                    if exif:
+                        # EXIF tags for resolution
+                        x_res = exif.get(282)  # XResolution
+                        y_res = exif.get(283)  # YResolution
+                        res_unit = exif.get(296, 2)  # ResolutionUnit (2=inches, 3=cm)
+                        
+                        if x_res and y_res:
+                            unit_suffix = "DPI" if res_unit == 2 else "DPC"
+                            
+                            # Handle fractional values
+                            if isinstance(x_res, tuple) and len(x_res) == 2:
+                                x_val = x_res[0] / x_res[1] if x_res[1] != 0 else x_res[0]
+                            else:
+                                x_val = float(x_res)
+                                
+                            if isinstance(y_res, tuple) and len(y_res) == 2:
+                                y_val = y_res[0] / y_res[1] if y_res[1] != 0 else y_res[0]
+                            else:
+                                y_val = float(y_res)
+                            
+                            if x_val > 0 and y_val > 0:
+                                if x_val == y_val:
+                                    return f"Resolution: {x_val:.0f} {unit_suffix}"
+                                else:
+                                    return f"Resolution: {x_val:.0f} x {y_val:.0f} {unit_suffix}"
+                except Exception as e:
+                    logger.debug(f"PIL EXIF resolution detection failed: {e}")
+            
+            # If all methods fail, return default
+            return "Resolution: --"
+            
+        except Exception as e:
+            logger.debug(f"Resolution detection error: {e}")
+            return "Resolution: --"
+    
     def setup_ui(self):
         """Set up the user interface."""
         layout = QVBoxLayout(self)
-        
         # Image display area
         self.image_label = QLabel("No image loaded")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -430,21 +522,13 @@ class ImageViewer(QWidget):
                 file_size_str = f"{file_size_bytes / (1024 * 1024):.1f} MB"
             self.file_size_label.setText(f"File size: {file_size_str}")
             
-            # Update resolution label
+            # Update resolution label with improved detection
             try:
-                # Try to get DPI/resolution info from the image
-                dpi = getattr(self.pil_image, 'info', {}).get('dpi', None)
-                if dpi and isinstance(dpi, (tuple, list)) and len(dpi) >= 2:
-                    # DPI is available
-                    x_dpi, y_dpi = dpi[0], dpi[1]
-                    if x_dpi == y_dpi:
-                        self.resolution_label.setText(f"Resolution: {x_dpi:.0f} DPI")
-                    else:
-                        self.resolution_label.setText(f"Resolution: {x_dpi:.0f} x {y_dpi:.0f} DPI")
-                else:
-                    # No DPI info available, show pixel density
-                    self.resolution_label.setText("Resolution: --")
-            except Exception:
+                # Try multiple sources for resolution information
+                resolution_text = self._get_image_resolution(image_path)
+                self.resolution_label.setText(resolution_text)
+            except Exception as e:
+                logger.debug(f"Error getting resolution: {e}")
                 self.resolution_label.setText("Resolution: --")
             
             # Update pixel count label
