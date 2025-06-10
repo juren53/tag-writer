@@ -1,3 +1,5 @@
+<p align="right">Last Updated: 2025-06-10 08-00</p>
+
 # Photo and Image Metadata Glossary
 
 A comprehensive reference guide for terms related to digital photography, image files, and metadata standards.
@@ -170,8 +172,6 @@ For more in-depth information on IPTC Photo Metadata, refer to the [IPTC Photo M
 
 ---
 
----
-
 ## XMP Metadata
 
 **XMP (Extensible Metadata Platform)**
@@ -325,12 +325,6 @@ For more in-depth information on IPTC Photo Metadata, refer to the [IPTC Photo M
 
 ---
 
-**Citations**
-
-[^1]: W3C. Portable Network Graphics (PNG) Specification. Section 11, "Ancillary Chunks" and Section 12, "Other Chunks." Available at: [https://www.w3.org/TR/PNG-DataRep.html](https://www.w3.org/TR/PNG-DataRep.html) (or a more general link to the spec like https://www.w3.org/TR/png/)
-
----
-
 *This glossary is a living document. Terms and definitions will be updated 
 as new standards and technologies emerge in digital photography 
 and image metadata management.*
@@ -339,5 +333,11 @@ and image metadata management.*
 - [Tag Writer User Guide](user-guide.md)
 - [Tag Writer Help](tag-writer-help.md)
 
-**Last Updated:** 2025-06-10 08-00
+---
+
+**Citations**
+
+[^1]: W3C. Portable Network Graphics (PNG) Specification. Section 11, "Ancillary Chunks" and Section 12, "Other Chunks." Available at: [https://www.w3.org/TR/PNG-DataRep.html](https://www.w3.org/TR/PNG-DataRep.html) (or a more general link to the spec like https://www.w3.org/TR/png/)
+
+
 
