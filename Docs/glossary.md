@@ -15,30 +15,107 @@ A comprehensive reference guide for terms related to digital photography, image 
 
 ## File Formats
 
+**TIFF (Tagged Image File Format)**
+- Lossless compression format
+- File extension: .tif, .tiff
+- Excellent metadata support, often used for archival purposes
+
 **JPEG (Joint Photographic Experts Group)**
 - A lossy compression format commonly used for photographs
 - File extensions: .jpg, .jpeg
 - Supports EXIF, IPTC, and XMP metadata
 
 **RAW**
-- Unprocessed image data directly from camera sensor
+- Unprocessed image data directly from camera sensor or scanner
 - Proprietary formats like .CR2 (Canon), .NEF (Nikon), .ARW (Sony)
 - Contains maximum image information and metadata
-
-**TIFF (Tagged Image File Format)**
-- Lossless compression format
-- File extension: .tif, .tiff
-- Excellent metadata support, often used for archival purposes
 
 **PNG (Portable Network Graphics)**
 - Lossless compression format
 - File extension: .png
-- Limited metadata support compared to JPEG/TIFF
+- Limited metadata support compared to JPEG/TIFF [^1]
 
 **HEIF/HEIC (High Efficiency Image Format)**
 - Modern format with better compression than JPEG
 - Used by Apple devices since iOS 11
 - Supports extensive metadata
+
+---
+
+## IPTC Metadata
+
+**IPTC (International Press Telecommunications Council)**
+- Standardized metadata for news and media industries
+- Adopted by NARA and archivists around the world to capture archival data
+- Focuses on editorial, creation and rights information
+- Embedded in the header area of image files 
+- TIFF, JPEG, PNG and GIF can contain IPTC metadata
+
+### **A Note on IPTC Metadata Implementation:** 
+It must be stated up front that many IPTC fields overlap, and their 
+use will often vary. How an organization implements IPTC metadata 
+largely depends on its specific needs, the tools it uses, 
+and its industry practices.  Below contains specific methods used
+in implementing IPTC at the Harry S. Truman Presidental Library.
+
+**Headline**
+- Brief headline or name for the image
+- Often used as filename or display name
+
+**Abstract Caption**
+- Textual description of image content
+- What is happening in the photograph
+
+**Copyright Notice**
+- Legal copyright statement
+- Usage rights and restrictions
+ 
+**Date Created**
+- When the image was originally created
+- Will often differ from EXIF date 
+
+**Credit**
+- institution providing the image and content
+
+**By-line**
+- person who created the image 
+- usually the photographer's name
+
+**By-line Title**
+- photographer's title 
+- or photographers affiliation
+
+**Instructions/Special Instructions**
+- Usage guidelines or handling notes
+- Editorial instructions for publishers
+
+**Keywords**
+- Searchable tags describing image content
+- Subjects, locations, events, concepts
+
+**Creator/Photographer**
+- Name of person who created the image
+- Copyright holder information
+
+**Category/Supplemental Categories**
+- Subject classification codes
+- News category assignments
+
+**Contact Information**
+- Creator's address, phone, email, website
+- For licensing and permission requests
+
+**Location Information**
+- City, state/province, country
+- Specific location names and codes
+
+**Urgency**
+- Editorial priority level (1-8 scale)
+- 1 = most urgent, 8 = least urgent
+
+---
+
+For more in-depth information on IPTC Photo Metadata, refer to the [IPTC Photo Metadata User Guide](https://www.iptc.org/std/photometadata/documentation/userguide/).
 
 ---
 
@@ -93,81 +170,6 @@ A comprehensive reference guide for terms related to digital photography, image 
 
 ---
 
-## IPTC Metadata
-
-**IPTC (International Press Telecommunications Council)**
-- Standardized metadata for news and media industries
-- adopted by NARA and other archivists to capture archival data
-- Focuses on editorial, creation and rights information
-- Embedded in the header area of image files 
-- TIFF, JPEG, PNG and GIF can contain IPTC metadata
-
-### **A Note on IPTC Metadata Implementation:** 
-It must be stated up front that many IPTC fields overlap, and their 
-use will often vary. How an organization implements IPTC metadata 
-largely depends on its specific needs, the tools it uses, 
-and its industry practices.
-
-**Abstract Caption**
-- Textual description of image content
-- What is happening in the photograph
-
-**Keywords**
-- Searchable tags describing image content
-- Subjects, locations, events, concepts
-
-**Title**
-- Brief headline or name for the image
-- Often used as filename or display name
-
-**Creator/Photographer**
-- Name of person who created the image
-- Copyright holder information
-
-**Copyright Notice**
-- Legal copyright statement
-- Usage rights and restrictions
-
-**Contact Information**
-- Creator's address, phone, email, website
-- For licensing and permission requests
-
-**Location Information**
-- City, state/province, country
-- Specific location names and codes
-
-**Date Created**
-- When the image was originally created
-- Will often differ from EXIF date 
-
-**Credit**
-- institution providing the image and content
-
-**By-line**
-- person who created the image 
-- usually the photographer's name
-
-
-**By-line Title**
-- photographer's title 
-- or photographers affiliation
-
-
-**Instructions/Special Instructions**
-- Usage guidelines or handling notes
-- Editorial instructions for publishers
-
-**Category/Supplemental Categories**
-- Subject classification codes
-- News category assignments
-
-**Urgency**
-- Editorial priority level (1-8 scale)
-- 1 = most urgent, 8 = least urgent
-
-
-
-For more in-depth information on IPTC Photo Metadata, refer to the [IPTC Photo Metadata User Guide](https://www.iptc.org/std/photometadata/documentation/userguide/).
 ---
 
 ## XMP Metadata
@@ -320,6 +322,12 @@ For more in-depth information on IPTC Photo Metadata, refer to the [IPTC Photo M
 **Metadata Extraction**
 - Reading metadata from image files
 - Converting between different metadata formats
+
+---
+
+**Citations**
+
+[^1]: W3C. Portable Network Graphics (PNG) Specification. Section 11, "Ancillary Chunks" and Section 12, "Other Chunks." Available at: [https://www.w3.org/TR/PNG-DataRep.html](https://www.w3.org/TR/PNG-DataRep.html) (or a more general link to the spec like https://www.w3.org/TR/png/)
 
 ---
 
