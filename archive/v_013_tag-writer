@@ -1,0 +1,9 @@
+v 013 tag-writer.py 
+
+2. Metadata Handling:
+•  Read metadata: The read_metadata() function retrieves existing metadata from files using ExifTool
+•  Write metadata: The write_metadata() function saves edited metadata to files
+•  Export metadata: The program can export metadata to JSON files
+
+
+
