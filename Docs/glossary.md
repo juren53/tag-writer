@@ -102,11 +102,11 @@ A comprehensive reference guide for terms related to digital photography, image 
 - Embedded in the header area of image files 
 - TIFF, JPEG, PNG and GIF can contain IPTC metadata
 
-**Note:** Be aware that many IPTC fields overlap, and their 
+### **Important Note on IPTC Metadata Implementation:** 
+Be aware that many IPTC fields overlap, and their 
 use often varies. How an organization implements IPTC metadata 
 largely depends on its specific needs, the tools it uses, 
 and its industry practices.
-
 
 **Caption/Description**
 - Textual description of image content
