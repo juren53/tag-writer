@@ -45,3 +45,4 @@ tag-writer-updated/
 # Ignore specific text files
 PROMPT_to-fix-Win11-arrow-button-bug.txt
 
+.buildozer/
