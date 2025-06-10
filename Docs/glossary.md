@@ -102,13 +102,13 @@ A comprehensive reference guide for terms related to digital photography, image 
 - Embedded in the header area of image files 
 - TIFF, JPEG, PNG and GIF can contain IPTC metadata
 
-### **Important Note on IPTC Metadata Implementation:** 
-Be aware that many IPTC fields overlap, and their 
-use often varies. How an organization implements IPTC metadata 
+### **A Note on IPTC Metadata Implementation:** 
+It must be stated up front that many IPTC fields overlap, and their 
+use will often vary. How an organization implements IPTC metadata 
 largely depends on its specific needs, the tools it uses, 
 and its industry practices.
 
-**Caption/Description**
+**Abstract Caption**
 - Textual description of image content
 - What is happening in the photograph
 
@@ -165,6 +165,9 @@ and its industry practices.
 - Editorial priority level (1-8 scale)
 - 1 = most urgent, 8 = least urgent
 
+
+
+For more in-depth information on IPTC Photo Metadata, refer to the [IPTC Photo Metadata User Guide](https://www.iptc.org/std/photometadata/documentation/userguide/).
 ---
 
 ## XMP Metadata
