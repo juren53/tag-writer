@@ -97,8 +97,16 @@ A comprehensive reference guide for terms related to digital photography, image 
 
 **IPTC (International Press Telecommunications Council)**
 - Standardized metadata for news and media industries
-- Focuses on editorial and rights information
-- Embedded in image files
+- adopted by NARA and other archivists to capture archival data
+- Focuses on editorial, creation and rights information
+- Embedded in the header area of image files 
+- TIFF, JPEG, PNG and GIF can contain IPTC metadata
+
+**Note:** Be aware that many IPTC fields overlap, and their 
+use often varies. How an organization implements IPTC metadata 
+largely depends on its specific needs, the tools it uses, 
+and its industry practices.
+
 
 **Caption/Description**
 - Textual description of image content
@@ -130,7 +138,20 @@ A comprehensive reference guide for terms related to digital photography, image 
 
 **Date Created**
 - When the image was originally created
-- May differ from EXIF date if edited
+- Will often differ from EXIF date 
+
+**Credit**
+- institution providing the image and content
+
+**By-line**
+- person who created the image 
+- usually the photographer's name
+
+
+**By-line Title**
+- photographer's title 
+- or photographers affiliation
+
 
 **Instructions/Special Instructions**
 - Usage guidelines or handling notes
@@ -267,8 +288,8 @@ A comprehensive reference guide for terms related to digital photography, image 
 
 **Sidecar Files**
 - External metadata files
-- .XMP files containing metadata separate from image
-
+    - .XMP files containing metadata separate from image
+    - JASON files containing metadata separate from image
 ---
 
 ## Metadata Management
@@ -299,11 +320,13 @@ A comprehensive reference guide for terms related to digital photography, image 
 
 ---
 
-*This glossary is a living document. Terms and definitions will be updated as new standards and technologies emerge in digital photography and image metadata management.*
+*This glossary is a living document. Terms and definitions will be updated 
+as new standards and technologies emerge in digital photography 
+and image metadata management.*
 
 **Related Documentation:**
-- [User Guide](user-guide.md)
+- [Tag Writer User Guide](user-guide.md)
 - [Tag Writer Help](tag-writer-help.md)
 
-**Last Updated:** June 2025
+**Last Updated:** 2025-06-10 08-00
 
