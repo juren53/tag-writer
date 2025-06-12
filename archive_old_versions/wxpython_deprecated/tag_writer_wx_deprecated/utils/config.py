@@ -48,6 +48,7 @@ class Config:
         
         # Theme settings
         self.dark_mode = False  # Default to light mode
+        self.current_theme = 'Default Light'  # Default theme name
         
         # Load any saved configuration
         self.load_config()
@@ -99,6 +100,7 @@ class Config:
                 'max_recent_files': self.max_recent_files,
                 'ui_zoom_factor': self.ui_zoom_factor,
                 'dark_mode': self.dark_mode,
+                'current_theme': self.current_theme,
                 'selected_file': self.selected_file,
                 'last_directory': self.last_directory
             }

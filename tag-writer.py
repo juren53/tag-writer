@@ -1,3 +1,113 @@
+# Image processing helper functions
+def load_image(image_path):
+    """Load an image using PIL with error handling."""
+    try:
+        from PIL import Image
+        image = Image.open(image_path)
+        
+        # Handle orientation from EXIF data
+        try:
+            from PIL.ExifTags import ORIENTATION
+            exif = image.getexif()
+            if exif and ORIENTATION in exif:
+                orientation = exif[ORIENTATION]
+                
+                # Rotate image based on EXIF orientation
+                if orientation == 3:
+                    image = image.rotate(180, expand=True)
+                elif orientation == 6:
+                    image = image.rotate(270, expand=True)
+                elif orientation == 8:
+                    image = image.rotate(90, expand=True)
+        except Exception as e:
+            logger.debug(f"Could not process EXIF orientation: {e}")
+        
+        return image
+    except Exception as e:
+        logger.error(f"Error loading image {image_path}: {e}")
+        return None
+
+def create_thumbnail(pil_image, max_size):
+    """Create a thumbnail from a PIL image."""
+    if pil_image is None:
+        return None
+    
+    try:
+        from PIL import Image
+        # Create a copy to avoid modifying the original
+        thumbnail = pil_image.copy()
+        thumbnail.thumbnail(max_size, Image.Resampling.LANCZOS)
+        return thumbnail
+    except Exception as e:
+        logger.error(f"Error creating thumbnail: {e}")
+        return None
+
+def adjust_zoom(pil_image, zoom_factor):
+    """Apply zoom factor to a PIL image."""
+    if pil_image is None or zoom_factor <= 0:
+        return None
+    
+    try:
+        from PIL import Image
+        original_width, original_height = pil_image.size
+        new_width = int(original_width * zoom_factor)
+        new_height = int(original_height * zoom_factor)
+        
+        if new_width <= 0 or new_height <= 0:
+            return None
+        
+        # Use high-quality resampling
+        resized = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        return resized
+    except Exception as e:
+        logger.error(f"Error adjusting zoom: {e}")
+        return None
+
+def read_metadata(file_path):
+    """Read all metadata from an image file."""
+    if not os.path.exists(file_path):
+        return {}
+    
+    try:
+        with exiftool.ExifTool() as et:
+            metadata_json = et.execute_json("-j", file_path)
+            if metadata_json and len(metadata_json) > 0:
+                return metadata_json[0]
+            return {}
+    except Exception as e:
+        logger.error(f"Error reading metadata from {file_path}: {e}")
+        return {}
+
+# Add helper function to adapt PIL image to PyQt6
+def pil_to_pixmap(pil_image):
+    """Convert PIL Image to QPixmap."""
+    if pil_image is None:
+        return None
+        
+    try:
+        # Convert PIL Image to QImage
+        from PIL import Image
+        import io
+        
+        # Convert to RGB if it's not already
+        if pil_image.mode != "RGB":
+            pil_image = pil_image.convert("RGB")
+        
+        # Convert to bytes
+        byte_array = io.BytesIO()
+        pil_image.save(byte_array, format='PNG')
+        
+        # Create QImage from bytes
+        byte_array.seek(0)
+        qimg = QImage.fromData(byte_array.getvalue())
+        
+        # Convert QImage to QPixmap
+        pixmap = QPixmap.fromImage(qimg)
+        return pixmap
+    except Exception as e:
+        logger.error(f"Error converting PIL image to QPixmap: {e}")
+        return None
+
 #!/usr/bin/env python3
 """
 Tag Writer - PyQt6 Implementation with Integrated Core Functionality
@@ -40,6 +150,8 @@ from the existing codebase.
 import os
 import sys
 import logging
+import json
+import exiftool
 from datetime import datetime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
@@ -51,15 +163,265 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage
 
-# Import from existing codebase
-from tag_writer.models.metadata import MetadataManager
-from tag_writer.utils.file_operations import get_image_files, backup_file
-from tag_writer.utils.config import config
+# Note: This is a self-contained PyQt6 implementation
+# All functionality is integrated within this file
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Global configuration and state management
+class Config:
+    """Global configuration and state management"""
+    def __init__(self):
+        self.app_version = "0.07e"
+        self.selected_file = None
+        self.last_directory = None
+        self.recent_files = []
+        self.directory_image_files = []
+        self.current_file_index = -1
+        self.dark_mode = False
+        self.ui_zoom_factor = 1.0
+        self.current_theme = 'Default Light'
+        self.config_file = os.path.join(os.path.expanduser("~"), ".tag_writer_config.json")
+        
+        # Load configuration on startup
+        self.load_config()
+    
+    def add_recent_file(self, file_path):
+        """Add a file to the recent files list"""
+        if file_path and os.path.exists(file_path):
+            if file_path in self.recent_files:
+                self.recent_files.remove(file_path)
+            self.recent_files.insert(0, file_path)
+            self.recent_files = self.recent_files[:5]  # Keep only 5 recent files
+            self.save_config()
+    
+    def save_config(self):
+        """Save configuration to file"""
+        try:
+            config_data = {
+                'recent_files': self.recent_files,
+                'last_directory': self.last_directory,
+                'dark_mode': self.dark_mode,
+                'ui_zoom_factor': self.ui_zoom_factor,
+                'current_theme': self.current_theme,
+                'selected_file': self.selected_file
+            }
+            with open(self.config_file, 'w') as f:
+                json.dump(config_data, f)
+            logger.debug(f"Configuration saved to {self.config_file}")
+        except Exception as e:
+            logger.error(f"Error saving configuration: {e}")
+    
+    def load_config(self):
+        """Load configuration from file"""
+        try:
+            if os.path.exists(self.config_file):
+                with open(self.config_file, 'r') as f:
+                    config_data = json.load(f)
+                
+                self.recent_files = [f for f in config_data.get('recent_files', []) if os.path.exists(f)]
+                self.last_directory = config_data.get('last_directory', None)
+                self.dark_mode = config_data.get('dark_mode', False)
+                self.ui_zoom_factor = config_data.get('ui_zoom_factor', 1.0)
+                self.current_theme = config_data.get('current_theme', 'Default Light')
+                self.selected_file = config_data.get('selected_file', None)
+                
+                logger.debug(f"Configuration loaded from {self.config_file}")
+        except Exception as e:
+            logger.error(f"Error loading configuration: {e}")
+
+# Global configuration instance
+config = Config()
+
+def get_image_files(directory):
+    """Get a sorted list of image files in the directory"""
+    if not directory or not os.path.exists(directory):
+        return []
+    
+    image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.bmp']
+    image_files = []
+    
+    try:
+        for filename in os.listdir(directory):
+            file_path = os.path.join(directory, filename)
+            if os.path.isfile(file_path):
+                _, ext = os.path.splitext(filename)
+                if ext.lower() in image_extensions:
+                    image_files.append(file_path)
+        
+        # Sort alphabetically
+        image_files.sort(key=lambda x: os.path.basename(x).lower())
+        return image_files
+    except Exception as e:
+        logger.error(f"Error getting image files from {directory}: {e}")
+        return []
+
+def backup_file(file_path):
+    """Create a backup of the file with a unique name"""
+    if not os.path.exists(file_path):
+        return None
+    
+    backup_path = f"{file_path}_backup"
+    counter = 1
+    
+    while os.path.exists(backup_path):
+        backup_path = f"{file_path}_backup{counter}"
+        counter += 1
+    
+    try:
+        import shutil
+        shutil.copy2(file_path, backup_path)
+        return backup_path
+    except Exception as e:
+        logger.error(f"Error creating backup: {e}")
+        return None
+
+class MetadataManager:
+    """Manages image metadata operations using ExifTool"""
+    
+    def __init__(self):
+        self.metadata = {}
+        self.field_mappings = {
+            'Headline': ['IPTC:Headline', 'XMP-photoshop:Headline', 'XMP:Headline', 'XMP:Title'],
+            'Caption-Abstract': ['IPTC:Caption-Abstract', 'XMP:Description', 'EXIF:ImageDescription'],
+            'Credit': ['IPTC:Credit', 'XMP:Credit', 'XMP-photoshop:Credit'],
+            'ObjectName': ['IPTC:ObjectName', 'IPTC:Object Name', 'XMP:Title'],
+            'Writer-Editor': ['IPTC:Writer-Editor', 'XMP:CaptionWriter', 'XMP-photoshop:CaptionWriter'],
+            'By-line': ['IPTC:By-line', 'XMP:Creator', 'EXIF:Artist'],
+            'By-lineTitle': ['IPTC:By-lineTitle', 'XMP:AuthorsPosition', 'XMP-photoshop:AuthorsPosition'],
+            'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
+            'DateCreated': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
+            'CopyrightNotice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright']
+        }
+    
+    def load_from_file(self, file_path):
+        """Load metadata from an image file"""
+        if not os.path.exists(file_path):
+            return False
+        
+        try:
+            with exiftool.ExifTool() as et:
+                # Get metadata
+                file_ext = os.path.splitext(file_path)[1].lower()
+                if file_ext in ['.tif', '.tiff']:
+                    metadata_json = et.execute_json("-j", "-m", "-ignoreMinorErrors", file_path)
+                else:
+                    metadata_json = et.execute_json("-j", file_path)
+                
+                if metadata_json and len(metadata_json) > 0:
+                    raw_metadata = metadata_json[0]
+                    self.metadata = self._process_metadata(raw_metadata)
+                    return True
+                else:
+                    self.metadata = {}
+                    return False
+        
+        except Exception as e:
+            logger.error(f"Error loading metadata from {file_path}: {e}")
+            self.metadata = {}
+            return False
+    
+    def _process_metadata(self, raw_metadata):
+        """Process raw metadata to standardize field names"""
+        processed = {}
+        
+        # Map standardized field names to raw metadata
+        for field, possible_names in self.field_mappings.items():
+            for name in possible_names:
+                if name in raw_metadata:
+                    processed[field] = raw_metadata[name]
+                    break
+        
+        return processed
+    
+    def get_field(self, field_name, default=""):
+        """Get a metadata field value"""
+        return self.metadata.get(field_name, default)
+    
+    def set_field(self, field_name, value):
+        """Set a metadata field value"""
+        self.metadata[field_name] = value
+    
+    def get_field_names(self):
+        """Get all available field names"""
+        return list(self.field_mappings.keys())
+    
+    def clear(self):
+        """Clear all metadata"""
+        self.metadata = {}
+    
+    def save_to_file(self, file_path):
+        """Save metadata to an image file"""
+        if not os.path.exists(file_path):
+            return False
+        
+        try:
+            with exiftool.ExifTool() as et:
+                args = []
+                
+                # Add each metadata field
+                for field_name, value in self.metadata.items():
+                    if value:  # Only write non-empty values
+                        args.extend([f"-{field_name}={value}"])
+                
+                if not args:
+                    return True  # Nothing to write
+                
+                # Add overwrite flag and file path
+                args.append("-overwrite_original")
+                args.append(file_path)
+                
+                # Execute the command
+                result = et.execute(*args)
+                
+                # Check if successful
+                return "1 image files updated" in result
+        
+        except Exception as e:
+            logger.error(f"Error saving metadata to {file_path}: {e}")
+            return False
+    
+    def export_to_json(self, file_path):
+        """Export metadata to a JSON file"""
+        try:
+            export_data = {
+                'filename': os.path.basename(config.selected_file) if config.selected_file else 'unknown',
+                'export_date': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                'metadata': self.metadata
+            }
+            
+            with open(file_path, 'w') as f:
+                json.dump(export_data, f, indent=4)
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error exporting metadata to JSON: {e}")
+            return False
+    
+    def import_from_json(self, file_path):
+        """Import metadata from a JSON file"""
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            
+            # Handle different JSON formats
+            if 'metadata' in data:
+                imported_metadata = data['metadata']
+            else:
+                imported_metadata = data
+            
+            # Only import fields we recognize
+            for field_name in self.get_field_names():
+                if field_name in imported_metadata:
+                    self.set_field(field_name, imported_metadata[field_name])
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error importing metadata from JSON: {e}")
+            return False
 
 class ThemeManager:
     """Manages application themes and styling"""
@@ -891,9 +1253,6 @@ class ImageViewer(QWidget):
             return False
             
         try:
-            # Import here to prevent circular imports
-            from tag_writer.utils.image_processing import load_image, create_thumbnail
-            
             # Load the image using PIL
             self.pil_image = load_image(image_path)
             if self.pil_image is None:
@@ -961,8 +1320,6 @@ class ImageViewer(QWidget):
             return
         
         try:
-            from tag_writer.utils.image_processing import create_thumbnail
-            
             # Get available size of the image_label
             available_width = self.image_label.width()
             available_height = self.image_label.height()
@@ -1168,8 +1525,6 @@ class FullImageViewer(QMainWindow):
     def update_display(self):
         """Update the image display with the current zoom level."""
         try:
-            from tag_writer.utils.image_processing import adjust_zoom
-            
             # Apply zoom
             zoomed_image = adjust_zoom(self.pil_image, self.zoom_factor)
             if zoomed_image is None:
@@ -1388,8 +1743,6 @@ class FullImageViewer(QMainWindow):
         """Update the full image viewer with a new image."""
         try:
             # Load the new image using PIL
-            from tag_writer.utils.image_processing import load_image
-            
             new_pil_image = load_image(image_path)
             if new_pil_image is None:
                 logger.error(f"Failed to load new image: {image_path}")
@@ -1859,7 +2212,6 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "No File Selected", "Please select an image file first.")
             return
             
-        from tag_writer.utils.file_operations import read_metadata
         metadata = read_metadata(config.selected_file)
         
         if not metadata:
