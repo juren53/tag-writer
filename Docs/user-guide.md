@@ -203,5 +203,5 @@ Please submit issues on our GitHub repository: https://github.com/yourusername/t
 
 ---
 
-This documentation is for Tag Writer version 0.07a. For the latest documentation, please visit our [GitHub repository](https://github.com/yourusername/tag-writer).
+This documentation is for Tag Writer version 0.07e. For the latest documentation, please visit our [GitHub repository](https://github.com/yourusername/tag-writer).
 
