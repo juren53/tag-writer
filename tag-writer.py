@@ -34,6 +34,7 @@ from the existing codebase.
 #  Updated Sun 09 Jun 2025 05:12:00 PM CDT v 0.07b Fixed resolution detection using EXIF metadata
 #  Updated Sun 09 Jun 2025 05:20:00 PM CDT v 0.07c Fixed Full Image window - added maximize/minimize buttons and improved scroll bars
 #  Updated Sun 09 Jun 2025 05:22:00 PM CDT v 0.07d Added image navigation to Full Image window with sync to main window
+#  Updated Wed 12 Jun 2025 03:37:00 AM CDT v 0.07e Added comprehensive theme system with 7 professional themes
 #-----------------------------------------------------------
 
 import os
@@ -44,7 +45,8 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLabel, QPushButton, QLineEdit, QTextEdit, QComboBox,
     QFormLayout, QScrollArea, QSplitter, QMenu, QMenuBar,
-    QStatusBar, QFileDialog, QMessageBox, QToolBar, QDialog, QProgressDialog
+    QStatusBar, QFileDialog, QMessageBox, QToolBar, QDialog, QProgressDialog,
+    QDialogButtonBox
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage
@@ -59,7 +61,409 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Theme definitions - same as in the prototype
+class ThemeManager:
+    """Manages application themes and styling"""
+    
+    def __init__(self):
+        self.themes = {
+            'Default Light': {
+                'name': 'Default Light',
+                'background': '#ffffff',
+                'text': '#000000',
+                'selection_bg': '#3399ff',
+                'selection_text': '#ffffff',
+                'menubar_bg': '#f0f0f0',
+                'menubar_text': '#000000',
+                'toolbar_bg': '#f5f5f5',
+                'statusbar_bg': '#e0e0e0',
+                'statusbar_text': '#000000',
+                'button_bg': '#e1e1e1',
+                'button_text': '#000000',
+                'button_hover': '#d4d4d4',
+                'border': '#c0c0c0'
+            },
+            'Warm Light': {
+                'name': 'Warm Light',
+                'background': '#eee9e0',
+                'text': '#504741',
+                'selection_bg': '#6699cc',
+                'selection_text': '#ffffff',
+                'menubar_bg': '#e6e1d7',
+                'menubar_text': '#504741',
+                'toolbar_bg': '#f0ebe2',
+                'statusbar_bg': '#e1dcd2',
+                'statusbar_text': '#504741',
+                'button_bg': '#e6e1d7',
+                'button_text': '#504741',
+                'button_hover': '#ddd8cf',
+                'border': '#b4aa9a'
+            },
+            'Dark': {
+                'name': 'Dark',
+                'background': '#2b2b2b',
+                'text': '#ffffff',
+                'selection_bg': '#4a9eff',
+                'selection_text': '#ffffff',
+                'menubar_bg': '#3c3c3c',
+                'menubar_text': '#ffffff',
+                'toolbar_bg': '#404040',
+                'statusbar_bg': '#333333',
+                'statusbar_text': '#ffffff',
+                'button_bg': '#454545',
+                'button_text': '#ffffff',
+                'button_hover': '#555555',
+                'border': '#555555'
+            },
+            'Solarized Light': {
+                'name': 'Solarized Light',
+                'background': '#fdf6e3',
+                'text': '#657b83',
+                'selection_bg': '#268bd2',
+                'selection_text': '#fdf6e3',
+                'menubar_bg': '#eee8d5',
+                'menubar_text': '#657b83',
+                'toolbar_bg': '#f5f0e7',
+                'statusbar_bg': '#eee8d5',
+                'statusbar_text': '#657b83',
+                'button_bg': '#eee8d5',
+                'button_text': '#657b83',
+                'button_hover': '#e8e2d4',
+                'border': '#d3cbb7'
+            },
+            'Solarized Dark': {
+                'name': 'Solarized Dark',
+                'background': '#002b36',
+                'text': '#839496',
+                'selection_bg': '#268bd2',
+                'selection_text': '#002b36',
+                'menubar_bg': '#073642',
+                'menubar_text': '#839496',
+                'toolbar_bg': '#0a3c47',
+                'statusbar_bg': '#073642',
+                'statusbar_text': '#839496',
+                'button_bg': '#073642',
+                'button_text': '#839496',
+                'button_hover': '#0c4956',
+                'border': '#586e75'
+            },
+            'High Contrast': {
+                'name': 'High Contrast',
+                'background': '#000000',
+                'text': '#ffffff',
+                'selection_bg': '#ffff00',
+                'selection_text': '#000000',
+                'menubar_bg': '#000000',
+                'menubar_text': '#ffffff',
+                'toolbar_bg': '#000000',
+                'statusbar_bg': '#000000',
+                'statusbar_text': '#ffffff',
+                'button_bg': '#333333',
+                'button_text': '#ffffff',
+                'button_hover': '#555555',
+                'border': '#ffffff'
+            },
+            'Monokai': {
+                'name': 'Monokai',
+                'background': '#272822',
+                'text': '#f8f8f2',
+                'selection_bg': '#49483e',
+                'selection_text': '#f8f8f2',
+                'menubar_bg': '#3e3d32',
+                'menubar_text': '#f8f8f2',
+                'toolbar_bg': '#414339',
+                'statusbar_bg': '#3e3d32',
+                'statusbar_text': '#f8f8f2',
+                'button_bg': '#49483e',
+                'button_text': '#f8f8f2',
+                'button_hover': '#5a594d',
+                'border': '#75715e'
+            }
+        }
+        self.current_theme = 'Default Light'
+    
+    def get_theme_names(self):
+        """Get list of available theme names"""
+        return list(self.themes.keys())
+    
+    def get_theme(self, theme_name):
+        """Get theme data by name"""
+        return self.themes.get(theme_name, self.themes['Default Light'])
+    
+    def is_dark_theme(self, theme_name=None):
+        """Check if a theme is considered dark"""
+        if theme_name is None:
+            theme_name = self.current_theme
+        
+        # Define which themes are considered dark
+        dark_themes = ['Dark', 'Solarized Dark', 'High Contrast', 'Monokai']
+        return theme_name in dark_themes
+    
+    def generate_stylesheet(self, theme_name):
+        """Generate CSS stylesheet for the given theme"""
+        theme = self.get_theme(theme_name)
+        
+        return f"""
+        /* Main Window */
+        QMainWindow {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+        }}
+        
+        /* Text Edit Areas */
+        QTextEdit, QPlainTextEdit {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+            selection-background-color: {theme['selection_bg']};
+            selection-color: {theme['selection_text']};
+            border: 1px solid {theme['border']};
+        }}
+        
+        /* Menu Bar */
+        QMenuBar {{
+            background-color: {theme['menubar_bg']};
+            color: {theme['menubar_text']};
+            border-bottom: 1px solid {theme['border']};
+        }}
+        
+        QMenuBar::item {{
+            background-color: transparent;
+            padding: 4px 8px;
+        }}
+        
+        QMenuBar::item:selected {{
+            background-color: {theme['selection_bg']};
+            color: {theme['selection_text']};
+        }}
+        
+        QMenu {{
+            background-color: {theme['menubar_bg']};
+            color: {theme['menubar_text']};
+            border: 1px solid {theme['border']};
+        }}
+        
+        QMenu::item {{
+            background-color: transparent;
+            padding: 6px 12px;
+        }}
+        
+        QMenu::item:selected {{
+            background-color: {theme['selection_bg']};
+            color: {theme['selection_text']};
+        }}
+        
+        QMenu::separator {{
+            height: 1px;
+            background-color: {theme['border']};
+            margin: 2px 0;
+        }}
+        
+        /* Tool Bar */
+        QToolBar {{
+            background-color: {theme['toolbar_bg']};
+            color: {theme['text']};
+            border: 1px solid {theme['border']};
+            spacing: 2px;
+        }}
+        
+        QToolBar::separator {{
+            background-color: {theme['border']};
+            width: 1px;
+            margin: 2px;
+        }}
+        
+        /* Status Bar */
+        QStatusBar {{
+            background-color: {theme['statusbar_bg']};
+            color: {theme['statusbar_text']};
+            border-top: 1px solid {theme['border']};
+        }}
+        
+        /* Buttons */
+        QPushButton {{
+            background-color: {theme['button_bg']};
+            color: {theme['button_text']};
+            border: 1px solid {theme['border']};
+            border-radius: 3px;
+            padding: 6px 12px;
+            min-width: 80px;
+        }}
+        
+        QPushButton:hover {{
+            background-color: {theme['button_hover']};
+        }}
+        
+        QPushButton:pressed {{
+            background-color: {theme['selection_bg']};
+            color: {theme['selection_text']};
+        }}
+        
+        QPushButton:disabled {{
+            background-color: {theme['border']};
+            color: {theme['statusbar_text']};
+        }}
+        
+        /* Labels */
+        QLabel {{
+            background-color: transparent;
+            color: {theme['text']};
+        }}
+        
+        /* Line Edit */
+        QLineEdit {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+            border: 1px solid {theme['border']};
+            border-radius: 3px;
+            padding: 4px;
+            selection-background-color: {theme['selection_bg']};
+            selection-color: {theme['selection_text']};
+        }}
+        
+        /* Dialog */
+        QDialog {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+        }}
+        
+        /* Splitter */
+        QSplitter::handle {{
+            background-color: {theme['border']};
+            width: 2px;
+        }}
+        
+        QSplitter::handle:hover {{
+            background-color: {theme['selection_bg']};
+        }}
+        
+        /* ComboBox */
+        QComboBox {{
+            background-color: {theme['button_bg']};
+            color: {theme['button_text']};
+            border: 1px solid {theme['border']};
+            border-radius: 3px;
+            padding: 4px 8px;
+            min-width: 100px;
+        }}
+        
+        QComboBox:hover {{
+            background-color: {theme['button_hover']};
+        }}
+        
+        QComboBox::drop-down {{
+            border: none;
+            width: 20px;
+        }}
+        
+        QComboBox::down-arrow {{
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 5px solid {theme['text']};
+        }}
+        
+        QComboBox QAbstractItemView {{
+            background-color: {theme['menubar_bg']};
+            color: {theme['menubar_text']};
+            selection-background-color: {theme['selection_bg']};
+            selection-color: {theme['selection_text']};
+            border: 1px solid {theme['border']};
+        }}
+        
+        /* Table Widget */
+        QTableWidget {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+            selection-background-color: {theme['selection_bg']};
+            selection-color: {theme['selection_text']};
+            border: 1px solid {theme['border']};
+        }}
+        
+        QTableWidget::item {{
+            border-bottom: 1px solid {theme['border']};
+            padding: 4px;
+        }}
+        
+        QHeaderView::section {{
+            background-color: {theme['toolbar_bg']};
+            color: {theme['text']};
+            border: 1px solid {theme['border']};
+            padding: 4px;
+        }}
+        """
+
+
+class ThemeDialog(QDialog):
+    """Dialog for selecting application theme"""
+    
+    def __init__(self, current_theme, theme_manager, parent=None):
+        super().__init__(parent)
+        self.theme_manager = theme_manager
+        self.selected_theme = current_theme
+        
+        self.setWindowTitle("Select Theme")
+        self.setFixedSize(450, 300)
+        
+        layout = QVBoxLayout(self)
+        
+        # Theme selection
+        layout.addWidget(QLabel("Choose a theme for the application:"))
+        
+        self.theme_combo = QComboBox()
+        self.theme_combo.addItems(self.theme_manager.get_theme_names())
+        self.theme_combo.setCurrentText(current_theme)
+        self.theme_combo.currentTextChanged.connect(self.on_theme_changed)
+        layout.addWidget(self.theme_combo)
+        
+        # Preview label
+        self.preview_label = QLabel("Preview: This is how text will look with the selected theme")
+        self.preview_label.setStyleSheet("padding: 15px; border: 1px solid gray; min-height: 60px;")
+        self.preview_label.setWordWrap(True)
+        layout.addWidget(self.preview_label)
+        
+        # Preview button
+        self.preview_button = QPushButton("Sample Button")
+        layout.addWidget(self.preview_button)
+        
+        # Buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box.accepted.connect(self.accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+        
+        # Set initial preview
+        self.update_preview()
+    
+    def on_theme_changed(self, theme_name):
+        """Handle theme selection change"""
+        self.selected_theme = theme_name
+        self.update_preview()
+    
+    def update_preview(self):
+        """Update the preview with selected theme colors"""
+        theme = self.theme_manager.get_theme(self.selected_theme)
+        
+        # Apply theme to preview elements
+        self.preview_label.setStyleSheet(f"""
+            background-color: {theme['background']};
+            color: {theme['text']};
+            padding: 15px;
+            border: 1px solid {theme['border']};
+            min-height: 60px;
+        """)
+        
+        self.preview_button.setStyleSheet(f"""
+            background-color: {theme['button_bg']};
+            color: {theme['button_text']};
+            border: 1px solid {theme['border']};
+            border-radius: 3px;
+            padding: 6px 12px;
+        """)
+    
+    def get_selected_theme(self):
+        """Get the selected theme name"""
+        return self.selected_theme
+
+
+# Legacy theme definitions for backward compatibility
 LIGHT_THEME = {
     'window': QColor(238, 234, 224),       # #EEE9E0 - Soft cream background
     'text': QColor(80, 71, 65),            # #504741 - Soft dark brown text
@@ -1047,10 +1451,13 @@ class MainWindow(QMainWindow):
         
         # Initialize managers
         self.metadata_manager = MetadataManager()
+        self.theme_manager = ThemeManager()
         
         # Initialize state
         self.dark_mode = config.dark_mode
         self.ui_scale_factor = config.ui_zoom_factor
+        self.current_theme = getattr(config, 'current_theme', 'Default Light')
+        self.theme_manager.current_theme = self.current_theme
         
         # Ensure maximize button is present in the title bar
         self.setWindowFlags(
@@ -1063,8 +1470,8 @@ class MainWindow(QMainWindow):
         # Set up UI
         self.setup_ui()
         
-        # Apply theme
-        self.apply_theme()
+        # Apply saved theme
+        self.apply_comprehensive_theme()
         
         logger.info("Main window initialized")
         
@@ -1097,7 +1504,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(self.path_label, 1)
         
         # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-08)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-12)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -1191,6 +1598,11 @@ class MainWindow(QMainWindow):
         view_menu.addAction(tags_action)
         
         view_menu.addSeparator()
+        
+        # Theme selection
+        theme_action = QAction("&Theme...", self)
+        theme_action.triggered.connect(self.on_select_theme)
+        view_menu.addAction(theme_action)
         
         # Dark mode toggle
         self.dark_mode_action = QAction("&Toggle Dark Mode", self)
@@ -1484,13 +1896,62 @@ class MainWindow(QMainWindow):
         
         dialog.exec()
     
+    def on_select_theme(self):
+        """Handle theme selection from menu."""
+        dialog = ThemeDialog(self.current_theme, self.theme_manager, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            selected_theme = dialog.get_selected_theme()
+            if selected_theme != self.current_theme:
+                self.current_theme = selected_theme
+                self.theme_manager.current_theme = selected_theme
+                self.apply_comprehensive_theme()
+                
+                # Update dark mode checkbox based on selected theme
+                is_dark = selected_theme in ['Dark', 'Solarized Dark', 'High Contrast', 'Monokai']
+                self.dark_mode = is_dark
+                self.dark_mode_action.setChecked(self.dark_mode)
+                
+                # Update config
+                config.current_theme = selected_theme
+                config.dark_mode = self.dark_mode
+                config.save_config()
+                
+                self.status_label.setText(f"Theme changed to {selected_theme}")
+                logger.info(f"Theme changed to {selected_theme}")
+    
+    def apply_comprehensive_theme(self):
+        """Apply the comprehensive theme system to the application."""
+        try:
+            # Generate and apply stylesheet
+            stylesheet = self.theme_manager.generate_stylesheet(self.current_theme)
+            QApplication.instance().setStyleSheet(stylesheet)
+            
+            # Update status bar
+            self.status_label.setText(f"Applied {self.current_theme} theme")
+            logger.info(f"Applied comprehensive theme: {self.current_theme}")
+            
+        except Exception as e:
+            logger.error(f"Error applying comprehensive theme: {e}")
+            # Fall back to legacy theme system
+            self.apply_theme()
+    
     def on_toggle_dark_mode(self):
-        """Toggle between light and dark mode."""
-        self.dark_mode = not self.dark_mode
+        """Quick toggle between light and dark themes."""
+        if self.theme_manager.is_dark_theme(self.current_theme):
+            # Switch to light theme
+            new_theme = 'Default Light'
+        else:
+            # Switch to dark theme
+            new_theme = 'Dark'
+        
+        self.current_theme = new_theme
+        self.theme_manager.current_theme = new_theme
+        self.dark_mode = self.theme_manager.is_dark_theme(new_theme)
         self.dark_mode_action.setChecked(self.dark_mode)
-        self.apply_theme()
+        self.apply_comprehensive_theme()
         
         # Update config
+        config.current_theme = new_theme
         config.dark_mode = self.dark_mode
         config.save_config()
     
