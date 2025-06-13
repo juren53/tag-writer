@@ -36,7 +36,16 @@ def create_thumbnail(pil_image, max_size):
         from PIL import Image
         # Create a copy to avoid modifying the original
         thumbnail = pil_image.copy()
-        thumbnail.thumbnail(max_size, Image.Resampling.LANCZOS)
+        
+        # Handle different Pillow versions for resampling
+        try:
+            # Try newer Pillow version first
+            resample_filter = Image.Resampling.LANCZOS
+        except AttributeError:
+            # Fall back to older Pillow version
+            resample_filter = Image.LANCZOS
+        
+        thumbnail.thumbnail(max_size, resample_filter)
         return thumbnail
     except Exception as e:
         logger.error(f"Error creating thumbnail: {e}")
@@ -56,8 +65,16 @@ def adjust_zoom(pil_image, zoom_factor):
         if new_width <= 0 or new_height <= 0:
             return None
         
+        # Handle different Pillow versions for resampling
+        try:
+            # Try newer Pillow version first
+            resample_filter = Image.Resampling.LANCZOS
+        except AttributeError:
+            # Fall back to older Pillow version
+            resample_filter = Image.LANCZOS
+        
         # Use high-quality resampling
-        resized = pil_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        resized = pil_image.resize((new_width, new_height), resample_filter)
         return resized
     except Exception as e:
         logger.error(f"Error adjusting zoom: {e}")
@@ -1724,7 +1741,7 @@ class FullImageViewer(QMainWindow):
             self.navigate_using_config(1)
     
     def navigate_using_config(self, direction):
-        """Fallback navigation using config directly."""
+        """Fallback navigation using config directly with looping."""
         if not hasattr(config, 'directory_image_files') or not config.directory_image_files:
             return
         
@@ -1733,11 +1750,16 @@ class FullImageViewer(QMainWindow):
         
         new_index = config.current_file_index + direction
         
-        if 0 <= new_index < len(config.directory_image_files):
-            new_file = config.directory_image_files[new_index]
-            config.current_file_index = new_index
-            config.selected_file = new_file
-            self.update_image_from_path(new_file)
+        # Handle looping
+        if new_index >= len(config.directory_image_files):
+            new_index = 0  # Loop to first image
+        elif new_index < 0:
+            new_index = len(config.directory_image_files) - 1  # Loop to last image
+        
+        new_file = config.directory_image_files[new_index]
+        config.current_file_index = new_index
+        config.selected_file = new_file
+        self.update_image_from_path(new_file)
     
     def update_image_from_path(self, image_path):
         """Update the full image viewer with a new image."""
@@ -1776,9 +1798,10 @@ class FullImageViewer(QMainWindow):
             self.nav_next_btn.setEnabled(False)
             return
         
-        # Enable/disable based on position in list
-        self.nav_prev_btn.setEnabled(config.current_file_index > 0)
-        self.nav_next_btn.setEnabled(config.current_file_index < len(config.directory_image_files) - 1)
+        # Always enable navigation buttons when there are images (looping is enabled)
+        has_images = len(config.directory_image_files) > 0
+        self.nav_prev_btn.setEnabled(has_images)
+        self.nav_next_btn.setEnabled(has_images)
         
         # Update status bar with position info
         total_files = len(config.directory_image_files)
@@ -2308,22 +2331,36 @@ class MainWindow(QMainWindow):
         config.save_config()
     
     def on_previous(self):
-        """Navigate to the previous image in the directory."""
-        if not config.directory_image_files or config.current_file_index <= 0:
-            self.status_label.setText("Already at first image")
+        """Navigate to the previous image in the directory with looping."""
+        if not config.directory_image_files:
+            self.status_label.setText("No images in directory")
             return
         
-        config.current_file_index -= 1
+        if config.current_file_index <= 0:
+            # Loop to the last image
+            config.current_file_index = len(config.directory_image_files) - 1
+            self.status_label.setText("Looped to last image")
+        else:
+            config.current_file_index -= 1
+            self.status_label.setText("Previous image")
+        
         file_path = config.directory_image_files[config.current_file_index]
         self.load_file(file_path)
     
     def on_next(self):
-        """Navigate to the next image in the directory."""
-        if not config.directory_image_files or config.current_file_index >= len(config.directory_image_files) - 1:
-            self.status_label.setText("Already at last image")
+        """Navigate to the next image in the directory with looping."""
+        if not config.directory_image_files:
+            self.status_label.setText("No images in directory")
             return
         
-        config.current_file_index += 1
+        if config.current_file_index >= len(config.directory_image_files) - 1:
+            # Loop to the first image
+            config.current_file_index = 0
+            self.status_label.setText("Looped to first image")
+        else:
+            config.current_file_index += 1
+            self.status_label.setText("Next image")
+        
         file_path = config.directory_image_files[config.current_file_index]
         self.load_file(file_path)
     
