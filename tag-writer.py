@@ -1404,6 +1404,13 @@ class FullImageViewer(QMainWindow):
     """Main window for viewing full-sized images with maximize/minimize controls."""
     def __init__(self, parent, image_path, pil_image):
         super().__init__(parent)
+        
+        # Set window flags FIRST, before any other operations
+        self.setWindowFlags(Qt.WindowType.Window | 
+                           Qt.WindowType.WindowMinimizeButtonHint | 
+                           Qt.WindowType.WindowMaximizeButtonHint | 
+                           Qt.WindowType.WindowCloseButtonHint)
+        
         self.parent_window = parent  # Store reference to main window
         self.image_path = image_path
         self.pil_image = pil_image
@@ -1849,6 +1856,9 @@ class MainWindow(QMainWindow):
         # Apply saved theme
         self.apply_comprehensive_theme()
         
+        # Apply saved UI zoom factor
+        self.apply_ui_zoom()
+        
         logger.info("Main window initialized")
         
     def setup_ui(self):
@@ -2078,8 +2088,11 @@ class MainWindow(QMainWindow):
         # Calculate new zoom level
         new_zoom = self.ui_scale_factor + zoom_delta
         
-        # Ensure zoom level is within bounds
-        if 0.8 <= new_zoom <= 1.5:
+        # Round to avoid floating point precision issues
+        new_zoom = round(new_zoom, 1)
+        
+        # Ensure zoom level is within bounds (50% to 150%)
+        if 0.5 <= new_zoom <= 1.5:
             self.ui_scale_factor = new_zoom
             self.apply_ui_zoom()
             
@@ -2089,6 +2102,15 @@ class MainWindow(QMainWindow):
             # Update config
             config.ui_zoom_factor = self.ui_scale_factor
             config.save_config()
+            
+            # Update status to show zoom change
+            self.status_label.setText(f"UI Zoom: {int(self.ui_scale_factor * 100)}%")
+        else:
+            # Show feedback when zoom limit is reached
+            if new_zoom > 1.5:
+                self.status_label.setText("Maximum zoom reached (150%)")
+            elif new_zoom < 0.5:
+                self.status_label.setText("Minimum zoom reached (50%)")
     
     def reset_zoom(self):
         """Reset UI zoom to 100%."""
@@ -2100,14 +2122,88 @@ class MainWindow(QMainWindow):
     
     def apply_ui_zoom(self):
         """Apply the current zoom factor to all UI elements."""
-        # Create a font with the current scale factor
-        font = QApplication.instance().font()
-        font.setPointSizeF(9 * self.ui_scale_factor)  # Base size is 9pt
+        # Create a scaled font
+        base_font_size = 9  # Base font size in points
+        scaled_font_size = base_font_size * self.ui_scale_factor
         
-        # Apply to the application
-        QApplication.instance().setFont(font)
+        # Create application font
+        app_font = QApplication.instance().font()
+        app_font.setPointSizeF(scaled_font_size)
+        QApplication.instance().setFont(app_font)
         
-        logger.info(f"Set UI zoom to {int(self.ui_scale_factor * 100)}%")
+        # Apply scaled fonts to all widgets recursively
+        self._apply_font_to_widgets(self, scaled_font_size)
+        
+        # Generate CSS with scaled sizes for additional UI elements
+        scaled_css = f"""
+        QWidget {{
+            font-size: {scaled_font_size}pt;
+        }}
+        QPushButton {{
+            font-size: {scaled_font_size}pt;
+            padding: {int(6 * self.ui_scale_factor)}px {int(12 * self.ui_scale_factor)}px;
+            min-width: {int(80 * self.ui_scale_factor)}px;
+        }}
+        QLabel {{
+            font-size: {scaled_font_size}pt;
+        }}
+        QLineEdit {{
+            font-size: {scaled_font_size}pt;
+            padding: {int(4 * self.ui_scale_factor)}px;
+        }}
+        QTextEdit {{
+            font-size: {scaled_font_size}pt;
+        }}
+        QComboBox {{
+            font-size: {scaled_font_size}pt;
+            padding: {int(4 * self.ui_scale_factor)}px {int(8 * self.ui_scale_factor)}px;
+            min-width: {int(100 * self.ui_scale_factor)}px;
+        }}
+        QMenuBar {{
+            font-size: {scaled_font_size}pt;
+            padding: {int(4 * self.ui_scale_factor)}px {int(8 * self.ui_scale_factor)}px;
+        }}
+        QMenu {{
+            font-size: {scaled_font_size}pt;
+            padding: {int(6 * self.ui_scale_factor)}px {int(12 * self.ui_scale_factor)}px;
+        }}
+        QStatusBar {{
+            font-size: {scaled_font_size}pt;
+        }}
+        QToolBar {{
+            spacing: {int(2 * self.ui_scale_factor)}px;
+        }}
+        """
+        
+        # Get current theme stylesheet and append our zoom CSS
+        current_stylesheet = QApplication.instance().styleSheet()
+        # Remove any previous zoom styling
+        if '/* ZOOM_STYLES_START */' in current_stylesheet:
+            current_stylesheet = current_stylesheet.split('/* ZOOM_STYLES_START */')[0]
+        
+        # Add zoom styles
+        enhanced_stylesheet = current_stylesheet + '\n/* ZOOM_STYLES_START */\n' + scaled_css + '\n/* ZOOM_STYLES_END */'
+        QApplication.instance().setStyleSheet(enhanced_stylesheet)
+        
+        logger.info(f"Set UI zoom to {int(self.ui_scale_factor * 100)}% with font size {scaled_font_size:.1f}pt")
+    
+    def _apply_font_to_widgets(self, widget, font_size):
+        """Recursively apply font size to all widgets."""
+        try:
+            # Set font for the current widget
+            font = widget.font()
+            font.setPointSizeF(font_size)
+            widget.setFont(font)
+            
+            # Apply to all child widgets
+            for child in widget.findChildren(QWidget):
+                if child.parent() == widget:  # Only direct children to avoid duplicate processing
+                    child_font = child.font()
+                    child_font.setPointSizeF(font_size)
+                    child.setFont(child_font)
+        except Exception as e:
+            # Some widgets might not support font changes, so we continue silently
+            logger.debug(f"Could not apply font to widget {type(widget)}: {e}")
     
     def update_recent_menu(self):
         """Update the recent files menu."""
@@ -2245,6 +2341,12 @@ class MainWindow(QMainWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle(f"All Tags: {os.path.basename(config.selected_file)}")
         dialog.resize(600, 400)
+        
+        # Set window flags to include minimize, maximize, and close buttons
+        dialog.setWindowFlags(Qt.WindowType.Window | 
+                             Qt.WindowType.WindowMinimizeButtonHint | 
+                             Qt.WindowType.WindowMaximizeButtonHint | 
+                             Qt.WindowType.WindowCloseButtonHint)
         
         layout = QVBoxLayout(dialog)
         
