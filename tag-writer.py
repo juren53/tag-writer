@@ -48,6 +48,7 @@ class Config:
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
+        self.recent_directories = []
         self.directory_image_files = []
         self.current_file_index = -1
         self.dark_mode = False
@@ -70,11 +71,21 @@ class Config:
             self.recent_files = self.recent_files[:5]  # Keep only 5 recent files
             self.save_config()
     
+    def add_recent_directory(self, directory_path):
+        """Add a directory to the recent directories list"""
+        if directory_path and os.path.exists(directory_path) and os.path.isdir(directory_path):
+            if directory_path in self.recent_directories:
+                self.recent_directories.remove(directory_path)
+            self.recent_directories.insert(0, directory_path)
+            self.recent_directories = self.recent_directories[:5]  # Keep only 5 recent directories
+            self.save_config()
+    
     def save_config(self):
         """Save configuration to file"""
         try:
             config_data = {
                 'recent_files': self.recent_files,
+                'recent_directories': self.recent_directories,
                 'last_directory': self.last_directory,
                 'dark_mode': self.dark_mode,
                 'ui_zoom_factor': self.ui_zoom_factor,
@@ -95,6 +106,7 @@ class Config:
                     config_data = json.load(f)
                 
                 self.recent_files = [f for f in config_data.get('recent_files', []) if os.path.exists(f)]
+                self.recent_directories = [d for d in config_data.get('recent_directories', []) if os.path.exists(d) and os.path.isdir(d)]
                 self.last_directory = config_data.get('last_directory', None)
                 self.dark_mode = config_data.get('dark_mode', False)
                 self.ui_zoom_factor = config_data.get('ui_zoom_factor', 1.0)
@@ -508,6 +520,22 @@ class ThemeManager:
                 'button_text': '#f8f8f2',
                 'button_hover': '#5a594d',
                 'border': '#75715e'
+            },
+            'GitHub Dark': {
+                'name': 'GitHub Dark',
+                'background': '#0d1117',
+                'text': '#c9d1d9',
+                'selection_bg': '#388bfd',
+                'selection_text': '#ffffff',
+                'menubar_bg': '#161b22',
+                'menubar_text': '#c9d1d9',
+                'toolbar_bg': '#21262d',
+                'statusbar_bg': '#161b22',
+                'statusbar_text': '#c9d1d9',
+                'button_bg': '#21262d',
+                'button_text': '#c9d1d9',
+                'button_hover': '#30363d',
+                'border': '#30363d'
             }
         }
         self.current_theme = 'Default Light'
@@ -1881,6 +1909,10 @@ class MainWindow(QMainWindow):
         self.recent_menu = file_menu.addMenu("Recent Files")
         self.update_recent_menu()
         
+        # Recent directories submenu
+        self.recent_directories_menu = file_menu.addMenu("Recent Directories")
+        self.update_recent_directories_menu()
+        
         file_menu.addSeparator()
         
         save_action = QAction("&Save", self)
@@ -2181,6 +2213,27 @@ class MainWindow(QMainWindow):
         clear_action.triggered.connect(self.on_clear_recent)
         self.recent_menu.addAction(clear_action)
     
+    def update_recent_directories_menu(self):
+        """Update the recent directories menu."""
+        self.recent_directories_menu.clear()
+        
+        if not config.recent_directories:
+            no_recent = QAction("No recent directories", self)
+            no_recent.setEnabled(False)
+            self.recent_directories_menu.addAction(no_recent)
+            return
+        
+        for i, directory_path in enumerate(config.recent_directories):
+            if os.path.exists(directory_path) and os.path.isdir(directory_path):
+                action = QAction(f"{i+1}: {os.path.basename(directory_path)}", self)
+                action.triggered.connect(lambda checked=False, path=directory_path: self.open_directory(path))
+                self.recent_directories_menu.addAction(action)
+        
+        self.recent_directories_menu.addSeparator()
+        clear_action = QAction("Clear Recent Directories", self)
+        clear_action.triggered.connect(self.on_clear_recent_directories)
+        self.recent_directories_menu.addAction(clear_action)
+    
     def on_open(self):
         """Handle Open action."""
         file_dialog = QFileDialog()
@@ -2450,6 +2503,38 @@ class MainWindow(QMainWindow):
         self.update_recent_menu()
         self.status_label.setText("Recent files cleared")
     
+    def on_clear_recent_directories(self):
+        """Clear the recent directories list."""
+        config.recent_directories = []
+        config.save_config()
+        self.update_recent_directories_menu()
+        self.status_label.setText("Recent directories cleared")
+    
+    def open_directory(self, directory_path):
+        """Open a directory by finding the first image file and loading it."""
+        if not os.path.exists(directory_path) or not os.path.isdir(directory_path):
+            QMessageBox.warning(self, "Directory Not Found", f"The directory {directory_path} does not exist.")
+            return
+        
+        # Get image files in the directory
+        image_files = get_image_files(directory_path)
+        
+        if not image_files:
+            QMessageBox.information(self, "No Images", f"No image files found in directory {directory_path}")
+            return
+        
+        # Load the first image file
+        first_image = image_files[0]
+        self.load_file(first_image)
+        
+        # Add directory to recent directories
+        config.add_recent_directory(directory_path)
+        
+        # Update recent directories menu
+        self.update_recent_directories_menu()
+        
+        self.status_label.setText(f"Opened directory: {os.path.basename(directory_path)}")
+    
     def on_rotate_image(self, degrees):
         """Rotate the current image by the specified degrees."""
         if not config.selected_file:
@@ -2598,6 +2683,12 @@ class MainWindow(QMainWindow):
         directory = os.path.dirname(file_path)
         config.last_directory = directory
         config.directory_image_files = get_image_files(directory)
+        
+        # Add directory to recent directories
+        config.add_recent_directory(directory)
+        
+        # Update recent directories menu
+        self.update_recent_directories_menu()
         
         try:
             # Find index of current file
