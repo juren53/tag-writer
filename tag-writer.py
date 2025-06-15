@@ -1,130 +1,3 @@
-# Image processing helper functions
-def load_image(image_path):
-    """Load an image using PIL with error handling."""
-    try:
-        from PIL import Image
-        image = Image.open(image_path)
-        
-        # Handle orientation from EXIF data
-        try:
-            from PIL.ExifTags import ORIENTATION
-            exif = image.getexif()
-            if exif and ORIENTATION in exif:
-                orientation = exif[ORIENTATION]
-                
-                # Rotate image based on EXIF orientation
-                if orientation == 3:
-                    image = image.rotate(180, expand=True)
-                elif orientation == 6:
-                    image = image.rotate(270, expand=True)
-                elif orientation == 8:
-                    image = image.rotate(90, expand=True)
-        except Exception as e:
-            logger.debug(f"Could not process EXIF orientation: {e}")
-        
-        return image
-    except Exception as e:
-        logger.error(f"Error loading image {image_path}: {e}")
-        return None
-
-def create_thumbnail(pil_image, max_size):
-    """Create a thumbnail from a PIL image."""
-    if pil_image is None:
-        return None
-    
-    try:
-        from PIL import Image
-        # Create a copy to avoid modifying the original
-        thumbnail = pil_image.copy()
-        
-        # Handle different Pillow versions for resampling
-        try:
-            # Try newer Pillow version first
-            resample_filter = Image.Resampling.LANCZOS
-        except AttributeError:
-            # Fall back to older Pillow version
-            resample_filter = Image.LANCZOS
-        
-        thumbnail.thumbnail(max_size, resample_filter)
-        return thumbnail
-    except Exception as e:
-        logger.error(f"Error creating thumbnail: {e}")
-        return None
-
-def adjust_zoom(pil_image, zoom_factor):
-    """Apply zoom factor to a PIL image."""
-    if pil_image is None or zoom_factor <= 0:
-        return None
-    
-    try:
-        from PIL import Image
-        original_width, original_height = pil_image.size
-        new_width = int(original_width * zoom_factor)
-        new_height = int(original_height * zoom_factor)
-        
-        if new_width <= 0 or new_height <= 0:
-            return None
-        
-        # Handle different Pillow versions for resampling
-        try:
-            # Try newer Pillow version first
-            resample_filter = Image.Resampling.LANCZOS
-        except AttributeError:
-            # Fall back to older Pillow version
-            resample_filter = Image.LANCZOS
-        
-        # Use high-quality resampling
-        resized = pil_image.resize((new_width, new_height), resample_filter)
-        return resized
-    except Exception as e:
-        logger.error(f"Error adjusting zoom: {e}")
-        return None
-
-def read_metadata(file_path):
-    """Read all metadata from an image file."""
-    if not os.path.exists(file_path):
-        return {}
-    
-    try:
-        with exiftool.ExifTool() as et:
-            metadata_json = et.execute_json("-j", file_path)
-            if metadata_json and len(metadata_json) > 0:
-                return metadata_json[0]
-            return {}
-    except Exception as e:
-        logger.error(f"Error reading metadata from {file_path}: {e}")
-        return {}
-
-# Add helper function to adapt PIL image to PyQt6
-def pil_to_pixmap(pil_image):
-    """Convert PIL Image to QPixmap."""
-    if pil_image is None:
-        return None
-        
-    try:
-        # Convert PIL Image to QImage
-        from PIL import Image
-        import io
-        
-        # Convert to RGB if it's not already
-        if pil_image.mode != "RGB":
-            pil_image = pil_image.convert("RGB")
-        
-        # Convert to bytes
-        byte_array = io.BytesIO()
-        pil_image.save(byte_array, format='PNG')
-        
-        # Create QImage from bytes
-        byte_array.seek(0)
-        qimg = QImage.fromData(byte_array.getvalue())
-        
-        # Convert QImage to QPixmap
-        pixmap = QPixmap.fromImage(qimg)
-        return pixmap
-    except Exception as e:
-        logger.error(f"Error converting PIL image to QPixmap: {e}")
-        return None
-
 #!/usr/bin/env python3
 """
 Tag Writer - PyQt6 Implementation with Integrated Core Functionality
@@ -134,34 +7,13 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-# ############   tag-writer-wx.py  Ver 0.07a ################
-# This program creates a GUI interface for entering and    
-# writing IPTC metadata tags to TIF and JPG images selected   
-# from a directory pick list using wxPython libraries.
-# This program is intended as a free form metadata tagger
-# when metada can not be pulled from an online database. 
-#  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
-#  Updated Sun 02 Jul 2023 04:53:41 PM CDT added no-backup	
-#  Updated Sat 29 Mar 2025 07:51:49 PM CDT added read existing metadata from file for editing 
-#  Updated Sun 30 Mar 2025 03:20:00 AM CDT added command-line argument support & status msg after write
-#  Updated Tue 01 Apr 2025 08:55:00 AM CDT Ver .09 added export to JSON feature & clear data to Edit menu
-#  Updated Wed 02 APr 2025 11:23:01 AM CSD Ver .10 added full image viewer from thumbnail & License window under Help
+# Tag Writer - IPTC Metadata Editor v0.07f
+# 
+# A GUI application for entering and writing IPTC metadata tags 
+# to TIF and JPG images. Designed for free-form metadata tagging
+# when metadata cannot be pulled from online databases.
 #
-#  Updated Sat 05 Apr 2025 11:24:00 PM CDT Converted from tkinter to wxPython
-#  Updated Sun 13 Apr 2025 10:20:00 AM CDT v 0.04c Load last image on startup
-#  Updated Sun 13 Apr 2025 12:44:00 AM CDT v 0.04d Key board arrow keys scroll								 
-#  Updated Sun 25 May 2025 12:44:00 AM CDT v 0.05a Key board arrow keys scroll through CWD
-#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05b
-#  Updated Tue 27 May 2025 12:44:00 AM CDT v 0.05c 
-#  Updated Wed 28 May 2025 12:44:00 AM CDT v 0.05d Caption Abstract increased to 1000 char
-#  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06a Added View/List all tags menu item
-#  Updated Fri 30 May 2025 05:22:18 PM CDT v 0.06b Fixed bug in the Caption Abstract text box editor
-
-#  Updated Sat 31 May 2025 01:49:56 PM CDT v 0.07a Converted from wxPyton to PyQt6
-#  Updated Sun 09 Jun 2025 05:12:00 PM CDT v 0.07b Fixed resolution detection using EXIF metadata
-#  Updated Sun 09 Jun 2025 05:20:00 PM CDT v 0.07c Fixed Full Image window - added maximize/minimize buttons and improved scroll bars
-#  Updated Sun 09 Jun 2025 05:22:00 PM CDT v 0.07d Added image navigation to Full Image window with sync to main window
-#  Updated Wed 12 Jun 2025 03:37:00 AM CDT v 0.07e Added comprehensive theme system with 7 professional themes
+# For complete version history and changelog, see CHANGELOG.md
 #-----------------------------------------------------------
 
 import os
@@ -298,6 +150,103 @@ def backup_file(file_path):
     except Exception as e:
         logger.error(f"Error creating backup: {e}")
         return None
+
+# Image processing helper functions
+def load_image(image_path):
+    """Load an image using PIL with error handling."""
+    try:
+        from PIL import Image
+        image = Image.open(image_path)
+        
+        # Handle orientation from EXIF data
+        try:
+            from PIL.ExifTags import ORIENTATION
+            exif = image.getexif()
+            if exif and ORIENTATION in exif:
+                orientation = exif[ORIENTATION]
+                
+                # Rotate image based on EXIF orientation
+                if orientation == 3:
+                    image = image.rotate(180, expand=True)
+                elif orientation == 6:
+                    image = image.rotate(270, expand=True)
+                elif orientation == 8:
+                    image = image.rotate(90, expand=True)
+        except Exception as e:
+            logger.debug(f"Could not process EXIF orientation: {e}")
+        
+        return image
+    except Exception as e:
+        logger.error(f"Error loading image {image_path}: {e}")
+        return None
+
+def create_thumbnail(pil_image, max_size):
+    """Create a thumbnail from a PIL image."""
+    if pil_image is None:
+        return None
+    
+    try:
+        from PIL import Image
+        # Create a copy to avoid modifying the original
+        thumbnail = pil_image.copy()
+        
+        # Handle different Pillow versions for resampling
+        try:
+            # Try newer Pillow version first
+            resample_filter = Image.Resampling.LANCZOS
+        except AttributeError:
+            # Fall back to older Pillow version
+            resample_filter = Image.LANCZOS
+        
+        thumbnail.thumbnail(max_size, resample_filter)
+        return thumbnail
+    except Exception as e:
+        logger.error(f"Error creating thumbnail: {e}")
+        return None
+
+def adjust_zoom(pil_image, zoom_factor):
+    """Apply zoom factor to a PIL image."""
+    if pil_image is None or zoom_factor <= 0:
+        return None
+    
+    try:
+        from PIL import Image
+        original_width, original_height = pil_image.size
+        new_width = int(original_width * zoom_factor)
+        new_height = int(original_height * zoom_factor)
+        
+        if new_width <= 0 or new_height <= 0:
+            return None
+        
+        # Handle different Pillow versions for resampling
+        try:
+            # Try newer Pillow version first
+            resample_filter = Image.Resampling.LANCZOS
+        except AttributeError:
+            # Fall back to older Pillow version
+            resample_filter = Image.LANCZOS
+        
+        # Use high-quality resampling
+        resized = pil_image.resize((new_width, new_height), resample_filter)
+        return resized
+    except Exception as e:
+        logger.error(f"Error adjusting zoom: {e}")
+        return None
+
+def read_metadata(file_path):
+    """Read all metadata from an image file."""
+    if not os.path.exists(file_path):
+        return {}
+    
+    try:
+        with exiftool.ExifTool() as et:
+            metadata_json = et.execute_json("-j", file_path)
+            if metadata_json and len(metadata_json) > 0:
+                return metadata_json[0]
+            return {}
+    except Exception as e:
+        logger.error(f"Error reading metadata from {file_path}: {e}")
+        return {}
 
 class MetadataManager:
     """Manages image metadata operations using ExifTool"""
