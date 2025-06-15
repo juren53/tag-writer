@@ -205,6 +205,9 @@ class Config:
         
         # Load configuration on startup
         self.load_config()
+        
+        # Always reset zoom to 100% on startup
+        self.ui_zoom_factor = 1.0
     
     def add_recent_file(self, file_path):
         """Add a file to the recent files list"""
