@@ -192,7 +192,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07e"
+        self.app_version = "0.07f"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1856,6 +1856,9 @@ class MainWindow(QMainWindow):
         # Set up UI
         self.setup_ui()
         
+        # Install application-level event filter for arrow keys
+        QApplication.instance().installEventFilter(self)
+        
         # Apply saved theme
         self.apply_comprehensive_theme()
         
@@ -1893,7 +1896,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(self.path_label, 1)
         
         # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-12)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-15)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -2434,6 +2437,28 @@ class MainWindow(QMainWindow):
         config.current_theme = new_theme
         config.dark_mode = self.dark_mode
         config.save_config()
+    
+    def eventFilter(self, obj, event):
+        """Application-level event filter to intercept arrow keys before they reach widgets."""
+        if event.type() == event.Type.KeyPress:
+            if event.key() == Qt.Key.Key_Left:
+                self.on_previous()
+                return True  # Event handled, don't pass to widget
+            elif event.key() == Qt.Key.Key_Right:
+                self.on_next()
+                return True  # Event handled, don't pass to widget
+        return super().eventFilter(obj, event)
+    
+    def keyPressEvent(self, event):
+        """Handle key press events for main window navigation."""
+        if event.key() == Qt.Key.Key_Left:
+            self.on_previous()
+            event.accept()  # Consume the event to prevent default behavior
+        elif event.key() == Qt.Key.Key_Right:
+            self.on_next()
+            event.accept()  # Consume the event to prevent default behavior
+        else:
+            super().keyPressEvent(event)
     
     def on_previous(self):
         """Navigate to the previous image in the directory with looping."""
