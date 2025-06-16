@@ -53,7 +53,7 @@ class Config:
         self.current_file_index = -1
         self.dark_mode = False
         self.ui_zoom_factor = 1.0
-        self.current_theme = 'Default Light'
+        self.current_theme = 'Dark'
         self.config_file = os.path.join(os.path.expanduser("~"), ".tag_writer_config.json")
         
         # Load configuration on startup
@@ -110,7 +110,7 @@ class Config:
                 self.last_directory = config_data.get('last_directory', None)
                 self.dark_mode = config_data.get('dark_mode', False)
                 self.ui_zoom_factor = config_data.get('ui_zoom_factor', 1.0)
-                self.current_theme = config_data.get('current_theme', 'Default Light')
+                self.current_theme = config_data.get('current_theme', 'Dark')
                 self.selected_file = config_data.get('selected_file', None)
                 
                 logger.debug(f"Configuration loaded from {self.config_file}")
@@ -538,7 +538,7 @@ class ThemeManager:
                 'border': '#30363d'
             }
         }
-        self.current_theme = 'Default Light'
+        self.current_theme = 'Dark'
     
     def get_theme_names(self):
         """Get list of available theme names"""
