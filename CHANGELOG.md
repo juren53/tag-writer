@@ -13,6 +13,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07g] - 2025-06-16
+
+### Added
+- **Recent Directories Feature** - Track and quickly access last 5 directories where files were opened
+  - "Recent Directories" submenu in File menu alongside "Recent Files"
+  - Automatic directory tracking when files are opened
+  - Click any recent directory to open the first image in that directory
+  - "Clear Recent Directories" option to reset the list
+  - Persistent storage in configuration file with validation
+- **GitHub Dark Theme** - Added GitHub's official dark theme to the theme collection
+  - Authentic GitHub dark color palette (#0d1117 background, #c9d1d9 text)
+  - Professional dark theme option for developers
+  - GitHub blue selection highlights (#388bfd)
+  - Consistent dark grays for UI elements
+
+### Changed
+- **Default Theme** - Changed default application theme from "Default Light" to "Dark"
+  - New installations start with dark theme for better user experience
+  - Existing user theme preferences are preserved
+  - Fallback theme is now "Dark" instead of "Default Light"
+
+### Enhanced
+- **Improved Navigation Workflow** - Recent directories make it easier to return to frequently used image folders
+- **Better Default Experience** - Dark theme provides modern, comfortable viewing by default
+- **Expanded Theme Collection** - Now includes 8 professional themes including GitHub Dark
+
+### Technical
+- Added `recent_directories` list to Config class with automatic cleanup
+- Implemented `add_recent_directory()` method with 5-item limit
+- Enhanced configuration persistence to include recent directories
+- Updated `load_file()` method to automatically track directories
+- Added `open_directory()` and `update_recent_directories_menu()` methods
+- Modified theme defaults in Config and ThemeManager classes
+
 ## [0.07f] - 2025-06-15
 
 ### Added
