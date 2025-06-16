@@ -21,7 +21,14 @@ import sys
 import logging
 import json
 import exiftool
+import subprocess
 from datetime import datetime
+
+# Windows console window hiding functionality
+if sys.platform.startswith('win'):
+    # Constants for hiding console windows on Windows
+    CREATE_NO_WINDOW = 0x08000000
+    SW_HIDE = 0
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLabel, QPushButton, QLineEdit, QTextEdit, QComboBox,
@@ -44,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07g"
+        self.app_version = "0.07h"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -119,6 +126,71 @@ class Config:
 
 # Global configuration instance
 config = Config()
+
+def create_exiftool_instance():
+    """Create an ExifTool instance with Windows console window properly hidden."""
+    if sys.platform.startswith('win'):
+        # For Windows, we need to create a custom ExifTool class that hides console windows
+        class WindowsExifTool(exiftool.ExifTool):
+            def run(self):
+                """Override run method to hide console windows on Windows."""
+                if self.running:
+                    import warnings
+                    warnings.warn("ExifTool already running; doing nothing.", UserWarning)
+                    return
+                
+                # Build command args (simplified version of the original)
+                proc_args = [self._executable]
+                
+                if hasattr(self, '_config_file') and self._config_file is not None:
+                    proc_args.extend(["-config", self._config_file])
+                
+                proc_args.extend(["-stay_open", "True", "-@", "-"])
+                
+                if hasattr(self, '_common_args') and self._common_args:
+                    proc_args.append("-common_args")
+                    proc_args.extend(self._common_args)
+                
+                # Windows-specific startup info to hide console window
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = SW_HIDE
+                
+                try:
+                    self._process = subprocess.Popen(
+                        proc_args,
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        startupinfo=startupinfo,
+                        creationflags=CREATE_NO_WINDOW
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to create ExifTool process: {e}")
+                    raise
+                
+                # Check if process started successfully
+                if self._process.poll() is not None:
+                    self._process = None
+                    raise RuntimeError("exiftool did not execute successfully")
+                
+                self._running = True
+                
+                # Get version info (simplified)
+                try:
+                    if hasattr(self, '_parse_ver'):
+                        self._ver = self._parse_ver()
+                    else:
+                        # Fallback if _parse_ver doesn't exist
+                        self._ver = "unknown"
+                except Exception:
+                    # If version parsing fails, continue anyway
+                    self._ver = "unknown"
+        
+        return WindowsExifTool()
+    else:
+        # For non-Windows platforms, use standard ExifTool
+        return exiftool.ExifTool()
 
 def get_image_files(directory):
     """Get a sorted list of image files in the directory"""
@@ -251,7 +323,9 @@ def read_metadata(file_path):
         return {}
     
     try:
-        with exiftool.ExifTool() as et:
+        # Use hidden console window version for Windows
+        et_instance = create_exiftool_instance()
+        with et_instance as et:
             metadata_json = et.execute_json("-j", file_path)
             if metadata_json and len(metadata_json) > 0:
                 return metadata_json[0]
@@ -284,7 +358,9 @@ class MetadataManager:
             return False
         
         try:
-            with exiftool.ExifTool() as et:
+            # Use hidden console window version for Windows
+            et_instance = create_exiftool_instance()
+            with et_instance as et:
                 # Get metadata
                 file_ext = os.path.splitext(file_path)[1].lower()
                 if file_ext in ['.tif', '.tiff']:
@@ -340,7 +416,9 @@ class MetadataManager:
             return False
         
         try:
-            with exiftool.ExifTool() as et:
+            # Use hidden console window version for Windows
+            et_instance = create_exiftool_instance()
+            with et_instance as et:
                 args = []
                 
                 # Add each metadata field
@@ -1822,6 +1900,9 @@ class MainWindow(QMainWindow):
         self.current_theme = getattr(config, 'current_theme', 'Default Light')
         self.theme_manager.current_theme = self.current_theme
         
+        # Track if we're closing to prevent recursive close events
+        self._is_closing = False
+        
         # Ensure maximize button is present in the title bar
         self.setWindowFlags(
             Qt.WindowType.Window | 
@@ -2720,6 +2801,53 @@ class MainWindow(QMainWindow):
         
         logger.info(f"Loaded file: {file_path}")
         return True
+    
+    def cleanup_resources(self):
+        """Clean up resources before closing."""
+        try:
+            # Save current configuration
+            config.save_config()
+            
+            # Clear event filters to prevent further processing
+            if hasattr(self, 'metadata_panel'):
+                QApplication.instance().removeEventFilter(self)
+            
+            # Clear image resources
+            if hasattr(self, 'image_viewer'):
+                self.image_viewer.clear()
+            
+            # Clear metadata
+            if hasattr(self, 'metadata_manager'):
+                self.metadata_manager.clear()
+            
+            logger.info("Resources cleaned up successfully")
+        except Exception as e:
+            logger.error(f"Error during cleanup: {e}")
+    
+    def closeEvent(self, event):
+        """Handle close events to ensure proper shutdown."""
+        # Prevent recursive close events
+        if self._is_closing:
+            event.accept()
+            return
+        
+        self._is_closing = True
+        
+        try:
+            # Cleanup resources
+            self.cleanup_resources()
+            
+            # Accept the close event
+            event.accept()
+            
+            # Force application quit
+            QApplication.instance().quit()
+            
+        except Exception as e:
+            logger.error(f"Error during close event: {e}")
+            # Force quit even if there's an error
+            event.accept()
+            QApplication.instance().quit()
 
 def main():
     """Run the application."""
@@ -2727,6 +2855,9 @@ def main():
     
     # Set application style
     app.setStyle("Fusion")
+    
+    # Set application to quit when last window is closed
+    app.setQuitOnLastWindowClosed(True)
     
     # Create and show the main window
     window = MainWindow()
@@ -2737,7 +2868,12 @@ def main():
         window.load_file(config.selected_file)
     
     # Run the application
-    return app.exec()
+    try:
+        return app.exec()
+    except KeyboardInterrupt:
+        # Handle Ctrl+C gracefully
+        app.quit()
+        return 0
 
 if __name__ == "__main__":
     sys.exit(main())
