@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07h] - 2025-06-16
+
+### Fixed
+- **Windows Console Window Flashing** - Eliminated brief console window flashes during image loading on Windows
+  - Added Windows-specific ExifTool subprocess configuration
+  - Implemented `CREATE_NO_WINDOW` and `SW_HIDE` flags for complete console window suppression
+  - Created custom `WindowsExifTool` wrapper class that overrides subprocess creation
+  - Applied fix to all ExifTool operations: metadata reading, writing, and processing
+  - Maintains full ExifTool functionality while preventing visual disruption
+  - Platform-specific implementation - only affects Windows systems
+  - Clean fallback to standard ExifTool on non-Windows platforms
+
+### Enhanced
+- **Improved Windows User Experience** - Application now appears more stable and professional on Windows
+- **Seamless Metadata Operations** - No more brief console window interruptions during image processing
+- **Cross-Platform Compatibility** - Windows-specific fixes don't affect Linux/macOS functionality
+
+### Technical
+- Added `create_exiftool_instance()` function with Windows-specific subprocess configuration
+- Implemented custom `WindowsExifTool` class with overridden `run()` method
+- Updated all ExifTool usage throughout codebase to use hidden console window version
+- Added Windows subprocess creation flags: `CREATE_NO_WINDOW = 0x08000000` and `SW_HIDE = 0`
+- Enhanced subprocess startup configuration with `STARTF_USESHOWWINDOW` flag
+
 ## [0.07g] - 2025-06-16
 
 ### Added
