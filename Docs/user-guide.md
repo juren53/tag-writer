@@ -75,10 +75,10 @@ Tag Writer features a clean, intuitive interface divided into several main compo
 - **Image Viewer**: Preview the current image (right side)
 - **Status Bar**: Displays current status and file information
 
-### Menu Options
-- **File**: Open images, access recent files, save metadata, exit
-- **Edit**: Clear fields, export/import metadata as JSON, set today's date
-- **View**: View all metadata tags, toggle dark mode
+## Menu Options
+- **File**: Open images, access recent files and directories, save metadata, exit
+- **Edit**: Clear fields, export/import metadata as JSON, set today's date, rotate images
+- **View**: View all metadata tags, select themes, toggle dark mode
 - **Help**: Access help documentation, about information, license details
 
 ### Keyboard Shortcuts
@@ -131,9 +131,20 @@ Tag Writer supports the following IPTC metadata fields:
 
 ### Working with Multiple Images
 1. Open any image from a directory
-2. Use the "Previous" and "Next" buttons or arrow keys to navigate
+2. Use navigation methods:
+   - Click "Previous" and "Next" buttons in the toolbar
+   - Use Left/Right arrow keys for quick navigation
+   - Navigation loops (first image wraps to last, and vice versa)
 3. Edit metadata for each image
 4. Click "Write Metadata" before moving to the next image
+
+### Arrow Key Navigation
+Tag Writer provides convenient keyboard navigation:
+- **Left Arrow**: Navigate to the previous image in the directory
+- **Right Arrow**: Navigate to the next image in the directory
+- **Looping**: When you reach the last image and press Right, it loops to the first image
+- **Works everywhere**: Arrow keys work from any part of the interface
+- **Quick editing**: Perfect for rapidly moving through images while editing metadata
 
 ## Advanced Features
 
@@ -157,11 +168,32 @@ If the interface text is too small or large:
 1. Use the zoom controls in the toolbar (+ and - buttons)
 2. Or use keyboard shortcuts: Ctrl++ to zoom in, Ctrl+- to zoom out
 
-### Dark Mode
-Toggle between light and dark mode:
+### Recent Files and Directories
+Tag Writer keeps track of your recently used files and directories:
+1. **Recent Files**: Access your last 5 opened files via File → Recent Files
+2. **Recent Directories**: Quickly return to directories via File → Recent Directories
+3. Click any recent directory to open the first image in that folder
+4. Use "Clear Recent Files" or "Clear Recent Directories" to reset the lists
+
+### Theme Selection
+Choose from multiple professional themes:
+1. Go to View → Theme to open the theme selection dialog
+2. Available themes include:
+   - **Default Light**: Clean, modern light theme
+   - **Dark**: Elegant dark theme (new default)
+   - **Solarized Light/Dark**: Popular programmer themes
+   - **High Contrast**: Accessibility-focused black and white
+   - **Monokai**: Rich editor theme with vibrant colors
+   - **GitHub Dark**: Authentic GitHub dark mode experience
+3. Preview themes in real-time before applying
+4. Your theme choice is automatically saved
+
+### Dark Mode Toggle
+Quickly switch between light and dark themes:
 1. Go to View → Toggle Dark Mode
 2. Or use the keyboard shortcut Ctrl+D
-3. Your preference will be remembered between sessions
+3. This switches between Default Light and Dark themes
+4. Your preference will be remembered between sessions
 
 ## Troubleshooting
 
@@ -203,5 +235,14 @@ Please submit issues on our GitHub repository: https://github.com/yourusername/t
 
 ---
 
-This documentation is for Tag Writer version 0.07e. For the latest documentation, please visit our [GitHub repository](https://github.com/yourusername/tag-writer).
+This documentation is for Tag Writer version 0.07g. For the latest documentation, please visit our [GitHub repository](https://github.com/yourusername/tag-writer).
+
+### Recent Changes in Version 0.07g
+- Added Recent Directories feature for quick folder access
+- Introduced GitHub Dark theme
+- Changed default theme to Dark for better user experience
+- Enhanced navigation workflow with directory tracking
+- Improved theme selection with real-time preview
+
+For complete version history, see the [CHANGELOG.md](../CHANGELOG.md) file.
 
