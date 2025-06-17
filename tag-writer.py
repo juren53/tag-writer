@@ -34,7 +34,7 @@ from PyQt6.QtWidgets import (
     QLabel, QPushButton, QLineEdit, QTextEdit, QComboBox,
     QFormLayout, QScrollArea, QSplitter, QMenu, QMenuBar,
     QStatusBar, QFileDialog, QMessageBox, QToolBar, QDialog, QProgressDialog,
-    QDialogButtonBox
+    QDialogButtonBox, QInputDialog
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor
@@ -2028,9 +2028,15 @@ class MainWindow(QMainWindow):
         
         edit_menu.addSeparator()
         
-        date_action = QAction("Set &Today's Date", self)
+        date_action = QAction("Set \u0026Today's Date", self)
         date_action.triggered.connect(self.on_set_today_date)
         edit_menu.addAction(date_action)
+        
+        edit_menu.addSeparator()
+        
+        rename_action = QAction("\u0026Rename File", self)
+        rename_action.triggered.connect(self.on_rename_file)
+        edit_menu.addAction(rename_action)
         
         # Add image rotation submenu
         edit_menu.addSeparator()
@@ -2421,6 +2427,75 @@ class MainWindow(QMainWindow):
         """Handle Set Today's Date action."""
         self.metadata_panel.set_today_date()
         self.status_label.setText("Date set to today")
+    
+    def on_rename_file(self):
+        """Handle Rename File action."""
+        if not config.selected_file:
+            QMessageBox.warning(self, "No File Selected", "Please select an image file first.")
+            return
+        
+        current_filename = os.path.basename(config.selected_file)
+        current_directory = os.path.dirname(config.selected_file)
+        
+        # Show input dialog to get new filename
+        new_filename, ok = QInputDialog.getText(
+            self, "Rename File", "Enter new filename:", 
+            QLineEdit.EchoMode.Normal, current_filename
+        )
+        
+        if not ok or not new_filename or new_filename == current_filename:
+            return
+        
+        # Create full path for new file
+        new_file_path = os.path.join(current_directory, new_filename)
+        
+        # Check if file already exists
+        if os.path.exists(new_file_path):
+            result = QMessageBox.question(
+                self, "File Exists", 
+                f"A file named '{new_filename}' already exists. Overwrite?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if result != QMessageBox.StandardButton.Yes:
+                return
+        
+        try:
+            # Create a backup of the original file
+            backup_path = backup_file(config.selected_file)
+            if not backup_path:
+                raise Exception("Failed to create backup file")
+            
+            # Rename the file
+            import shutil
+            shutil.move(config.selected_file, new_file_path)
+            
+            # Update configuration
+            config.selected_file = new_file_path
+            
+            # Update directory image files for navigation
+            if config.directory_image_files and config.current_file_index >= 0:
+                config.directory_image_files[config.current_file_index] = new_file_path
+            
+            # Refresh UI
+            self.load_file(new_file_path)
+            
+            self.status_label.setText(f"Renamed to {new_filename}")
+            QMessageBox.information(
+                self, "File Renamed", 
+                f"File successfully renamed to '{new_filename}'\nA backup was created at '{os.path.basename(backup_path)}'"
+            )
+            
+        except Exception as e:
+            logger.error(f"Error renaming file: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to rename file: {str(e)}")
+            # Try to restore from backup if rename failed
+            if 'backup_path' in locals() and os.path.exists(backup_path):
+                try:
+                    shutil.copy2(backup_path, config.selected_file)
+                    self.status_label.setText("Restored from backup after rename error")
+                except Exception as restore_err:
+                    logger.error(f"Error restoring from backup: {restore_err}")
+                    self.status_label.setText("Error during rename and restore")
     
     def on_view_all_tags(self):
         """Handle View All Tags action."""
