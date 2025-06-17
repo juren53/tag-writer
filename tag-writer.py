@@ -37,7 +37,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox
 )
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage
+from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor
 
 # Note: This is a self-contained PyQt6 implementation
 # All functionality is integrated within this file
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07h"
+        self.app_version = "0.07i"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1954,7 +1954,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(self.path_label, 1)
         
         # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-16)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-17)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -2045,9 +2045,17 @@ class MainWindow(QMainWindow):
         rotate_menu.addAction(rotate_ccw_action)
         
         # View menu
-        view_menu = menu_bar.addMenu("&View")
+        view_menu = menu_bar.addMenu("\&View")
         
-        tags_action = QAction("&View All Tags...", self)
+        # Refresh action
+        refresh_action = QAction("\&Refresh", self)
+        refresh_action.setShortcut("F5")
+        refresh_action.triggered.connect(self.on_refresh)
+        view_menu.addAction(refresh_action)
+        
+        view_menu.addSeparator()
+        
+        tags_action = QAction("\&View All Tags...", self)
         tags_action.triggered.connect(self.on_view_all_tags)
         view_menu.addAction(tags_action)
         
@@ -2540,6 +2548,9 @@ class MainWindow(QMainWindow):
         elif event.key() == Qt.Key.Key_Right:
             self.on_next()
             event.accept()  # Consume the event to prevent default behavior
+        elif event.key() == Qt.Key.Key_F5:
+            self.on_refresh()
+            event.accept()  # Consume the event to prevent default behavior
         else:
             super().keyPressEvent(event)
     
@@ -2749,6 +2760,78 @@ class MainWindow(QMainWindow):
             "Permission is hereby granted, free of charge, to any person obtaining a copy "
             "of this software and associated documentation files..."
         )
+        
+    def on_refresh(self):
+        """Refresh the current image and metadata."""
+        if not config.selected_file:
+            self.status_label.setText("No file to refresh")
+            return
+            
+        file_path = config.selected_file
+        
+        if not os.path.exists(file_path):
+            QMessageBox.warning(self, "File Not Found", f"The file {file_path} no longer exists.")
+            self.status_label.setText("File not found")
+            return
+        
+        # Save current cursor positions and selections in text fields
+        cursor_positions = {}
+        selections = {}
+        field_mappings = {
+            "headline": self.metadata_panel.headline,
+            "caption": self.metadata_panel.caption,
+            "credit": self.metadata_panel.credit,
+            "object_name": self.metadata_panel.object_name,
+            "writer": self.metadata_panel.writer,
+            "byline": self.metadata_panel.byline,
+            "byline_title": self.metadata_panel.byline_title,
+            "source": self.metadata_panel.source,
+            "date": self.metadata_panel.date,
+            "copyright": self.metadata_panel.copyright
+        }
+        
+        # Store cursor positions and selections for all text fields
+        for field_name, widget in field_mappings.items():
+            if isinstance(widget, QLineEdit):
+                cursor_positions[field_name] = widget.cursorPosition()
+                selections[field_name] = (widget.selectionStart(), widget.selectionLength())
+            elif isinstance(widget, QTextEdit):
+                cursor = widget.textCursor()
+                cursor_positions[field_name] = cursor.position()
+                selections[field_name] = (cursor.selectionStart(), cursor.selectionEnd())
+        
+        # Show temporary status
+        self.status_label.setText("Refreshing...")
+        QApplication.processEvents()
+        
+        # Reload metadata from file
+        self.metadata_manager.load_from_file(file_path)
+        self.metadata_panel.update_from_manager()
+        
+        # Reload image
+        self.image_viewer.load_image(file_path)
+        
+        # Restore cursor positions and selections
+        for field_name, widget in field_mappings.items():
+            if isinstance(widget, QLineEdit) and field_name in cursor_positions:
+                widget.setCursorPosition(cursor_positions[field_name])
+                if selections[field_name][1] > 0:  # If there was a selection
+                    widget.setSelection(selections[field_name][0], selections[field_name][1])
+            elif isinstance(widget, QTextEdit) and field_name in cursor_positions:
+                cursor = widget.textCursor()
+                cursor.setPosition(cursor_positions[field_name])
+                if selections[field_name][0] != selections[field_name][1]:  # If there was a selection
+                    cursor.setPosition(selections[field_name][0])
+                    cursor.setPosition(selections[field_name][1], QTextCursor.MoveMode.KeepAnchor)
+                widget.setTextCursor(cursor)
+        
+        # Update UI
+        self.file_label.setText(os.path.basename(file_path))
+        self.path_label.setText(file_path)
+        
+        # Update status
+        self.status_label.setText(f"Refreshed {os.path.basename(file_path)}")
+        logger.info(f"Refreshed file: {file_path}")
     
     def load_file(self, file_path):
         """Load an image file and update the UI."""

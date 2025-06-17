@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07i] - 2025-06-17
+
+### Added
+- **Refresh Feature** - Added ability to refresh current image and metadata
+  - Accessible via F5 key from anywhere in the application
+  - Available through new "Refresh" option in View menu
+  - Reloads image and metadata from disk without changing selection
+  - Preserves cursor positions and text selections in metadata fields
+  - Provides visual feedback during refresh operation
+  - Helpful for seeing changes made by external applications
+
+### Enhanced
+- **Improved User Experience** - Easy refresh of current image without renavigation
+- **Better Integration** with external editing workflows
+- **Keyboard Accessibility** through standard F5 refresh shortcut
+
 ## [0.07h] - 2025-06-16
 
 ### Fixed
@@ -329,6 +345,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.07i**: Added Refresh feature (F5 key and View menu) to reload current image and metadata
+- **v0.07h**: Fixed Windows console window flashing during image loading operations
+- **v0.07g**: Added Recent Directories feature and GitHub Dark theme
 - **v0.07f**: Arrow key navigation, automatic zoom reset, enhanced keyboard shortcuts
 - **v0.07e**: Comprehensive theme system with 7 professional themes
 - **v0.07d**: Image navigation in full image window with keyboard shortcuts
