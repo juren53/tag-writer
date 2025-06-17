@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07j"
+        self.app_version = "0.07k"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -952,7 +952,9 @@ class MetadataPanel(QWidget):
     def __init__(self, metadata_manager, parent=None):
         super().__init__(parent)
         self.metadata_manager = metadata_manager
+        self.text_fields = []  # Track all text editing fields
         self.setup_ui()
+        self.install_event_filters()
         
     def setup_ui(self):
         """Set up the user interface."""
@@ -967,6 +969,7 @@ class MetadataPanel(QWidget):
         
         # Create metadata fields with mapping to model fields
         self.headline = QLineEdit()
+        self.text_fields.append(self.headline)  # Add to tracked text fields
         form.addRow("Headline:", self.headline)
         
         # Caption/Abstract with character count
@@ -1014,6 +1017,15 @@ class MetadataPanel(QWidget):
         self.copyright = QLineEdit()
         form.addRow("Copyright Notice:", self.copyright)
         
+        # Add all text fields to the tracking list for keyboard focus handling
+        self.text_fields.extend([
+            self.credit, self.object_name, self.writer, 
+            self.byline, self.byline_title, self.source, 
+            self.date, self.copyright
+        ])
+        # Add caption to tracking list (it's a QTextEdit, not a QLineEdit)
+        self.text_fields.append(self.caption)
+        
         # Wrap form in a scroll area for better handling of different screen sizes
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -1028,6 +1040,46 @@ class MetadataPanel(QWidget):
         self.write_button = QPushButton("Write Metadata")
         self.write_button.clicked.connect(self.on_write_metadata)
         layout.addWidget(self.write_button, alignment=Qt.AlignmentFlag.AlignHCenter)
+    
+    def install_event_filters(self):
+        """Install event filters on all text fields to properly handle keyboard focus."""
+        for text_field in self.text_fields:
+            text_field.installEventFilter(self)
+    
+    def eventFilter(self, watched, event):
+        """Handle keyboard events in text fields to prevent arrow key propagation to main window."""
+        if event.type() == event.Type.KeyPress and watched in self.text_fields:
+            # Handle arrow keys to prevent them from propagating to main window navigation
+            if event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down):
+                # Temporarily remove application-level event filter
+                app = QApplication.instance()
+                main_window = None
+                
+                # Find main window by traversing up the parent hierarchy
+                parent = self.parent()
+                while parent is not None:
+                    if hasattr(parent, 'eventFilter') and app.eventFilter == parent.eventFilter:
+                        main_window = parent
+                        break
+                    parent = parent.parent()
+                
+                # If we found the main window with the app-level event filter
+                if main_window is not None:
+                    # Temporarily remove main window's event filter
+                    app.removeEventFilter(main_window)
+                    
+                    # Let the text field handle the key press event normally
+                    # The event will be processed by the field without triggering navigation
+                    result = watched.event(event)
+                    
+                    # Restore main window's event filter
+                    app.installEventFilter(main_window)
+                    
+                    # Return true to indicate we've handled the event
+                    return True
+        
+        # Pass all other events to the default handler
+        return super().eventFilter(watched, event)
         
     def update_from_manager(self):
         """Update UI fields from metadata manager."""

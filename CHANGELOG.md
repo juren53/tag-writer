@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07k] - 2025-06-17
+
+### Fixed
+- **Metadata Text Field Focus** - Fixed keyboard focus issues in metadata text fields
+  - Arrow keys now work properly for text cursor navigation within all metadata fields
+  - Prevents arrow key events from navigating images while editing metadata
+  - Enhanced event handling with proper focus management
+  - Improved keyboard interaction in all text editing fields
+  - Consistent behavior across the entire application
+
+### Enhanced
+- **Better Text Editing Experience** - More natural keyboard navigation within text fields
+- **Improved Usability** - Text fields properly maintain input focus during editing
+
 ## [0.07j] - 2025-06-17
 
 ### Fixed
@@ -359,6 +373,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.07k**: Fixed keyboard focus in metadata text fields for proper arrow key handling
 - **v0.07j**: Fixed keyboard focus in Rename File dialog to properly handle arrow keys
 - **v0.07i**: Added Refresh feature (F5 key and View menu) to reload current image and metadata
 - **v0.07h**: Fixed Windows console window flashing during image loading operations
