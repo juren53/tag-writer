@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07i"
+        self.app_version = "0.07j"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -2437,11 +2437,99 @@ class MainWindow(QMainWindow):
         current_filename = os.path.basename(config.selected_file)
         current_directory = os.path.dirname(config.selected_file)
         
-        # Show input dialog to get new filename
-        new_filename, ok = QInputDialog.getText(
-            self, "Rename File", "Enter new filename:", 
-            QLineEdit.EchoMode.Normal, current_filename
-        )
+        # Create a proper modal dialog for rename with improved focus handling
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Rename File")
+        dialog.setWindowModality(Qt.WindowModality.ApplicationModal)
+        dialog.setMinimumWidth(400)
+        
+        # Create dialog layout
+        layout = QVBoxLayout(dialog)
+        
+        # Add label and text field
+        layout.addWidget(QLabel("Enter new filename:"))
+        
+        # Create line edit with the current filename
+        line_edit = QLineEdit(current_filename)
+        line_edit.selectAll()  # Select the entire filename for easy editing
+        layout.addWidget(line_edit)
+        
+        # Add button box
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box.accepted.connect(dialog.accept)
+        button_box.rejected.connect(dialog.reject)
+        layout.addWidget(button_box)
+        
+        # Temporarily remove application event filter
+        QApplication.instance().removeEventFilter(self)
+        
+        # Track if dialog is shown to ensure focus is properly set
+        dialog_shown = False
+        original_show_event = dialog.showEvent
+        
+        # Override show event to force focus after dialog is visible
+        def showEvent(event):
+            nonlocal dialog_shown
+            # Call original show event handler
+            original_show_event(event)
+            # Only execute once
+            if not dialog_shown:
+                dialog_shown = True
+                # Ensure line edit gets focus AFTER the dialog is shown
+                from PyQt6.QtCore import QTimer
+                QTimer.singleShot(50, lambda: line_edit.setFocus())
+                QTimer.singleShot(100, lambda: line_edit.selectAll())
+        
+        # Override dialog show event
+        dialog.showEvent = showEvent
+        
+        # Override key events to prevent arrow keys propagation
+        def keyPressEvent(event):
+            # Handle the event locally (don't propagate to parent)
+            if event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down):
+                # Let the line edit handle arrow keys for cursor navigation
+                # Don't call event() directly, pass to line_edit without letting parent handle it
+                if line_edit.hasFocus():
+                    line_edit.keyPressEvent(event)
+                else:
+                    # Force focus to line edit
+                    line_edit.setFocus()
+                    line_edit.keyPressEvent(event)
+                event.accept()
+                return
+            elif event.key() == Qt.Key.Key_Enter or event.key() == Qt.Key.Key_Return:
+                dialog.accept()
+                event.accept()
+                return
+            elif event.key() == Qt.Key.Key_Escape:
+                dialog.reject()
+                event.accept()
+                return
+            
+            # Default handling for other keys
+            QDialog.keyPressEvent(dialog, event)
+        
+        # Override the dialog's key press event with our custom handler
+        dialog.keyPressEvent = keyPressEvent
+        
+        # Install event filter on the line edit to block parent events
+        def lineEditEventFilter(watched, event):
+            if event.type() == event.Type.KeyPress and watched == line_edit:
+                # Make sure arrow keys are handled by the line edit
+                if event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down):
+                    line_edit.keyPressEvent(event)
+                    return True
+            return False
+        
+        line_edit.installEventFilter(dialog)
+        dialog.eventFilter = lineEditEventFilter
+        
+        # Show dialog and get result
+        ok = dialog.exec() == QDialog.DialogCode.Accepted
+        new_filename = line_edit.text() if ok else ""
+        
+        # Restore the application event filter
+        QApplication.instance().installEventFilter(self)
         
         if not ok or not new_filename or new_filename == current_filename:
             return
