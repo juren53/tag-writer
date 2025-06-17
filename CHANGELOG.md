@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07j] - 2025-06-17
+
+### Fixed
+- **Rename File Dialog Focus** - Fixed keyboard focus issues in the Rename File dialog
+  - Arrow keys now work properly for text cursor navigation within filename field
+  - Text input field now maintains proper focus for keyboard interactions
+  - Prevents arrow key events from navigating images while renaming
+  - Improved modal dialog behavior with better keyboard handling
+  - Enhanced user experience when editing filenames
+
+### Enhanced
+- **Improved Text Editing** - Better keyboard interaction when renaming files
+- **More Intuitive Dialog Behavior** - Dialog properly captures keyboard focus
+
 ## [0.07i] - 2025-06-17
 
 ### Added
@@ -345,6 +359,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.07j**: Fixed keyboard focus in Rename File dialog to properly handle arrow keys
 - **v0.07i**: Added Refresh feature (F5 key and View menu) to reload current image and metadata
 - **v0.07h**: Fixed Windows console window flashing during image loading operations
 - **v0.07g**: Added Recent Directories feature and GitHub Dark theme
