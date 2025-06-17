@@ -2045,17 +2045,17 @@ class MainWindow(QMainWindow):
         rotate_menu.addAction(rotate_ccw_action)
         
         # View menu
-        view_menu = menu_bar.addMenu("\&View")
+        view_menu = menu_bar.addMenu("&View")
         
         # Refresh action
-        refresh_action = QAction("\&Refresh", self)
+        refresh_action = QAction("&Refresh", self)
         refresh_action.setShortcut("F5")
         refresh_action.triggered.connect(self.on_refresh)
         view_menu.addAction(refresh_action)
         
         view_menu.addSeparator()
         
-        tags_action = QAction("\&View All Tags...", self)
+        tags_action = QAction("&View All Tags...", self)
         tags_action.triggered.connect(self.on_view_all_tags)
         view_menu.addAction(tags_action)
         
