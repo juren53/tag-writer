@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.07l] - 2025-06-18
 
+### Added
+- **Keyboard Shortcuts Documentation** - Added comprehensive keyboard shortcuts reference
+  - New KeyBoard-ShortCuts.md file with detailed shortcut listings
+  - Added "Keyboard Shortcuts" entry in Help menu for easy access
+  - Documentation includes navigation, editing, and viewer shortcuts
+  - Improved user experience with better keyboard control discovery
+
 ### Changed
 - **Modified Arrow Key Behavior** - Changed arrow key functionality for improved usability
   - Up/Down arrow keys now navigate between images (previous/next)
