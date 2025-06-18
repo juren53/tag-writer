@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07l] - 2025-06-18
+
+### Changed
+- **Modified Arrow Key Behavior** - Changed arrow key functionality for improved usability
+  - Up/Down arrow keys now navigate between images (previous/next)
+  - Left/Right arrow keys work for cursor movement in text fields
+  - More intuitive text editing experience while maintaining keyboard navigation
+  - Consistent behavior across all text fields and dialogs
+  - Enhanced user experience when editing metadata
+
 ## [0.07k] - 2025-06-17
 
 ### Fixed
