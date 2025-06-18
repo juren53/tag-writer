@@ -1049,34 +1049,18 @@ class MetadataPanel(QWidget):
     def eventFilter(self, watched, event):
         """Handle keyboard events in text fields to prevent arrow key propagation to main window."""
         if event.type() == event.Type.KeyPress and watched in self.text_fields:
-            # Handle arrow keys to prevent them from propagating to main window navigation
-            if event.key() in (Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down):
-                # Temporarily remove application-level event filter
-                app = QApplication.instance()
-                main_window = None
-                
-                # Find main window by traversing up the parent hierarchy
-                parent = self.parent()
-                while parent is not None:
-                    if hasattr(parent, 'eventFilter') and app.eventFilter == parent.eventFilter:
-                        main_window = parent
-                        break
-                    parent = parent.parent()
-                
-                # If we found the main window with the app-level event filter
-                if main_window is not None:
-                    # Temporarily remove main window's event filter
-                    app.removeEventFilter(main_window)
-                    
-                    # Let the text field handle the key press event normally
-                    # The event will be processed by the field without triggering navigation
-                    result = watched.event(event)
-                    
-                    # Restore main window's event filter
-                    app.installEventFilter(main_window)
-                    
-                    # Return true to indicate we've handled the event
-                    return True
+            # When a text field has focus and Up/Down arrow keys are pressed, we need to
+            # prevent the event from propagating to the application-level event filter
+            # which would otherwise navigate between images
+            if event.key() in (Qt.Key.Key_Up, Qt.Key.Key_Down):
+                # We need to handle the event here (return True) to prevent it from
+                # propagating to the application-level event filter, while still allowing
+                # the default text cursor movement behavior
+                event.accept()
+                # Process the event normally for the text field
+                watched.event(event)
+                # Return True to indicate we've handled the event and prevent propagation
+                return True
         
         # Pass all other events to the default handler
         return super().eventFilter(watched, event)
@@ -1765,9 +1749,9 @@ class FullImageViewer(QMainWindow):
             self.reset_zoom()
         elif event.key() == Qt.Key.Key_F:
             self.fit_to_window()
-        elif event.key() == Qt.Key.Key_Left:
+        elif event.key() == Qt.Key.Key_Up:
             self.navigate_previous()
-        elif event.key() == Qt.Key.Key_Right:
+        elif event.key() == Qt.Key.Key_Down:
             self.navigate_next()
         elif event.key() == Qt.Key.Key_Escape:
             self.close()  # Close window
@@ -2747,20 +2731,20 @@ class MainWindow(QMainWindow):
     def eventFilter(self, obj, event):
         """Application-level event filter to intercept arrow keys before they reach widgets."""
         if event.type() == event.Type.KeyPress:
-            if event.key() == Qt.Key.Key_Left:
+            if event.key() == Qt.Key.Key_Up:
                 self.on_previous()
                 return True  # Event handled, don't pass to widget
-            elif event.key() == Qt.Key.Key_Right:
+            elif event.key() == Qt.Key.Key_Down:
                 self.on_next()
                 return True  # Event handled, don't pass to widget
         return super().eventFilter(obj, event)
     
     def keyPressEvent(self, event):
         """Handle key press events for main window navigation."""
-        if event.key() == Qt.Key.Key_Left:
+        if event.key() == Qt.Key.Key_Up:
             self.on_previous()
             event.accept()  # Consume the event to prevent default behavior
-        elif event.key() == Qt.Key.Key_Right:
+        elif event.key() == Qt.Key.Key_Down:
             self.on_next()
             event.accept()  # Consume the event to prevent default behavior
         elif event.key() == Qt.Key.Key_F5:
