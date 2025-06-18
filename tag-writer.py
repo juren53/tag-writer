@@ -2131,6 +2131,11 @@ class MainWindow(QMainWindow):
         license_action.triggered.connect(self.on_license)
         help_menu.addAction(license_action)
         
+        # Keyboard shortcuts menu item
+        shortcuts_action = QAction("\u0026Keyboard Shortcuts", self)
+        shortcuts_action.triggered.connect(self.on_keyboard_shortcuts)
+        help_menu.addAction(shortcuts_action)
+        
     def create_toolbar(self):
         """Create the application toolbar."""
         toolbar = QToolBar()
@@ -2959,6 +2964,50 @@ class MainWindow(QMainWindow):
             "Permission is hereby granted, free of charge, to any person obtaining a copy "
             "of this software and associated documentation files..."
         )
+        
+    def on_keyboard_shortcuts(self):
+        """Show keyboard shortcuts documentation."""
+        shortcuts_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "KeyBoard-ShortCuts.md")
+        
+        if not os.path.exists(shortcuts_file):
+            QMessageBox.warning(self, "File Not Found", "Keyboard shortcuts documentation file not found.")
+            return
+            
+        try:
+            # Create a dialog to display the shortcuts
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Keyboard Shortcuts")
+            dialog.resize(600, 500)  # Larger size for better readability
+            
+            # Set window flags to include minimize, maximize, and close buttons
+            dialog.setWindowFlags(Qt.WindowType.Window | 
+                                Qt.WindowType.WindowMinimizeButtonHint | 
+                                Qt.WindowType.WindowMaximizeButtonHint | 
+                                Qt.WindowType.WindowCloseButtonHint)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Load markdown content
+            with open(shortcuts_file, 'r') as f:
+                markdown_content = f.read()
+            
+            # Display in a text edit with monospace font
+            text_edit = QTextEdit()
+            text_edit.setReadOnly(True)
+            font = QFont("Monospace")
+            text_edit.setFont(font)
+            text_edit.setMarkdown(markdown_content)
+            layout.addWidget(text_edit)
+            
+            # Close button
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.accept)
+            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+            
+            dialog.exec()
+        except Exception as e:
+            logger.error(f"Error displaying keyboard shortcuts: {e}")
+            QMessageBox.warning(self, "Error", f"Error displaying keyboard shortcuts: {str(e)}")
         
     def on_refresh(self):
         """Refresh the current image and metadata."""
