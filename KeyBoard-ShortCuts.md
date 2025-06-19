@@ -31,6 +31,12 @@ This document provides a comprehensive list of keyboard shortcuts available in T
 | **Ctrl+S** | Save metadata |
 | **Alt+F4** | Exit application |
 
+## Clipboard Operations
+
+| Menu Path | Action |
+|-----------|--------|
+| **Edit > Copy FQFN to Clipboard** | Copy Fully Qualified File Name (full path) to clipboard |
+
 ## Editing Operations
 
 | Shortcut | Action |
