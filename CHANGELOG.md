@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Provides easy access to the full file path for sharing or referencing
   - Confirmation message appears in status bar
   - Useful for integrating with other applications
+- **Open in Default Editor** - Added ability to open images in system's default editor
+  - Available via Ctrl+Shift+E keyboard shortcut
+  - Available in the Edit menu as "Open in Default Editor"
+  - Available in the image thumbnail context menu (right-click)
+  - Warning dialog explains potential metadata changes
+  - Improves workflow by allowing external image editing
 
 ### Changed
 - **Modified Arrow Key Behavior** - Changed arrow key functionality for improved usability
