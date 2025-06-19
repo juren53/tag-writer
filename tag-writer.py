@@ -1316,6 +1316,8 @@ class ImageViewer(QWidget):
         self.image_label = QLabel("No image loaded")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setMinimumSize(200, 200)
+        self.image_label.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.image_label.customContextMenuRequested.connect(self.show_context_menu)
         layout.addWidget(self.image_label)
         
         # View full image button
@@ -1478,6 +1480,39 @@ class ImageViewer(QWidget):
         self.current_image_path = None
         self.pil_image = None
         self.original_thumbnail = None
+    
+    def show_context_menu(self, position):
+        """Show context menu for the image thumbnail."""
+        if not self.current_image_path:
+            return
+            
+        # Find the main window to access its methods
+        main_window = None
+        parent = self.parent()
+        while parent is not None:
+            if hasattr(parent, 'on_open_in_default_editor'):
+                main_window = parent
+                break
+            parent = parent.parent()
+        
+        if main_window is None:
+            return
+            
+        # Create context menu
+        menu = QMenu(self)
+        
+        # Add actions
+        view_action = menu.addAction("View Full Image")
+        view_action.triggered.connect(self.on_view_full_image)
+        
+        edit_action = menu.addAction("Open in Default Editor (Ctrl+Shift+E)")
+        edit_action.triggered.connect(main_window.on_open_in_default_editor)
+        
+        copy_path_action = menu.addAction("Copy Path to Clipboard")
+        copy_path_action.triggered.connect(lambda: main_window.on_copy_path_to_clipboard())
+        
+        # Show menu at cursor position
+        menu.exec(self.image_label.mapToGlobal(position))
     
     def on_view_full_image(self):
         """Handle View Full Image button click."""
@@ -2010,6 +2045,14 @@ class MainWindow(QMainWindow):
         # Add splitter to main layout
         main_layout.addWidget(splitter)
         
+        # Set up context menu for image viewer
+        self.setup_image_context_menu()
+        
+    def setup_image_context_menu(self):
+        """Set up context menu for the image viewer."""
+        # The image viewer already has its context menu set up in its own class
+        pass
+    
     def create_menu_bar(self):
         """Create the application menu bar."""
         menu_bar = self.menuBar()
@@ -2079,6 +2122,13 @@ class MainWindow(QMainWindow):
         copy_path_action.triggered.connect(self.on_copy_path_to_clipboard)
         copy_path_action.setToolTip("Copy the Fully Qualified File Name to the clipboard")
         edit_menu.addAction(copy_path_action)
+        
+        # Open in default editor
+        open_editor_action = QAction("Open in \u0026Default Editor", self)
+        open_editor_action.triggered.connect(self.on_open_in_default_editor)
+        open_editor_action.setShortcut("Ctrl+Shift+E")
+        open_editor_action.setToolTip("Open the current image in your system's default image editor")
+        edit_menu.addAction(open_editor_action)
         
         # Add image rotation submenu
         edit_menu.addSeparator()
@@ -2491,6 +2541,48 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Error copying path to clipboard: {e}")
             QMessageBox.critical(self, "Error", f"Failed to copy path to clipboard: {str(e)}")
+            
+    def on_open_in_default_editor(self):
+        """Open the current image in the system's default image editor."""
+        if not config.selected_file:
+            QMessageBox.warning(self, "No File Selected", "Please select an image file first.")
+            return
+        
+        try:
+            # Show a warning about potential metadata changes
+            result = QMessageBox.information(
+                self, 
+                "Opening External Editor",
+                "The image will open in your default image editor.\n\n"
+                "Note: Changes made in external editors may affect metadata.\n"
+                "Consider refreshing the image (F5) after saving external changes.",
+                QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+            )
+            
+            if result != QMessageBox.StandardButton.Ok:
+                return
+                
+            # Use platform-specific method to open the file with default application
+            import subprocess
+            import platform
+            
+            system = platform.system()
+            
+            if system == "Windows":
+                # Windows - use the built-in 'start' command
+                os.startfile(config.selected_file)
+            elif system == "Darwin":  # macOS
+                # macOS - use 'open' command
+                subprocess.call(["open", config.selected_file])
+            else:  # Linux and other Unix-like systems
+                # Linux - use 'xdg-open' command
+                subprocess.call(["xdg-open", config.selected_file])
+                
+            self.status_label.setText(f"Opened {os.path.basename(config.selected_file)} in default editor")
+            
+        except Exception as e:
+            logger.error(f"Error opening file in default editor: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to open file in default editor: {str(e)}")
     
     def on_rename_file(self):
         """Handle Rename File action."""
