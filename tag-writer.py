@@ -2074,6 +2074,12 @@ class MainWindow(QMainWindow):
         rename_action.triggered.connect(self.on_rename_file)
         edit_menu.addAction(rename_action)
         
+        # Copy full path to clipboard
+        copy_path_action = QAction("Copy F\u0026QFN to Clipboard", self)
+        copy_path_action.triggered.connect(self.on_copy_path_to_clipboard)
+        copy_path_action.setToolTip("Copy the Fully Qualified File Name to the clipboard")
+        edit_menu.addAction(copy_path_action)
+        
         # Add image rotation submenu
         edit_menu.addSeparator()
         rotate_menu = edit_menu.addMenu("Rotate Image")
@@ -2468,6 +2474,23 @@ class MainWindow(QMainWindow):
         """Handle Set Today's Date action."""
         self.metadata_panel.set_today_date()
         self.status_label.setText("Date set to today")
+    
+    def on_copy_path_to_clipboard(self):
+        """Copy the fully qualified file name (full path) to the clipboard."""
+        if not config.selected_file:
+            QMessageBox.warning(self, "No File Selected", "Please select an image file first.")
+            return
+            
+        try:
+            # Get the clipboard from the application
+            clipboard = QApplication.clipboard()
+            # Set the text to the full path of the current file
+            clipboard.setText(config.selected_file)
+            # Update status bar with confirmation
+            self.status_label.setText(f"Full path copied to clipboard: {config.selected_file}")
+        except Exception as e:
+            logger.error(f"Error copying path to clipboard: {e}")
+            QMessageBox.critical(self, "Error", f"Failed to copy path to clipboard: {str(e)}")
     
     def on_rename_file(self):
         """Handle Rename File action."""
