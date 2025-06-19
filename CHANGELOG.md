@@ -13,6 +13,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07m] - 2025-06-19
+
+### Added
+- **Glossary in Help Menu** - Added quick access to terminology reference
+  - New Help menu option for the Glossary
+  - Links to comprehensive Docs/glossary.md file
+  - Provides definitions for IPTC, metadata, and technical terms
+  - Displayed in scrollable, searchable window
+
+### Changed
+- **Improved Help Menu Organization** - Reorganized the Help menu for better usability
+  - Reordered menu items: Help, User Guide, Glossary, Keyboard Shortcuts, About
+  - Removed separate License menu item
+  - Added License information to About dialog
+  - Improved User Guide display with proper markdown rendering
+
 ## [0.07l] - 2025-06-19
 
 ### Added
@@ -401,6 +417,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.07m**: Added Glossary to Help menu and improved Help menu organization
+- **v0.07l**: Added keyboard shortcuts documentation and improved keyboard control discovery
 - **v0.07k**: Fixed keyboard focus in metadata text fields for proper arrow key handling
 - **v0.07j**: Fixed keyboard focus in Rename File dialog to properly handle arrow keys
 - **v0.07i**: Added Refresh feature (F5 key and View menu) to reload current image and metadata
