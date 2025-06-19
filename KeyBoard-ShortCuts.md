@@ -37,6 +37,13 @@ This document provides a comprehensive list of keyboard shortcuts available in T
 |-----------|--------|
 | **Edit > Copy FQFN to Clipboard** | Copy Fully Qualified File Name (full path) to clipboard |
 
+## External Editing
+
+| Shortcut | Action |
+|----------|--------|
+| **Ctrl+Shift+E** | Open current image in default external editor |
+| **Right-click on image** | Context menu with option to open in default editor |
+
 ## Editing Operations
 
 | Shortcut | Action |
