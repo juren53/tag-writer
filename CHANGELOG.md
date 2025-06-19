@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
-## [0.07l] - 2025-06-18
+## [0.07l] - 2025-06-19
 
 ### Added
 - **Keyboard Shortcuts Documentation** - Added comprehensive keyboard shortcuts reference
@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added "Keyboard Shortcuts" entry in Help menu for easy access
   - Documentation includes navigation, editing, and viewer shortcuts
   - Improved user experience with better keyboard control discovery
+- **Copy FQFN to Clipboard** - Added ability to copy the Fully Qualified File Name to the clipboard
+  - Available in the Edit menu
+  - Provides easy access to the full file path for sharing or referencing
+  - Confirmation message appears in status bar
+  - Useful for integrating with other applications
 
 ### Changed
 - **Modified Arrow Key Behavior** - Changed arrow key functionality for improved usability
