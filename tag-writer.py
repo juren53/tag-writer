@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07l"
+        self.app_version = "0.07m"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -2025,7 +2025,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(self.path_label, 1)
         
         # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-18)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-19)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -2173,24 +2173,30 @@ class MainWindow(QMainWindow):
         view_menu.addAction(self.dark_mode_action)
         
         # Help menu
-        help_menu = menu_bar.addMenu("&Help")
+        help_menu = menu_bar.addMenu("\u0026Help")
         
-        about_action = QAction("&About", self)
-        about_action.triggered.connect(self.on_about)
-        help_menu.addAction(about_action)
-        
-        help_action = QAction("&Help", self)
+        help_action = QAction("\u0026Help", self)
         help_action.triggered.connect(self.on_help)
         help_menu.addAction(help_action)
         
-        license_action = QAction("&License", self)
-        license_action.triggered.connect(self.on_license)
-        help_menu.addAction(license_action)
+        # User Guide menu item
+        user_guide_action = QAction("\u0026User Guide", self)
+        user_guide_action.triggered.connect(self.on_user_guide)
+        help_menu.addAction(user_guide_action)
+        
+        # Glossary menu item
+        glossary_action = QAction("\u0026Glossary", self)
+        glossary_action.triggered.connect(self.on_glossary)
+        help_menu.addAction(glossary_action)
         
         # Keyboard shortcuts menu item
         shortcuts_action = QAction("\u0026Keyboard Shortcuts", self)
         shortcuts_action.triggered.connect(self.on_keyboard_shortcuts)
         help_menu.addAction(shortcuts_action)
+        
+        about_action = QAction("\u0026About", self)
+        about_action.triggered.connect(self.on_about)
+        help_menu.addAction(about_action)
         
     def create_toolbar(self):
         """Create the application toolbar."""
@@ -3055,7 +3061,9 @@ class MainWindow(QMainWindow):
             "About Tag Writer",
             f"Tag Writer version {config.app_version}\n\n"
             "A tool for editing image metadata\n\n"
-            "© 2023-2025"
+            "© 2023-2025\n\n"
+            "Licensed under MIT License\n"
+            "Click 'User Guide' in the Help menu for more information."
         )
     
     def on_help(self):
@@ -3070,15 +3078,95 @@ class MainWindow(QMainWindow):
             "4. Use the navigation buttons to move between images in a directory"
         )
     
-    def on_license(self):
-        """Show License dialog."""
-        QMessageBox.information(self,
-            "License Information",
-            "MIT License\n\n"
-            "Copyright (c) 2023-2025\n\n"
-            "Permission is hereby granted, free of charge, to any person obtaining a copy "
-            "of this software and associated documentation files..."
-        )
+    def on_user_guide(self):
+        """Show User Guide from the Docs/user-guide.md file."""
+        user_guide_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Docs", "user-guide.md")
+        
+        if not os.path.exists(user_guide_file):
+            QMessageBox.warning(self, "File Not Found", "User Guide documentation file not found.")
+            return
+            
+        try:
+            # Create a dialog to display the user guide
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Tag Writer User Guide")
+            dialog.resize(700, 600)  # Larger size for better readability
+            
+            # Set window flags to include minimize, maximize, and close buttons
+            dialog.setWindowFlags(Qt.WindowType.Window | 
+                                Qt.WindowType.WindowMinimizeButtonHint | 
+                                Qt.WindowType.WindowMaximizeButtonHint | 
+                                Qt.WindowType.WindowCloseButtonHint)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Load markdown content
+            with open(user_guide_file, 'r') as f:
+                markdown_content = f.read()
+            
+            # Display in a text edit with readable font
+            text_edit = QTextEdit()
+            text_edit.setReadOnly(True)
+            font = QFont()
+            font.setPointSize(10)
+            text_edit.setFont(font)
+            text_edit.setMarkdown(markdown_content)
+            layout.addWidget(text_edit)
+            
+            # Close button
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.accept)
+            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+            
+            dialog.exec()
+        except Exception as e:
+            logger.error(f"Error displaying user guide: {e}")
+            QMessageBox.warning(self, "Error", f"Error displaying user guide: {str(e)}")
+            
+    def on_glossary(self):
+        """Show Glossary from the Docs/glossary.md file."""
+        glossary_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Docs", "glossary.md")
+        
+        if not os.path.exists(glossary_file):
+            QMessageBox.warning(self, "File Not Found", "Glossary file not found.")
+            return
+            
+        try:
+            # Create a dialog to display the glossary
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Tag Writer Glossary")
+            dialog.resize(700, 600)  # Larger size for better readability
+            
+            # Set window flags to include minimize, maximize, and close buttons
+            dialog.setWindowFlags(Qt.WindowType.Window | 
+                                Qt.WindowType.WindowMinimizeButtonHint | 
+                                Qt.WindowType.WindowMaximizeButtonHint | 
+                                Qt.WindowType.WindowCloseButtonHint)
+            
+            layout = QVBoxLayout(dialog)
+            
+            # Load markdown content
+            with open(glossary_file, 'r') as f:
+                markdown_content = f.read()
+            
+            # Display in a text edit with readable font
+            text_edit = QTextEdit()
+            text_edit.setReadOnly(True)
+            font = QFont()
+            font.setPointSize(10)
+            text_edit.setFont(font)
+            text_edit.setMarkdown(markdown_content)
+            layout.addWidget(text_edit)
+            
+            # Close button
+            close_btn = QPushButton("Close")
+            close_btn.clicked.connect(dialog.accept)
+            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+            
+            dialog.exec()
+        except Exception as e:
+            logger.error(f"Error displaying glossary: {e}")
+            QMessageBox.warning(self, "Error", f"Error displaying glossary: {str(e)}")
         
     def on_keyboard_shortcuts(self):
         """Show keyboard shortcuts documentation."""
