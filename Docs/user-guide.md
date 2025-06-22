@@ -235,14 +235,14 @@ Please submit issues on our GitHub repository: https://github.com/yourusername/t
 
 ---
 
-This documentation is for Tag Writer version 0.07g. For the latest documentation, please visit our [GitHub repository](https://github.com/yourusername/tag-writer).
+This documentation is for Tag Writer version 0.07n. For the latest documentation, please visit our [GitHub repository](https://github.com/juren53/tag-writer).
 
-### Recent Changes in Version 0.07g
-- Added Recent Directories feature for quick folder access
-- Introduced GitHub Dark theme
-- Changed default theme to Dark for better user experience
-- Enhanced navigation workflow with directory tracking
-- Improved theme selection with real-time preview
+### Recent Changes in Version 0.07n
+- Added Additional Info field for contact information and URLs using IPTC:Contact
+- Enhanced Help menu with local file priority and GitHub URL fallback
+- Improved User Guide and Glossary access with automatic fallback system
+- Better error handling and user feedback for documentation access
+- Full integration of Additional Info field with all existing functionality
 
 For complete version history, see the [CHANGELOG.md](../CHANGELOG.md) file.
 
