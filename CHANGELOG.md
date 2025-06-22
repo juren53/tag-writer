@@ -13,6 +13,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07n] - 2025-06-22
+
+### Added
+- **Additional Info Field** - New metadata field for contact information and URLs
+  - Located under Copyright Notice in the main UI
+  - Uses IPTC:Contact metadata field for storage
+  - Fully integrated with all existing functionality (save/load, import/export, clear fields)
+  - Supports keyboard navigation and focus handling
+  - Perfect for storing URLs, contact information, or additional references
+
+### Enhanced
+- **Help Menu Fallback System** - Improved Help and Glossary menu functionality
+  - User Guide and Glossary now check for local files first
+  - Automatically falls back to GitHub URLs when local documentation not found
+  - Local files displayed in formatted dialog windows when available
+  - GitHub URLs: User Guide and Glossary open in default web browser as fallback
+  - Seamless experience whether documentation is local or remote
+  - Enhanced error handling with informative user feedback
+
+### Technical
+- Added Contact field mapping to MetadataManager with IPTC:Contact and XMP:Contact support
+- Enhanced UI layout with proper field ordering and keyboard focus integration
+- Implemented fallback URL system for Help menu items with webbrowser module integration
+- Updated all metadata operations to include the new Additional Info field
+- Improved error handling for documentation access with graceful degradation
+
 ## [0.07m] - 2025-06-19
 
 ### Added

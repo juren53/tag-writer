@@ -349,7 +349,8 @@ class MetadataManager:
             'By-lineTitle': ['IPTC:By-lineTitle', 'XMP:AuthorsPosition', 'XMP-photoshop:AuthorsPosition'],
             'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
             'DateCreated': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
-            'CopyrightNotice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright']
+            'CopyrightNotice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright'],
+            'Contact': ['IPTC:Contact', 'XMP:Contact']
         }
     
     def load_from_file(self, file_path):
@@ -1017,11 +1018,14 @@ class MetadataPanel(QWidget):
         self.copyright = QLineEdit()
         form.addRow("Copyright Notice:", self.copyright)
         
+        self.additional_info = QLineEdit()
+        form.addRow("Additional Info:", self.additional_info)
+        
         # Add all text fields to the tracking list for keyboard focus handling
         self.text_fields.extend([
             self.credit, self.object_name, self.writer, 
             self.byline, self.byline_title, self.source, 
-            self.date, self.copyright
+            self.date, self.copyright, self.additional_info
         ])
         # Add caption to tracking list (it's a QTextEdit, not a QLineEdit)
         self.text_fields.append(self.caption)
@@ -1078,7 +1082,8 @@ class MetadataPanel(QWidget):
             "By-lineTitle": self.byline_title,
             "Source": self.source,
             "DateCreated": self.date,
-            "Copyright Notice": self.copyright
+            "Copyright Notice": self.copyright,
+            "Contact": self.additional_info
         }
         
         # Special handling for copyright notice - check multiple field names
@@ -1115,7 +1120,8 @@ class MetadataPanel(QWidget):
             "By-lineTitle": self.byline_title.text(),
             "Source": self.source.text(),
             "DateCreated": self.date.text(),
-            "CopyrightNotice": self.copyright.text()  # Use correct IPTC field name
+            "CopyrightNotice": self.copyright.text(),  # Use correct IPTC field name
+            "Contact": self.additional_info.text()
         }
         
         # Update metadata manager
@@ -1164,6 +1170,7 @@ class MetadataPanel(QWidget):
         self.source.clear()
         self.date.clear()
         self.copyright.clear()
+        self.additional_info.clear()
         
         # Reset character count
         self.update_char_count()
@@ -3079,94 +3086,112 @@ class MainWindow(QMainWindow):
         )
     
     def on_user_guide(self):
-        """Show User Guide from the Docs/user-guide.md file."""
+        """Show User Guide from local file or GitHub URL if not found locally."""
         user_guide_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Docs", "user-guide.md")
         
-        if not os.path.exists(user_guide_file):
-            QMessageBox.warning(self, "File Not Found", "User Guide documentation file not found.")
-            return
-            
+        # Try to open local file first
+        if os.path.exists(user_guide_file):
+            try:
+                # Create a dialog to display the user guide
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Tag Writer User Guide")
+                dialog.resize(700, 600)  # Larger size for better readability
+                
+                # Set window flags to include minimize, maximize, and close buttons
+                dialog.setWindowFlags(Qt.WindowType.Window | 
+                                    Qt.WindowType.WindowMinimizeButtonHint | 
+                                    Qt.WindowType.WindowMaximizeButtonHint | 
+                                    Qt.WindowType.WindowCloseButtonHint)
+                
+                layout = QVBoxLayout(dialog)
+                
+                # Load markdown content
+                with open(user_guide_file, 'r') as f:
+                    markdown_content = f.read()
+                
+                # Display in a text edit with readable font
+                text_edit = QTextEdit()
+                text_edit.setReadOnly(True)
+                font = QFont()
+                font.setPointSize(10)
+                text_edit.setFont(font)
+                text_edit.setMarkdown(markdown_content)
+                layout.addWidget(text_edit)
+                
+                # Close button
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(dialog.accept)
+                layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+                
+                dialog.exec()
+                return
+            except Exception as e:
+                logger.error(f"Error displaying local user guide: {e}")
+                # Fall through to GitHub URL
+        
+        # If local file doesn't exist or failed to open, open GitHub URL
+        import webbrowser
+        user_guide_url = "https://github.com/juren53/tag-writer/blob/main/Docs/user-guide.md"
+        
         try:
-            # Create a dialog to display the user guide
-            dialog = QDialog(self)
-            dialog.setWindowTitle("Tag Writer User Guide")
-            dialog.resize(700, 600)  # Larger size for better readability
-            
-            # Set window flags to include minimize, maximize, and close buttons
-            dialog.setWindowFlags(Qt.WindowType.Window | 
-                                Qt.WindowType.WindowMinimizeButtonHint | 
-                                Qt.WindowType.WindowMaximizeButtonHint | 
-                                Qt.WindowType.WindowCloseButtonHint)
-            
-            layout = QVBoxLayout(dialog)
-            
-            # Load markdown content
-            with open(user_guide_file, 'r') as f:
-                markdown_content = f.read()
-            
-            # Display in a text edit with readable font
-            text_edit = QTextEdit()
-            text_edit.setReadOnly(True)
-            font = QFont()
-            font.setPointSize(10)
-            text_edit.setFont(font)
-            text_edit.setMarkdown(markdown_content)
-            layout.addWidget(text_edit)
-            
-            # Close button
-            close_btn = QPushButton("Close")
-            close_btn.clicked.connect(dialog.accept)
-            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
-            
-            dialog.exec()
+            webbrowser.open(user_guide_url)
         except Exception as e:
-            logger.error(f"Error displaying user guide: {e}")
-            QMessageBox.warning(self, "Error", f"Error displaying user guide: {str(e)}")
+            logger.error(f"Error opening user guide URL: {e}")
+            QMessageBox.warning(self, "Error", f"Error opening user guide: {str(e)}\n\nURL: {user_guide_url}")
             
     def on_glossary(self):
-        """Show Glossary from the Docs/glossary.md file."""
+        """Show Glossary from local file or GitHub URL if not found locally."""
         glossary_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Docs", "glossary.md")
         
-        if not os.path.exists(glossary_file):
-            QMessageBox.warning(self, "File Not Found", "Glossary file not found.")
-            return
-            
+        # Try to open local file first
+        if os.path.exists(glossary_file):
+            try:
+                # Create a dialog to display the glossary
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Tag Writer Glossary")
+                dialog.resize(700, 600)  # Larger size for better readability
+                
+                # Set window flags to include minimize, maximize, and close buttons
+                dialog.setWindowFlags(Qt.WindowType.Window | 
+                                    Qt.WindowType.WindowMinimizeButtonHint | 
+                                    Qt.WindowType.WindowMaximizeButtonHint | 
+                                    Qt.WindowType.WindowCloseButtonHint)
+                
+                layout = QVBoxLayout(dialog)
+                
+                # Load markdown content
+                with open(glossary_file, 'r') as f:
+                    markdown_content = f.read()
+                
+                # Display in a text edit with readable font
+                text_edit = QTextEdit()
+                text_edit.setReadOnly(True)
+                font = QFont()
+                font.setPointSize(10)
+                text_edit.setFont(font)
+                text_edit.setMarkdown(markdown_content)
+                layout.addWidget(text_edit)
+                
+                # Close button
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(dialog.accept)
+                layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+                
+                dialog.exec()
+                return
+            except Exception as e:
+                logger.error(f"Error displaying local glossary: {e}")
+                # Fall through to GitHub URL
+        
+        # If local file doesn't exist or failed to open, open GitHub URL
+        import webbrowser
+        glossary_url = "https://github.com/juren53/tag-writer/blob/main/Docs/glossary.md"
+        
         try:
-            # Create a dialog to display the glossary
-            dialog = QDialog(self)
-            dialog.setWindowTitle("Tag Writer Glossary")
-            dialog.resize(700, 600)  # Larger size for better readability
-            
-            # Set window flags to include minimize, maximize, and close buttons
-            dialog.setWindowFlags(Qt.WindowType.Window | 
-                                Qt.WindowType.WindowMinimizeButtonHint | 
-                                Qt.WindowType.WindowMaximizeButtonHint | 
-                                Qt.WindowType.WindowCloseButtonHint)
-            
-            layout = QVBoxLayout(dialog)
-            
-            # Load markdown content
-            with open(glossary_file, 'r') as f:
-                markdown_content = f.read()
-            
-            # Display in a text edit with readable font
-            text_edit = QTextEdit()
-            text_edit.setReadOnly(True)
-            font = QFont()
-            font.setPointSize(10)
-            text_edit.setFont(font)
-            text_edit.setMarkdown(markdown_content)
-            layout.addWidget(text_edit)
-            
-            # Close button
-            close_btn = QPushButton("Close")
-            close_btn.clicked.connect(dialog.accept)
-            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
-            
-            dialog.exec()
+            webbrowser.open(glossary_url)
         except Exception as e:
-            logger.error(f"Error displaying glossary: {e}")
-            QMessageBox.warning(self, "Error", f"Error displaying glossary: {str(e)}")
+            logger.error(f"Error opening glossary URL: {e}")
+            QMessageBox.warning(self, "Error", f"Error opening glossary: {str(e)}\n\nURL: {glossary_url}")
         
     def on_keyboard_shortcuts(self):
         """Show keyboard shortcuts documentation."""
@@ -3238,7 +3263,8 @@ class MainWindow(QMainWindow):
             "byline_title": self.metadata_panel.byline_title,
             "source": self.metadata_panel.source,
             "date": self.metadata_panel.date,
-            "copyright": self.metadata_panel.copyright
+            "copyright": self.metadata_panel.copyright,
+            "additional_info": self.metadata_panel.additional_info
         }
         
         # Store cursor positions and selections for all text fields
