@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-# Tag Writer - IPTC Metadata Editor v0.07l
+# Tag Writer - IPTC Metadata Editor v0.07n
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07m"
+        self.app_version = "0.07n"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
