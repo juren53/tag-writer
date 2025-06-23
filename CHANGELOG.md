@@ -13,6 +13,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07o] - 2025-06-23
+
+### Enhanced
+- **Set Today's Date Menu Function** - Improved functionality for date management
+  - 'Set Today's Date' in Edit menu now targets the Date Modified field instead of Date Created
+  - More logical workflow: Date Created represents original capture date, Date Modified represents processing date
+  - Maintains YYYY:MM:DD format compatible with IPTC standards
+  - Proper integration with EXIF:ModifyDate metadata field
+  - Enhanced user experience with contextually appropriate date setting
+
+### Changed
+- **Menu Action Behavior** - 'Set Today's Date' function redirected to Date Modified field
+  - Previous behavior: Set Date Created field to today's date
+  - New behavior: Set Date Modified field to today's date
+  - Updated logging and status messages to reflect the change
+  - Better semantic alignment with typical metadata workflow
+
+### Technical
+- Modified `set_today_date()` method in MetadataPanel class
+- Updated method documentation and logging messages
+- Maintained backward compatibility with existing date formatting
+- Enhanced user feedback through status bar updates
+
 ## [0.07n] - 2025-06-22/23
 
 ### Added
