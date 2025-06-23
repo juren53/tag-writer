@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
-## [0.07n] - 2025-06-22
+## [0.07n] - 2025-06-22/23
 
 ### Added
 - **Additional Info Field** - New metadata field for contact information and URLs
@@ -23,7 +23,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports keyboard navigation and focus handling
   - Perfect for storing URLs, contact information, or additional references
 
+- **Date Modified Field** - New metadata field for tracking image modification dates
+  - Reads from EXIF:ModifyDate, EXIF:FileModifyDate, and XMP:ModifyDate
+  - Positioned on same line as Writer/Editor field for efficient space usage
+  - Automatically populated from image metadata when available
+  - Fully integrated with all metadata operations
+
 ### Enhanced
+- **Optimized UI Layout** - Improved screen real estate utilization
+  - Date Created and Source fields now share the same horizontal line
+  - Date Modified and Writer/Editor fields positioned together at bottom
+  - Proper label alignment with consistent spacing and professional appearance
+  - Compact field widths for date fields (120px) with labels properly sized
+  - More efficient use of vertical space in metadata panel
+
 - **Help Menu Fallback System** - Improved Help and Glossary menu functionality
   - User Guide and Glossary now check for local files first
   - Automatically falls back to GitHub URLs when local documentation not found
@@ -34,10 +47,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical
 - Added Contact field mapping to MetadataManager with IPTC:Contact and XMP:Contact support
+- Added DateModified field mapping with EXIF:ModifyDate, EXIF:FileModifyDate, XMP:ModifyDate support
+- Implemented horizontal layout containers for paired fields (Date Created+Source, Date Modified+Writer/Editor)
 - Enhanced UI layout with proper field ordering and keyboard focus integration
+- Updated all metadata operations to include new Additional Info and Date Modified fields
 - Implemented fallback URL system for Help menu items with webbrowser module integration
-- Updated all metadata operations to include the new Additional Info field
 - Improved error handling for documentation access with graceful degradation
+- Enhanced form layout with QHBoxLayout for space-efficient field pairing
 
 ## [0.07m] - 2025-06-19
 
