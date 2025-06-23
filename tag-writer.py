@@ -1678,11 +1678,13 @@ class FullImageViewer(QMainWindow):
         controls_layout.setSpacing(10)
         
         # Navigation controls
-        self.nav_prev_btn = QPushButton("◀ Previous")
+        self.nav_prev_btn = QPushButton("◀ Prev")
+        self.nav_prev_btn.setMaximumWidth(60)
         self.nav_prev_btn.clicked.connect(self.navigate_previous)
         controls_layout.addWidget(self.nav_prev_btn)
         
         self.nav_next_btn = QPushButton("Next ▶")
+        self.nav_next_btn.setMaximumWidth(60)
         self.nav_next_btn.clicked.connect(self.navigate_next)
         controls_layout.addWidget(self.nav_next_btn)
         
@@ -1695,7 +1697,7 @@ class FullImageViewer(QMainWindow):
         
         # Zoom controls
         zoom_out_btn = QPushButton("-")
-        zoom_out_btn.setFixedWidth(30)
+        zoom_out_btn.setFixedSize(25, 25)
         zoom_out_btn.clicked.connect(lambda: self.zoom(-self.zoom_step))
         controls_layout.addWidget(zoom_out_btn)
         
@@ -1703,15 +1705,17 @@ class FullImageViewer(QMainWindow):
         controls_layout.addWidget(self.zoom_label)
         
         zoom_in_btn = QPushButton("+")
-        zoom_in_btn.setFixedWidth(30)
+        zoom_in_btn.setFixedSize(25, 25)
         zoom_in_btn.clicked.connect(lambda: self.zoom(self.zoom_step))
         controls_layout.addWidget(zoom_in_btn)
         
-        reset_zoom_btn = QPushButton("Reset Zoom")
+        reset_zoom_btn = QPushButton("Reset")
+        reset_zoom_btn.setMaximumWidth(50)
         reset_zoom_btn.clicked.connect(self.reset_zoom)
         controls_layout.addWidget(reset_zoom_btn)
         
-        fit_btn = QPushButton("Fit to Window")
+        fit_btn = QPushButton("Fit")
+        fit_btn.setMaximumWidth(40)
         fit_btn.clicked.connect(self.fit_to_window)
         controls_layout.addWidget(fit_btn)
         
