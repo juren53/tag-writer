@@ -235,14 +235,15 @@ Please submit issues on our GitHub repository: https://github.com/yourusername/t
 
 ---
 
-This documentation is for Tag Writer version 0.07n. For the latest documentation, please visit our [GitHub repository](https://github.com/juren53/tag-writer).
+This documentation is for Tag Writer version 0.07o. For the latest documentation, please visit our [GitHub repository](https://github.com/juren53/tag-writer).
 
-### Recent Changes in Version 0.07n
-- Added Additional Info field for contact information and URLs using IPTC:Contact
-- Enhanced Help menu with local file priority and GitHub URL fallback
-- Improved User Guide and Glossary access with automatic fallback system
-- Better error handling and user feedback for documentation access
-- Full integration of Additional Info field with all existing functionality
+### Recent Changes in Version 0.07o
+- Enhanced 'Set Today's Date' menu function to target Date Modified field instead of Date Created
+- Added Date Modified field for tracking image modification dates using EXIF:ModifyDate
+- Optimized UI layout with Date Created + Source fields on same line
+- Date Modified + Writer/Editor fields positioned together for efficient space usage
+- Improved logical workflow: Date Created for original capture, Date Modified for processing dates
+- Better semantic alignment with typical metadata workflow practices
 
 For complete version history, see the [CHANGELOG.md](../CHANGELOG.md) file.
 
