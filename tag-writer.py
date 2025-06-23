@@ -349,6 +349,7 @@ class MetadataManager:
             'By-lineTitle': ['IPTC:By-lineTitle', 'XMP:AuthorsPosition', 'XMP-photoshop:AuthorsPosition'],
             'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
             'DateCreated': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
+            'DateModified': ['EXIF:ModifyDate', 'EXIF:FileModifyDate', 'XMP:ModifyDate'],
             'CopyrightNotice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright'],
             'Contact': ['IPTC:Contact', 'XMP:Contact']
         }
@@ -1000,20 +1001,46 @@ class MetadataPanel(QWidget):
         self.object_name = QLineEdit()
         form.addRow("Object Name:", self.object_name)
         
-        self.writer = QLineEdit()
-        form.addRow("Writer/Editor:", self.writer)
-        
         self.byline = QLineEdit()
         form.addRow("By-line:", self.byline)
         
         self.byline_title = QLineEdit()
         form.addRow("By-line Title:", self.byline_title)
         
-        self.source = QLineEdit()
-        form.addRow("Source:", self.source)
+        # Create horizontal layout for Date Created and Source on same line
+        date_source_container = QWidget()
+        date_source_layout = QHBoxLayout(date_source_container)
+        date_source_layout.setContentsMargins(0, 0, 0, 0)
+        date_source_layout.setSpacing(10)
         
+        # Date Created field with label
+        date_widget = QWidget()
+        date_widget_layout = QHBoxLayout(date_widget)
+        date_widget_layout.setContentsMargins(0, 0, 0, 0)
+        date_widget_layout.setSpacing(5)
+        date_label = QLabel("Date Created:")
+        date_label.setMinimumWidth(90)
         self.date = QLineEdit()
-        form.addRow("Date Created:", self.date)
+        self.date.setMaximumWidth(120)
+        date_widget_layout.addWidget(date_label)
+        date_widget_layout.addWidget(self.date)
+        
+        # Source field with label
+        source_widget = QWidget()
+        source_widget_layout = QHBoxLayout(source_widget)
+        source_widget_layout.setContentsMargins(0, 0, 0, 0)
+        source_widget_layout.setSpacing(5)
+        source_label = QLabel("Source:")
+        source_label.setMinimumWidth(50)
+        self.source = QLineEdit()
+        source_widget_layout.addWidget(source_label)
+        source_widget_layout.addWidget(self.source)
+        
+        # Add both widgets to the horizontal layout
+        date_source_layout.addWidget(date_widget)
+        date_source_layout.addWidget(source_widget)
+        
+        form.addRow("", date_source_container)
         
         self.copyright = QLineEdit()
         form.addRow("Copyright Notice:", self.copyright)
@@ -1021,11 +1048,46 @@ class MetadataPanel(QWidget):
         self.additional_info = QLineEdit()
         form.addRow("Additional Info:", self.additional_info)
         
+        # Create horizontal layout for Date Modified and Writer/Editor on same line
+        date_writer_container = QWidget()
+        date_writer_layout = QHBoxLayout(date_writer_container)
+        date_writer_layout.setContentsMargins(0, 0, 0, 0)
+        date_writer_layout.setSpacing(10)
+        
+        # Date Modified field with label
+        date_mod_widget = QWidget()
+        date_mod_widget_layout = QHBoxLayout(date_mod_widget)
+        date_mod_widget_layout.setContentsMargins(0, 0, 0, 0)
+        date_mod_widget_layout.setSpacing(5)
+        date_mod_label = QLabel("Date Modified:")
+        date_mod_label.setMinimumWidth(90)
+        self.date_modified = QLineEdit()
+        self.date_modified.setMaximumWidth(120)
+        date_mod_widget_layout.addWidget(date_mod_label)
+        date_mod_widget_layout.addWidget(self.date_modified)
+        
+        # Writer/Editor field with label
+        writer_widget = QWidget()
+        writer_widget_layout = QHBoxLayout(writer_widget)
+        writer_widget_layout.setContentsMargins(0, 0, 0, 0)
+        writer_widget_layout.setSpacing(5)
+        writer_label = QLabel("Writer/Editor:")
+        writer_label.setMinimumWidth(90)
+        self.writer = QLineEdit()
+        writer_widget_layout.addWidget(writer_label)
+        writer_widget_layout.addWidget(self.writer)
+        
+        # Add both widgets to the horizontal layout
+        date_writer_layout.addWidget(date_mod_widget)
+        date_writer_layout.addWidget(writer_widget)
+        
+        form.addRow("", date_writer_container)
+        
         # Add all text fields to the tracking list for keyboard focus handling
         self.text_fields.extend([
             self.credit, self.object_name, self.writer, 
             self.byline, self.byline_title, self.source, 
-            self.date, self.copyright, self.additional_info
+            self.date, self.copyright, self.additional_info, self.date_modified
         ])
         # Add caption to tracking list (it's a QTextEdit, not a QLineEdit)
         self.text_fields.append(self.caption)
@@ -1082,6 +1144,7 @@ class MetadataPanel(QWidget):
             "By-lineTitle": self.byline_title,
             "Source": self.source,
             "DateCreated": self.date,
+            "DateModified": self.date_modified,
             "Copyright Notice": self.copyright,
             "Contact": self.additional_info
         }
@@ -1120,6 +1183,7 @@ class MetadataPanel(QWidget):
             "By-lineTitle": self.byline_title.text(),
             "Source": self.source.text(),
             "DateCreated": self.date.text(),
+            "DateModified": self.date_modified.text(),
             "CopyrightNotice": self.copyright.text(),  # Use correct IPTC field name
             "Contact": self.additional_info.text()
         }
@@ -1171,15 +1235,16 @@ class MetadataPanel(QWidget):
         self.date.clear()
         self.copyright.clear()
         self.additional_info.clear()
+        self.date_modified.clear()
         
         # Reset character count
         self.update_char_count()
         
     def set_today_date(self):
-        """Set the date field to today's date."""
+        """Set the date modified field to today's date."""
         today = datetime.now().strftime("%Y:%m:%d")
-        self.date.setText(today)
-        logger.info(f"Set date field to today: {today}")
+        self.date_modified.setText(today)
+        logger.info(f"Set date modified field to today: {today}")
     
     def on_write_metadata(self):
         """Handle Write Metadata button click."""
@@ -3264,7 +3329,8 @@ class MainWindow(QMainWindow):
             "source": self.metadata_panel.source,
             "date": self.metadata_panel.date,
             "copyright": self.metadata_panel.copyright,
-            "additional_info": self.metadata_panel.additional_info
+            "additional_info": self.metadata_panel.additional_info,
+            "date_modified": self.metadata_panel.date_modified
         }
         
         # Store cursor positions and selections for all text fields
