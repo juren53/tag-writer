@@ -1,0 +1,4 @@
+Let's change tactics in the use of the arrow keys in tag-writer.py.  Let's modify the code to use the up and down arrow keys to move to the next or previous image in the CWD like the buttons in the tool bar at the top of the UI.  That will allow the use of the left and right arrow keys for moving the cursor while editing text in the various text dialog boxes in the application.
+
+
+A
