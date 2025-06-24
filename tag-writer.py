@@ -61,6 +61,8 @@ class Config:
         self.dark_mode = False
         self.ui_zoom_factor = 1.0
         self.current_theme = 'Dark'
+        self.window_geometry = None  # Store window position and size
+        self.window_maximized = False  # Store window maximized state
         self.config_file = os.path.join(os.path.expanduser("~"), ".tag_writer_config.json")
         
         # Load configuration on startup
@@ -97,7 +99,9 @@ class Config:
                 'dark_mode': self.dark_mode,
                 'ui_zoom_factor': self.ui_zoom_factor,
                 'current_theme': self.current_theme,
-                'selected_file': self.selected_file
+                'selected_file': self.selected_file,
+                'window_geometry': self.window_geometry,
+                'window_maximized': self.window_maximized
             }
             with open(self.config_file, 'w') as f:
                 json.dump(config_data, f)
@@ -119,6 +123,8 @@ class Config:
                 self.ui_zoom_factor = config_data.get('ui_zoom_factor', 1.0)
                 self.current_theme = config_data.get('current_theme', 'Dark')
                 self.selected_file = config_data.get('selected_file', None)
+                self.window_geometry = config_data.get('window_geometry', None)
+                self.window_maximized = config_data.get('window_maximized', False)
                 
                 logger.debug(f"Configuration loaded from {self.config_file}")
         except Exception as e:
@@ -826,6 +832,106 @@ class ThemeManager:
             color: {theme['text']};
             border: 1px solid {theme['border']};
             padding: 4px;
+        }}
+        
+        /* Scroll Bars - Enhanced visibility */
+        QScrollBar:vertical {{
+            background-color: {theme['background']};
+            width: 16px;
+            border: 1px solid {theme['border']};
+            border-radius: 0px;
+        }}
+        
+        QScrollBar::handle:vertical {{
+            background-color: {theme['button_bg']};
+            border: 1px solid {theme['selection_bg']};
+            border-radius: 3px;
+            min-height: 20px;
+        }}
+        
+        QScrollBar::handle:vertical:hover {{
+            background-color: {theme['selection_bg']};
+            border: 1px solid {theme['selection_text']};
+        }}
+        
+        QScrollBar::handle:vertical:pressed {{
+            background-color: {theme['selection_bg']};
+            border: 2px solid {theme['selection_text']};
+        }}
+        
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{
+            background-color: {theme['toolbar_bg']};
+            border: 1px solid {theme['border']};
+            height: 16px;
+            subcontrol-origin: margin;
+        }}
+        
+        QScrollBar::add-line:vertical:hover, QScrollBar::sub-line:vertical:hover {{
+            background-color: {theme['button_hover']};
+        }}
+        
+        QScrollBar::up-arrow:vertical {{
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-bottom: 6px solid {theme['text']};
+        }}
+        
+        QScrollBar::down-arrow:vertical {{
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 6px solid {theme['text']};
+        }}
+        
+        QScrollBar:horizontal {{
+            background-color: {theme['background']};
+            height: 16px;
+            border: 1px solid {theme['border']};
+            border-radius: 0px;
+        }}
+        
+        QScrollBar::handle:horizontal {{
+            background-color: {theme['button_bg']};
+            border: 1px solid {theme['selection_bg']};
+            border-radius: 3px;
+            min-width: 20px;
+        }}
+        
+        QScrollBar::handle:horizontal:hover {{
+            background-color: {theme['selection_bg']};
+            border: 1px solid {theme['selection_text']};
+        }}
+        
+        QScrollBar::handle:horizontal:pressed {{
+            background-color: {theme['selection_bg']};
+            border: 2px solid {theme['selection_text']};
+        }}
+        
+        QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {{
+            background-color: {theme['toolbar_bg']};
+            border: 1px solid {theme['border']};
+            width: 16px;
+            subcontrol-origin: margin;
+        }}
+        
+        QScrollBar::add-line:horizontal:hover, QScrollBar::sub-line:horizontal:hover {{
+            background-color: {theme['button_hover']};
+        }}
+        
+        QScrollBar::left-arrow:horizontal {{
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+            border-right: 6px solid {theme['text']};
+        }}
+        
+        QScrollBar::right-arrow:horizontal {{
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+            border-left: 6px solid {theme['text']};
+        }}
+        
+        QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
+        QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {{
+            background: transparent;
         }}
         """
 
@@ -2069,6 +2175,9 @@ class MainWindow(QMainWindow):
         
         # Apply saved UI zoom factor
         self.apply_ui_zoom()
+        
+        # Restore window geometry from saved config
+        self.restore_window_geometry()
         
         logger.info("Main window initialized")
         
@@ -3432,9 +3541,62 @@ class MainWindow(QMainWindow):
         logger.info(f"Loaded file: {file_path}")
         return True
     
+    def save_window_geometry(self):
+        """Save the current window geometry and state to config."""
+        try:
+            # Save window geometry as a list [x, y, width, height]
+            geometry = self.geometry()
+            config.window_geometry = [geometry.x(), geometry.y(), geometry.width(), geometry.height()]
+            
+            # Save window maximized state
+            config.window_maximized = self.isMaximized()
+            
+            # Save configuration
+            config.save_config()
+            
+            logger.debug(f"Window geometry saved: {config.window_geometry}, maximized: {config.window_maximized}")
+        except Exception as e:
+            logger.error(f"Error saving window geometry: {e}")
+    
+    def restore_window_geometry(self):
+        """Restore window geometry and state from config."""
+        try:
+            if config.window_geometry and len(config.window_geometry) == 4:
+                x, y, width, height = config.window_geometry
+                
+                # Ensure the window position is on screen (basic validation)
+                from PyQt6.QtGui import QGuiApplication
+                screen_geometry = QGuiApplication.primaryScreen().geometry()
+                
+                # Clamp position to screen bounds
+                x = max(0, min(x, screen_geometry.width() - width))
+                y = max(0, min(y, screen_geometry.height() - height))
+                
+                # Ensure minimum size
+                width = max(600, width)
+                height = max(400, height)
+                
+                # Set the geometry
+                self.setGeometry(x, y, width, height)
+                
+                # Restore maximized state if it was maximized
+                if config.window_maximized:
+                    self.showMaximized()
+                
+                logger.debug(f"Window geometry restored: {[x, y, width, height]}, maximized: {config.window_maximized}")
+            else:
+                logger.debug("No saved window geometry found, using default size")
+        except Exception as e:
+            logger.error(f"Error restoring window geometry: {e}")
+            # Fall back to default size if restoration fails
+            self.resize(1000, 600)
+    
     def cleanup_resources(self):
         """Clean up resources before closing."""
         try:
+            # Save window geometry before closing
+            self.save_window_geometry()
+            
             # Save current configuration
             config.save_config()
             
