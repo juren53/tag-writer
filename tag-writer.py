@@ -429,10 +429,17 @@ class MetadataManager:
             with et_instance as et:
                 args = []
                 
-                # Add each metadata field
+                # Add each metadata field using correct ExifTool tags
                 for field_name, value in self.metadata.items():
                     if value:  # Only write non-empty values
-                        args.extend([f"-{field_name}={value}"])
+                        # Get the primary ExifTool tag for this field
+                        if field_name in self.field_mappings:
+                            # Use the first (primary) tag from the mapping
+                            exiftool_tag = self.field_mappings[field_name][0]
+                            args.extend([f"-{exiftool_tag}={value}"])
+                        else:
+                            # Fallback to using field name directly (for backward compatibility)
+                            args.extend([f"-{field_name}={value}"])
                 
                 if not args:
                     return True  # Nothing to write
