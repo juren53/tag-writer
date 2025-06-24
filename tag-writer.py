@@ -1120,33 +1120,21 @@ class MetadataPanel(QWidget):
         date_source_layout.setSpacing(10)
         
         # Date Created field with label
-        date_widget = QWidget()
-        date_widget_layout = QHBoxLayout(date_widget)
-        date_widget_layout.setContentsMargins(0, 0, 0, 0)
-        date_widget_layout.setSpacing(5)
         date_label = QLabel("Date Created:")
         date_label.setMinimumWidth(90)
         self.date = QLineEdit()
         self.date.setMaximumWidth(120)
-        date_widget_layout.addWidget(date_label)
-        date_widget_layout.addWidget(self.date)
+        date_source_layout.addWidget(date_label)
+        date_source_layout.addWidget(self.date)
         
         # Source field with label
-        source_widget = QWidget()
-        source_widget_layout = QHBoxLayout(source_widget)
-        source_widget_layout.setContentsMargins(0, 0, 0, 0)
-        source_widget_layout.setSpacing(5)
         source_label = QLabel("Source:")
         source_label.setMinimumWidth(50)
         self.source = QLineEdit()
-        source_widget_layout.addWidget(source_label)
-        source_widget_layout.addWidget(self.source)
+        date_source_layout.addWidget(source_label)
+        date_source_layout.addWidget(self.source)
         
-        # Add both widgets to the horizontal layout
-        date_source_layout.addWidget(date_widget)
-        date_source_layout.addWidget(source_widget)
-        
-        form.addRow("", date_source_container)
+        form.addRow(date_source_container)
         
         self.copyright = QLineEdit()
         form.addRow("Copyright Notice:", self.copyright)
@@ -1161,33 +1149,21 @@ class MetadataPanel(QWidget):
         date_writer_layout.setSpacing(10)
         
         # Date Modified field with label
-        date_mod_widget = QWidget()
-        date_mod_widget_layout = QHBoxLayout(date_mod_widget)
-        date_mod_widget_layout.setContentsMargins(0, 0, 0, 0)
-        date_mod_widget_layout.setSpacing(5)
         date_mod_label = QLabel("Date Modified:")
         date_mod_label.setMinimumWidth(90)
         self.date_modified = QLineEdit()
         self.date_modified.setMaximumWidth(120)
-        date_mod_widget_layout.addWidget(date_mod_label)
-        date_mod_widget_layout.addWidget(self.date_modified)
+        date_writer_layout.addWidget(date_mod_label)
+        date_writer_layout.addWidget(self.date_modified)
         
         # Writer/Editor field with label
-        writer_widget = QWidget()
-        writer_widget_layout = QHBoxLayout(writer_widget)
-        writer_widget_layout.setContentsMargins(0, 0, 0, 0)
-        writer_widget_layout.setSpacing(5)
         writer_label = QLabel("Writer/Editor:")
         writer_label.setMinimumWidth(90)
         self.writer = QLineEdit()
-        writer_widget_layout.addWidget(writer_label)
-        writer_widget_layout.addWidget(self.writer)
+        date_writer_layout.addWidget(writer_label)
+        date_writer_layout.addWidget(self.writer)
         
-        # Add both widgets to the horizontal layout
-        date_writer_layout.addWidget(date_mod_widget)
-        date_writer_layout.addWidget(writer_widget)
-        
-        form.addRow("", date_writer_container)
+        form.addRow(date_writer_container)
         
         # Add all text fields to the tracking list for keyboard focus handling
         self.text_fields.extend([
