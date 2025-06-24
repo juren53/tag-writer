@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07o"
+        self.app_version = "0.07p"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -2210,7 +2210,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(self.path_label, 1)
         
         # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-23)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-24 02:01:44)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer

@@ -13,7 +13,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
-## [0.07o] - 2025-06-23
+## [0.07p] - 2025-06-24 02:01:44
+
+### Added
+- **Window Position and Size Memory** - Application now remembers window geometry between sessions
+  - Automatically saves window position, size, and maximized state on close
+  - Restores exact window layout on next startup
+  - Screen bounds validation ensures window remains visible
+  - Minimum size enforcement prevents unusable tiny windows
+  - Fallback to default size (1000x600) if restoration fails
+  - Configuration stored in `~/.tag_writer_config.json` with other settings
+
+### Enhanced
+- **Full Image Viewer Control Bar** - Optimized button sizes for better screen space usage
+  - Navigation buttons: "◀ Previous" → "◀ Prev" (60px max width)
+  - Navigation buttons: "Next ▶" kept but limited to 60px max width
+  - Reset button: "Reset Zoom" → "Reset" (50px max width)
+  - Fit button: "Fit to Window" → "Fit" (40px max width)
+  - Zoom buttons: "-" and "+" reduced from 30px to 25x25px square buttons
+  - Prevents control bar from extending beyond screen boundaries
+  - Ensures Exit button in upper right corner remains visible and accessible
+
+- **Scroll Bar Visibility** - Improved scroll bar styling for better visibility in all themes
+  - Enhanced scroll bar colors with theme-appropriate contrasting borders
+  - Hover effects for better visual feedback and interactivity
+  - Pressed states with enhanced borders for clear user interaction
+  - Scroll buttons with proper arrow indicators using theme text colors
+  - Both vertical and horizontal scroll bars with consistent styling
+  - Significantly improved visibility in Dark theme and other color schemes
+  - Transparent page areas to avoid visual clutter
+
+### Fixed
+- **Full Image Pop-up Window Layout** - Resolved window overflow issues
+  - Control bar buttons now properly fit within screen boundaries
+  - Compact button design prevents right edge from running off screen
+  - All navigation and zoom controls remain accessible
+  - Exit button always visible in upper right corner
+
+### Technical
+- Added `window_geometry` and `window_maximized` attributes to Config class
+- Implemented `save_window_geometry()` and `restore_window_geometry()` methods
+- Enhanced configuration persistence to include window state data
+- Integrated window geometry saving in cleanup process before application close
+- Added comprehensive scroll bar styling to ThemeManager stylesheet generation
+- Updated Full Image Viewer button sizing with `setMaximumWidth()` and `setFixedSize()` constraints
+- Enhanced scroll bar CSS with hover states, arrow indicators, and theme-consistent colors
+
+## [0.07o] - 2025-06-23 00:00:00
 
 ### Enhanced
 - **Set Today's Date Menu Function** - Improved functionality for date management
