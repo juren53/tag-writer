@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07q] - 2025-06-26 20:55:49
+
+### Enhanced
+- **Full Image Pop-up Window Layout** - Improved control button organization
+  - Arranged control buttons vertically on the right side of the window
+  - Added clear visual separation between button groups with horizontal lines
+  - Improved button grouping for better usability and appearance
+  - Fixed panel width to 100px for consistent layout
+  - Better organization of image display and controls
+
 ## [0.07p] - 2025-06-24 02:01:44
 
 ### Added

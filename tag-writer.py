@@ -34,7 +34,7 @@ from PyQt6.QtWidgets import (
     QLabel, QPushButton, QLineEdit, QTextEdit, QComboBox,
     QFormLayout, QScrollArea, QSplitter, QMenu, QMenuBar,
     QStatusBar, QFileDialog, QMessageBox, QToolBar, QDialog, QProgressDialog,
-    QDialogButtonBox, QInputDialog
+    QDialogButtonBox, QInputDialog, QFrame
 )
 from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07p"
+        self.app_version = "0.07q"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1710,6 +1710,7 @@ class FullImageViewer(QMainWindow):
         self.zoom_step = 0.1
         self.drag_position = None
         
+        # Initialize UI
         self.setup_ui()
         self.load_image()
         self.setWindowTitle(f"Full Image: {os.path.basename(self.image_path)}")
@@ -1732,17 +1733,18 @@ class FullImageViewer(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         
-        layout = QVBoxLayout(central_widget)
-        layout.setSpacing(5)
-        layout.setContentsMargins(5, 5, 5, 5)
+        # Create main horizontal layout
+        main_layout = QHBoxLayout(central_widget)
+        main_layout.setSpacing(5)
+        main_layout.setContentsMargins(5, 5, 5, 5)
         
-        # Image display in a scroll area with explicit scroll bar policies
+        # Create scroll area
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(False)  # Important: False for proper scroll bar behavior with zoomed images
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
         
-        # Image container - simpler layout for better image display
+        # Create image label
         self.image_label = QLabel()
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setMinimumSize(200, 200)
@@ -1760,68 +1762,110 @@ class FullImageViewer(QMainWindow):
         
         # Set the image label directly as the scroll area widget
         self.scroll_area.setWidget(self.image_label)
-        layout.addWidget(self.scroll_area)
+        # Add scroll area to main layout (takes most of the space)
+        main_layout.addWidget(self.scroll_area, stretch=1)
         
-        # Controls at the bottom
-        controls_layout = QHBoxLayout()
-        controls_layout.setSpacing(10)
+        # Create vertical layout for controls on the right side
+        controls_widget = QWidget()
+        controls_widget.setFixedWidth(100)  # Fixed width for control panel
+        controls_layout = QVBoxLayout(controls_widget)
+        controls_layout.setSpacing(5)
+        controls_layout.setContentsMargins(5, 5, 5, 5)
         
         # Navigation controls
-        self.nav_prev_btn = QPushButton("◀ Prev")
-        self.nav_prev_btn.setMaximumWidth(60)
+        nav_group = QWidget()
+        nav_layout = QVBoxLayout(nav_group)
+        nav_layout.setSpacing(2)
+        nav_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.nav_prev_btn = QPushButton("▲ Prev")
+        self.nav_prev_btn.setFixedWidth(80)
         self.nav_prev_btn.clicked.connect(self.navigate_previous)
-        controls_layout.addWidget(self.nav_prev_btn)
+        nav_layout.addWidget(self.nav_prev_btn)
         
-        self.nav_next_btn = QPushButton("Next ▶")
-        self.nav_next_btn.setMaximumWidth(60)
+        self.nav_next_btn = QPushButton("▼ Next")
+        self.nav_next_btn.setFixedWidth(80)
         self.nav_next_btn.clicked.connect(self.navigate_next)
-        controls_layout.addWidget(self.nav_next_btn)
+        nav_layout.addWidget(self.nav_next_btn)
         
-        # Add a separator widget
-        from PyQt6.QtWidgets import QFrame
+        controls_layout.addWidget(nav_group)
+        
+        # Add a separator
         separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.VLine)
+        separator.setFrameShape(QFrame.Shape.HLine)
         separator.setFrameShadow(QFrame.Shadow.Sunken)
         controls_layout.addWidget(separator)
         
         # Zoom controls
-        zoom_out_btn = QPushButton("-")
-        zoom_out_btn.setFixedSize(25, 25)
-        zoom_out_btn.clicked.connect(lambda: self.zoom(-self.zoom_step))
-        controls_layout.addWidget(zoom_out_btn)
-        
-        self.zoom_label = QLabel("Zoom: 100%")
-        controls_layout.addWidget(self.zoom_label)
+        zoom_group = QWidget()
+        zoom_layout = QVBoxLayout(zoom_group)
+        zoom_layout.setSpacing(2)
+        zoom_layout.setContentsMargins(0, 0, 0, 0)
         
         zoom_in_btn = QPushButton("+")
-        zoom_in_btn.setFixedSize(25, 25)
+        zoom_in_btn.setFixedWidth(80)
         zoom_in_btn.clicked.connect(lambda: self.zoom(self.zoom_step))
-        controls_layout.addWidget(zoom_in_btn)
+        zoom_layout.addWidget(zoom_in_btn)
+        
+        self.zoom_label = QLabel("Zoom: 100%")
+        self.zoom_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        zoom_layout.addWidget(self.zoom_label)
+        
+        zoom_out_btn = QPushButton("-")
+        zoom_out_btn.setFixedWidth(80)
+        zoom_out_btn.clicked.connect(lambda: self.zoom(-self.zoom_step))
+        zoom_layout.addWidget(zoom_out_btn)
+        
+        controls_layout.addWidget(zoom_group)
+        
+        # Reset and Fit buttons
+        buttons_group = QWidget()
+        buttons_layout = QVBoxLayout(buttons_group)
+        buttons_layout.setSpacing(2)
+        buttons_layout.setContentsMargins(0, 0, 0, 0)
         
         reset_zoom_btn = QPushButton("Reset")
-        reset_zoom_btn.setMaximumWidth(50)
+        reset_zoom_btn.setFixedWidth(80)
         reset_zoom_btn.clicked.connect(self.reset_zoom)
-        controls_layout.addWidget(reset_zoom_btn)
+        buttons_layout.addWidget(reset_zoom_btn)
         
         fit_btn = QPushButton("Fit")
-        fit_btn.setMaximumWidth(40)
+        fit_btn.setFixedWidth(80)
         fit_btn.clicked.connect(self.fit_to_window)
-        controls_layout.addWidget(fit_btn)
+        buttons_layout.addWidget(fit_btn)
         
-        # Image info
+        controls_layout.addWidget(buttons_group)
+        
+        # Add a separator
+        separator2 = QFrame()
+        separator2.setFrameShape(QFrame.Shape.HLine)
+        separator2.setFrameShadow(QFrame.Shadow.Sunken)
+        controls_layout.addWidget(separator2)
+        
+        # Image info (stretch to fill space)
         self.info_label = QLabel("")
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.info_label.setWordWrap(True)
         controls_layout.addWidget(self.info_label, 1)
         
-        # Close button
+        # Add a separator
+        separator3 = QFrame()
+        separator3.setFrameShape(QFrame.Shape.HLine)
+        separator3.setFrameShadow(QFrame.Shadow.Sunken)
+        controls_layout.addWidget(separator3)
+        
+        # Close button at the bottom
         close_btn = QPushButton("Close")
+        close_btn.setFixedWidth(80)
         close_btn.clicked.connect(self.close)
         controls_layout.addWidget(close_btn)
         
-        layout.addLayout(controls_layout)
+        # Add controls widget to main layout
+        main_layout.addWidget(controls_widget, stretch=0)
         
         # Status bar for additional information
         self.status_bar = QStatusBar()
-        layout.addWidget(self.status_bar)
+        self.setStatusBar(self.status_bar)
     
     def load_image(self):
         """Load and display the image."""
@@ -2193,7 +2237,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(self.path_label, 1)
         
         # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-24 02:01:44)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-26 20:55:49)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
