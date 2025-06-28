@@ -2228,15 +2228,23 @@ class MainWindow(QMainWindow):
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
         
-        # Left section
-        self.status_label = QLabel("Ready")
-        self.statusBar.addPermanentWidget(self.status_label)
+        # Left/Middle section (stretches)
+        path_container = QWidget()
+        path_layout = QHBoxLayout(path_container)
+        path_layout.setContentsMargins(0, 0, 0, 0)
+        path_layout.setSpacing(5)
         
-        # Middle section (stretches)
+        # Path and status labels
         self.path_label = QLabel("")
-        self.statusBar.addWidget(self.path_label, 1)
+        path_layout.addWidget(self.path_label)
         
-        # Right section
+        self.status_label = QLabel("Ready")
+        path_layout.addWidget(self.status_label)
+        
+        # Add the container with stretch
+        self.statusBar.addWidget(path_container, 1)
+        
+        # Right section - Version only
         version_label = QLabel(f"Ver {config.app_version} (2025-06-26 20:55:49)")
         self.statusBar.addPermanentWidget(version_label)
         
@@ -3510,7 +3518,7 @@ class MainWindow(QMainWindow):
         
         # Update UI
         self.file_label.setText(os.path.basename(file_path))
-        self.path_label.setText(file_path)
+        self.path_label.setText(os.path.dirname(file_path))
         
         # Update status
         self.status_label.setText(f"Refreshed {os.path.basename(file_path)}")
@@ -3558,7 +3566,7 @@ class MainWindow(QMainWindow):
         
         # Update UI
         self.file_label.setText(os.path.basename(file_path))
-        self.path_label.setText(file_path)
+        self.path_label.setText(os.path.dirname(file_path))
         self.setWindowTitle(f"Tag Writer - {os.path.basename(file_path)}")
         self.status_label.setText(f"Loaded {os.path.basename(file_path)}")
         
