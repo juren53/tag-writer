@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-# Tag Writer - IPTC Metadata Editor v0.07o
+# Tag Writer - IPTC Metadata Editor v0.07r
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07q"
+        self.app_version = "0.07r"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -2245,7 +2245,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-26 20:55:49)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 07:41:24)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -3408,48 +3408,57 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", f"Error opening glossary: {str(e)}\n\nURL: {glossary_url}")
         
     def on_keyboard_shortcuts(self):
-        """Show keyboard shortcuts documentation."""
+        """Show keyboard shortcuts documentation from local file or GitHub URL if not found locally."""
         shortcuts_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "KeyBoard-ShortCuts.md")
         
-        if not os.path.exists(shortcuts_file):
-            QMessageBox.warning(self, "File Not Found", "Keyboard shortcuts documentation file not found.")
-            return
-            
+        # Try to open local file first
+        if os.path.exists(shortcuts_file):
+            try:
+                # Create a dialog to display the shortcuts
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Keyboard Shortcuts")
+                dialog.resize(600, 500)  # Larger size for better readability
+                
+                # Set window flags to include minimize, maximize, and close buttons
+                dialog.setWindowFlags(Qt.WindowType.Window | 
+                                    Qt.WindowType.WindowMinimizeButtonHint | 
+                                    Qt.WindowType.WindowMaximizeButtonHint | 
+                                    Qt.WindowType.WindowCloseButtonHint)
+                
+                layout = QVBoxLayout(dialog)
+                
+                # Load markdown content
+                with open(shortcuts_file, 'r') as f:
+                    markdown_content = f.read()
+                
+                # Display in a text edit with monospace font
+                text_edit = QTextEdit()
+                text_edit.setReadOnly(True)
+                font = QFont("Monospace")
+                text_edit.setFont(font)
+                text_edit.setMarkdown(markdown_content)
+                layout.addWidget(text_edit)
+                
+                # Close button
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(dialog.accept)
+                layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+                
+                dialog.exec()
+                return
+            except Exception as e:
+                logger.error(f"Error displaying local keyboard shortcuts: {e}")
+                # Fall through to GitHub URL
+        
+        # If local file doesn't exist or failed to open, open GitHub URL
+        import webbrowser
+        shortcuts_url = "https://github.com/juren53/tag-writer/blob/main/KeyBoard-ShortCuts.md"
+        
         try:
-            # Create a dialog to display the shortcuts
-            dialog = QDialog(self)
-            dialog.setWindowTitle("Keyboard Shortcuts")
-            dialog.resize(600, 500)  # Larger size for better readability
-            
-            # Set window flags to include minimize, maximize, and close buttons
-            dialog.setWindowFlags(Qt.WindowType.Window | 
-                                Qt.WindowType.WindowMinimizeButtonHint | 
-                                Qt.WindowType.WindowMaximizeButtonHint | 
-                                Qt.WindowType.WindowCloseButtonHint)
-            
-            layout = QVBoxLayout(dialog)
-            
-            # Load markdown content
-            with open(shortcuts_file, 'r') as f:
-                markdown_content = f.read()
-            
-            # Display in a text edit with monospace font
-            text_edit = QTextEdit()
-            text_edit.setReadOnly(True)
-            font = QFont("Monospace")
-            text_edit.setFont(font)
-            text_edit.setMarkdown(markdown_content)
-            layout.addWidget(text_edit)
-            
-            # Close button
-            close_btn = QPushButton("Close")
-            close_btn.clicked.connect(dialog.accept)
-            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
-            
-            dialog.exec()
+            webbrowser.open(shortcuts_url)
         except Exception as e:
-            logger.error(f"Error displaying keyboard shortcuts: {e}")
-            QMessageBox.warning(self, "Error", f"Error displaying keyboard shortcuts: {str(e)}")
+            logger.error(f"Error opening keyboard shortcuts URL: {e}")
+            QMessageBox.warning(self, "Error", f"Error opening keyboard shortcuts: {str(e)}\n\nURL: {shortcuts_url}")
         
     def on_refresh(self):
         """Refresh the current image and metadata."""
