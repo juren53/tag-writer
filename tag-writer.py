@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07s"
+        self.app_version = "0.07t"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -355,7 +355,7 @@ class MetadataManager:
             'By-lineTitle': ['IPTC:By-lineTitle', 'XMP:AuthorsPosition', 'XMP-photoshop:AuthorsPosition'],
             'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
             'DateCreated': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
-            'DateModified': ['EXIF:ModifyDate', 'EXIF:FileModifyDate', 'XMP:ModifyDate'],
+            'DateModified': ['EXIF:ModifyDate', 'EXIF:FileModifyDate', 'XMP:ModifyDate', 'ICC_Profile:ProfileDateTime'],
             'CopyrightNotice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright'],
             'Contact': ['IPTC:Contact', 'XMP:Contact']
         }
@@ -395,10 +395,38 @@ class MetadataManager:
         
         # Map standardized field names to raw metadata
         for field, possible_names in self.field_mappings.items():
-            for name in possible_names:
-                if name in raw_metadata:
-                    processed[field] = raw_metadata[name]
-                    break
+            # Special handling for DateModified to log fallback behavior
+            if field == 'DateModified':
+                found_date = None
+                used_field = None
+                
+                # Log all date-related fields in raw metadata
+                logger.info("Raw metadata date fields:")
+                for key, value in raw_metadata.items():
+                    if any(date_key in key.lower() for date_key in ['date', 'time']):
+                        logger.info(f"  {key}: {value}")
+                
+                # Try fields in priority order
+                priority_fields = ['EXIF:ModifyDate', 'EXIF:FileModifyDate', 'XMP:ModifyDate', 'ICC_Profile:ProfileDateTime']
+                
+                for name in priority_fields:
+                    if name in raw_metadata and raw_metadata[name]:
+                        found_date = raw_metadata[name]
+                        used_field = name
+                        logger.info(f"Found date in {name}: {found_date}")
+                        break
+                
+                if found_date:
+                    processed[field] = found_date
+                    logger.info(f"DateModified using {used_field}: {found_date}")
+                else:
+                    logger.info("No date found in any of the date fields")
+            else:
+                # Standard processing for other fields
+                for name in possible_names:
+                    if name in raw_metadata:
+                        processed[field] = raw_metadata[name]
+                        break
         
         return processed
     
@@ -2270,7 +2298,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 12:19:27)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 15:16:16)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer

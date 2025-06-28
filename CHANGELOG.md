@@ -13,6 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07t] - 2025-06-28 15:16:16
+
+### Enhanced
+- **DateModified Field Enhancement** - Improved date handling fallback system
+  - Added ICC_Profile:ProfileDateTime as fallback for ModifyDate
+  - Implemented proper date field priority order:
+    1. EXIF:ModifyDate
+    2. EXIF:FileModifyDate
+    3. XMP:ModifyDate
+    4. ICC_Profile:ProfileDateTime
+  - Better support for files with missing ModifyDate but available ProfileDateTime
+
+### Technical
+- Enhanced date field fallback logic in MetadataManager
+- Improved date field logging for better debugging
+- Updated field mappings to include ICC_Profile:ProfileDateTime
+
 ## [0.07s] - 2025-06-28 12:19:27
 
 ### Enhanced
