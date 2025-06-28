@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-# Tag Writer - IPTC Metadata Editor v0.07r
+# Tag Writer - IPTC Metadata Editor v0.07s
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07r"
+        self.app_version = "0.07s"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1778,13 +1778,38 @@ class FullImageViewer(QMainWindow):
         nav_layout.setSpacing(2)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         
-        self.nav_prev_btn = QPushButton("▲ Prev")
-        self.nav_prev_btn.setFixedWidth(80)
+        # Navigation buttons with bold text and clear arrow symbols
+        # Navigation buttons with high-contrast symbols and consistent style
+        button_style = (
+            "QPushButton {"
+            "    padding: 8px;"
+            "    letter-spacing: 1px;"
+            "    background-color: #2b2b2b;"
+            "    color: #ffffff;"
+            "    border: 1px solid #555555;"
+            "    border-radius: 4px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #404040;"
+            "    border-color: #666666;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #202020;"
+            "    border-color: #888888;"
+            "}"
+        )
+        
+        self.nav_prev_btn = QPushButton("▲  Previous")
+        self.nav_prev_btn.setFixedWidth(120)
+        self.nav_prev_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.nav_prev_btn.setStyleSheet(button_style)
         self.nav_prev_btn.clicked.connect(self.navigate_previous)
         nav_layout.addWidget(self.nav_prev_btn)
         
-        self.nav_next_btn = QPushButton("▼ Next")
-        self.nav_next_btn.setFixedWidth(80)
+        self.nav_next_btn = QPushButton("Next  ▼")
+        self.nav_next_btn.setFixedWidth(120)
+        self.nav_next_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.nav_next_btn.setStyleSheet(button_style)
         self.nav_next_btn.clicked.connect(self.navigate_next)
         nav_layout.addWidget(self.nav_next_btn)
         
@@ -2245,7 +2270,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 07:41:24)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 12:19:27)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -2430,11 +2455,37 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(select_btn)
         
         # Navigation buttons
-        prev_btn = QPushButton("< Previous")
+        # Navigation buttons with high-contrast symbols and consistent style
+        button_style = (
+            "QPushButton {"
+            "    padding: 8px;"
+            "    letter-spacing: 1px;"
+            "    background-color: #2b2b2b;"
+            "    color: #ffffff;"
+            "    border: 1px solid #555555;"
+            "    border-radius: 4px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #404040;"
+            "    border-color: #666666;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #202020;"
+            "    border-color: #888888;"
+            "}"
+        )
+        
+        prev_btn = QPushButton("◀  Previous")
+        prev_btn.setFixedWidth(120)
+        prev_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        prev_btn.setStyleSheet(button_style)
         prev_btn.clicked.connect(self.on_previous)
         toolbar.addWidget(prev_btn)
         
-        next_btn = QPushButton("Next >")
+        next_btn = QPushButton("Next  ▶")
+        next_btn.setFixedWidth(120)
+        next_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        next_btn.setStyleSheet(button_style)
         next_btn.clicked.connect(self.on_next)
         toolbar.addWidget(next_btn)
         

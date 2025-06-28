@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07s] - 2025-06-28 12:19:27
+
+### Enhanced
+- **Navigation Button Improvements** - Enhanced visibility and usability
+  - Added larger, clearer arrow symbols for better visibility
+  - Implemented gradient backgrounds for improved visual depth
+  - Increased padding and contrast for better readability
+  - Added consistent button styling across toolbar and image viewer
+  - Used uppercase text labels for enhanced legibility
+
+### Technical
+- Updated button styling with modern CSS gradients
+- Standardized navigation button appearance across application
+- Optimized button dimensions and spacing
+
 ## [0.07r] - 2025-06-28 07:41:24
 
 ### Enhanced
