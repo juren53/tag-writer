@@ -2643,7 +2643,8 @@ class MainWindow(QMainWindow):
         
         for i, directory_path in enumerate(config.recent_directories):
             if os.path.exists(directory_path) and os.path.isdir(directory_path):
-                action = QAction(f"{i+1}: {os.path.basename(directory_path)}", self)
+                # Show full path in the menu
+                action = QAction(f"{i+1}: {directory_path}", self)
                 action.triggered.connect(lambda checked=False, path=directory_path: self.open_directory(path))
                 self.recent_directories_menu.addAction(action)
         
