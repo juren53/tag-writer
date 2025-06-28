@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-# Tag Writer - IPTC Metadata Editor v0.07o
+# Tag Writer - IPTC Metadata Editor v0.07s
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07q"
+        self.app_version = "0.07s"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1778,13 +1778,38 @@ class FullImageViewer(QMainWindow):
         nav_layout.setSpacing(2)
         nav_layout.setContentsMargins(0, 0, 0, 0)
         
-        self.nav_prev_btn = QPushButton("▲ Prev")
-        self.nav_prev_btn.setFixedWidth(80)
+        # Navigation buttons with bold text and clear arrow symbols
+        # Navigation buttons with high-contrast symbols and consistent style
+        button_style = (
+            "QPushButton {"
+            "    padding: 8px;"
+            "    letter-spacing: 1px;"
+            "    background-color: #2b2b2b;"
+            "    color: #ffffff;"
+            "    border: 1px solid #555555;"
+            "    border-radius: 4px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #404040;"
+            "    border-color: #666666;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #202020;"
+            "    border-color: #888888;"
+            "}"
+        )
+        
+        self.nav_prev_btn = QPushButton("▲  Previous")
+        self.nav_prev_btn.setFixedWidth(120)
+        self.nav_prev_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.nav_prev_btn.setStyleSheet(button_style)
         self.nav_prev_btn.clicked.connect(self.navigate_previous)
         nav_layout.addWidget(self.nav_prev_btn)
         
-        self.nav_next_btn = QPushButton("▼ Next")
-        self.nav_next_btn.setFixedWidth(80)
+        self.nav_next_btn = QPushButton("Next  ▼")
+        self.nav_next_btn.setFixedWidth(120)
+        self.nav_next_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        self.nav_next_btn.setStyleSheet(button_style)
         self.nav_next_btn.clicked.connect(self.navigate_next)
         nav_layout.addWidget(self.nav_next_btn)
         
@@ -2228,16 +2253,24 @@ class MainWindow(QMainWindow):
         self.statusBar = QStatusBar()
         self.setStatusBar(self.statusBar)
         
-        # Left section
-        self.status_label = QLabel("Ready")
-        self.statusBar.addPermanentWidget(self.status_label)
+        # Left/Middle section (stretches)
+        path_container = QWidget()
+        path_layout = QHBoxLayout(path_container)
+        path_layout.setContentsMargins(0, 0, 0, 0)
+        path_layout.setSpacing(5)
         
-        # Middle section (stretches)
+        # Path and status labels
         self.path_label = QLabel("")
-        self.statusBar.addWidget(self.path_label, 1)
+        path_layout.addWidget(self.path_label)
         
-        # Right section
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-26 20:55:49)")
+        self.status_label = QLabel("Ready")
+        path_layout.addWidget(self.status_label)
+        
+        # Add the container with stretch
+        self.statusBar.addWidget(path_container, 1)
+        
+        # Right section - Version only
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 12:19:27)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -2422,11 +2455,37 @@ class MainWindow(QMainWindow):
         toolbar.addWidget(select_btn)
         
         # Navigation buttons
-        prev_btn = QPushButton("< Previous")
+        # Navigation buttons with high-contrast symbols and consistent style
+        button_style = (
+            "QPushButton {"
+            "    padding: 8px;"
+            "    letter-spacing: 1px;"
+            "    background-color: #2b2b2b;"
+            "    color: #ffffff;"
+            "    border: 1px solid #555555;"
+            "    border-radius: 4px;"
+            "}"
+            "QPushButton:hover {"
+            "    background-color: #404040;"
+            "    border-color: #666666;"
+            "}"
+            "QPushButton:pressed {"
+            "    background-color: #202020;"
+            "    border-color: #888888;"
+            "}"
+        )
+        
+        prev_btn = QPushButton("◀  Previous")
+        prev_btn.setFixedWidth(120)
+        prev_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        prev_btn.setStyleSheet(button_style)
         prev_btn.clicked.connect(self.on_previous)
         toolbar.addWidget(prev_btn)
         
-        next_btn = QPushButton("Next >")
+        next_btn = QPushButton("Next  ▶")
+        next_btn.setFixedWidth(120)
+        next_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
+        next_btn.setStyleSheet(button_style)
         next_btn.clicked.connect(self.on_next)
         toolbar.addWidget(next_btn)
         
@@ -2635,7 +2694,8 @@ class MainWindow(QMainWindow):
         
         for i, directory_path in enumerate(config.recent_directories):
             if os.path.exists(directory_path) and os.path.isdir(directory_path):
-                action = QAction(f"{i+1}: {os.path.basename(directory_path)}", self)
+                # Show full path in the menu
+                action = QAction(f"{i+1}: {directory_path}", self)
                 action.triggered.connect(lambda checked=False, path=directory_path: self.open_directory(path))
                 self.recent_directories_menu.addAction(action)
         
@@ -3399,48 +3459,57 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", f"Error opening glossary: {str(e)}\n\nURL: {glossary_url}")
         
     def on_keyboard_shortcuts(self):
-        """Show keyboard shortcuts documentation."""
+        """Show keyboard shortcuts documentation from local file or GitHub URL if not found locally."""
         shortcuts_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "KeyBoard-ShortCuts.md")
         
-        if not os.path.exists(shortcuts_file):
-            QMessageBox.warning(self, "File Not Found", "Keyboard shortcuts documentation file not found.")
-            return
-            
+        # Try to open local file first
+        if os.path.exists(shortcuts_file):
+            try:
+                # Create a dialog to display the shortcuts
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Keyboard Shortcuts")
+                dialog.resize(600, 500)  # Larger size for better readability
+                
+                # Set window flags to include minimize, maximize, and close buttons
+                dialog.setWindowFlags(Qt.WindowType.Window | 
+                                    Qt.WindowType.WindowMinimizeButtonHint | 
+                                    Qt.WindowType.WindowMaximizeButtonHint | 
+                                    Qt.WindowType.WindowCloseButtonHint)
+                
+                layout = QVBoxLayout(dialog)
+                
+                # Load markdown content
+                with open(shortcuts_file, 'r') as f:
+                    markdown_content = f.read()
+                
+                # Display in a text edit with monospace font
+                text_edit = QTextEdit()
+                text_edit.setReadOnly(True)
+                font = QFont("Monospace")
+                text_edit.setFont(font)
+                text_edit.setMarkdown(markdown_content)
+                layout.addWidget(text_edit)
+                
+                # Close button
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(dialog.accept)
+                layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+                
+                dialog.exec()
+                return
+            except Exception as e:
+                logger.error(f"Error displaying local keyboard shortcuts: {e}")
+                # Fall through to GitHub URL
+        
+        # If local file doesn't exist or failed to open, open GitHub URL
+        import webbrowser
+        shortcuts_url = "https://github.com/juren53/tag-writer/blob/main/KeyBoard-ShortCuts.md"
+        
         try:
-            # Create a dialog to display the shortcuts
-            dialog = QDialog(self)
-            dialog.setWindowTitle("Keyboard Shortcuts")
-            dialog.resize(600, 500)  # Larger size for better readability
-            
-            # Set window flags to include minimize, maximize, and close buttons
-            dialog.setWindowFlags(Qt.WindowType.Window | 
-                                Qt.WindowType.WindowMinimizeButtonHint | 
-                                Qt.WindowType.WindowMaximizeButtonHint | 
-                                Qt.WindowType.WindowCloseButtonHint)
-            
-            layout = QVBoxLayout(dialog)
-            
-            # Load markdown content
-            with open(shortcuts_file, 'r') as f:
-                markdown_content = f.read()
-            
-            # Display in a text edit with monospace font
-            text_edit = QTextEdit()
-            text_edit.setReadOnly(True)
-            font = QFont("Monospace")
-            text_edit.setFont(font)
-            text_edit.setMarkdown(markdown_content)
-            layout.addWidget(text_edit)
-            
-            # Close button
-            close_btn = QPushButton("Close")
-            close_btn.clicked.connect(dialog.accept)
-            layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
-            
-            dialog.exec()
+            webbrowser.open(shortcuts_url)
         except Exception as e:
-            logger.error(f"Error displaying keyboard shortcuts: {e}")
-            QMessageBox.warning(self, "Error", f"Error displaying keyboard shortcuts: {str(e)}")
+            logger.error(f"Error opening keyboard shortcuts URL: {e}")
+            QMessageBox.warning(self, "Error", f"Error opening keyboard shortcuts: {str(e)}\n\nURL: {shortcuts_url}")
         
     def on_refresh(self):
         """Refresh the current image and metadata."""
@@ -3510,7 +3579,7 @@ class MainWindow(QMainWindow):
         
         # Update UI
         self.file_label.setText(os.path.basename(file_path))
-        self.path_label.setText(file_path)
+        self.path_label.setText(os.path.dirname(file_path))
         
         # Update status
         self.status_label.setText(f"Refreshed {os.path.basename(file_path)}")
@@ -3558,7 +3627,7 @@ class MainWindow(QMainWindow):
         
         # Update UI
         self.file_label.setText(os.path.basename(file_path))
-        self.path_label.setText(file_path)
+        self.path_label.setText(os.path.dirname(file_path))
         self.setWindowTitle(f"Tag Writer - {os.path.basename(file_path)}")
         self.status_label.setText(f"Loaded {os.path.basename(file_path)}")
         
