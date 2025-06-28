@@ -86,7 +86,9 @@ Tag Writer features a clean, intuitive interface divided into several main compo
 - **Ctrl+S**: Save metadata
 - **Ctrl+L**: Clear all fields
 - **Ctrl+D**: Toggle dark mode
-- **Left/Right Arrow**: Navigate between images in the directory
+- **Left/Right Arrow**: Navigate text in diaglog boxes
+- **Up/Down Arrow**: Navigate between images in the directory
+
 
 ## Metadata Fields
 
@@ -235,7 +237,7 @@ Please submit issues on our GitHub repository: https://github.com/yourusername/t
 
 ---
 
-This documentation is for Tag Writer version 0.07o. For the latest documentation, please visit our [GitHub repository](https://github.com/juren53/tag-writer).
+This documentation is for Tag Writer version 0.07s. For the latest documentation, please visit the tag-writer [GitHub repository](https://github.com/juren53/tag-writer).
 
 ### Recent Changes in Version 0.07o
 - Enhanced 'Set Today's Date' menu function to target Date Modified field instead of Date Created
