@@ -13,6 +13,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07s] - 2025-06-28 12:19:27
+
+### Enhanced
+- **Navigation Button Improvements** - Enhanced visibility and usability
+  - Added larger, clearer arrow symbols for better visibility
+  - Implemented gradient backgrounds for improved visual depth
+  - Increased padding and contrast for better readability
+  - Added consistent button styling across toolbar and image viewer
+  - Used uppercase text labels for enhanced legibility
+
+### Technical
+- Updated button styling with modern CSS gradients
+- Standardized navigation button appearance across application
+- Optimized button dimensions and spacing
+
+## [0.07r] - 2025-06-28 07:41:24
+
+### Enhanced
+- **Status Bar Improvements** - Optimized status bar layout and information display
+  - Removed redundant filename from status bar while keeping path
+  - Moved 'Loaded {filename}' message next to the path for better readability
+  - Streamlined status information presentation
+
+- **Recent Directories Menu** - Improved directory path display in menu
+  - Changed from showing only directory names to showing full paths
+  - Better context and clarity when selecting from recent directories
+
+- **Help Menu Enhancement** - Improved keyboard shortcuts documentation access
+  - Added GitHub URL fallback for keyboard shortcuts documentation
+  - Consistent behavior with User Guide and Glossary documentation
+  - Better accessibility to documentation whether local or remote
+
+### Technical
+- Enhanced status bar layout and text display logic
+- Updated Recent Directories menu to display full directory paths
+- Implemented keyboard shortcuts documentation fallback system
+- Improved help menu documentation access consistency
+
+## [0.07q] - 2025-06-26 20:55:49
+
+### Enhanced
+- **Status Bar Improvements** - Optimized status bar layout and information display
+  - Removed redundant filename from status bar while keeping path
+  - Moved 'Loaded {filename}' message next to the path for better readability
+  - Streamlined status information presentation
+
+- **Recent Directories Menu** - Improved directory path display in menu
+  - Changed from showing only directory names to showing full paths
+  - Better context and clarity when selecting from recent directories
+
+- **Help Menu Enhancement** - Improved keyboard shortcuts documentation access
+  - Added GitHub URL fallback for keyboard shortcuts documentation
+  - Consistent behavior with User Guide and Glossary documentation
+  - Better accessibility to documentation whether local or remote
+
+### Technical
+- Enhanced status bar layout and text display logic
+- Updated Recent Directories menu to display full directory paths
+- Implemented keyboard shortcuts documentation fallback system
+- Improved help menu documentation access consistency
+
 ## [0.07q] - 2025-06-26 20:55:49
 
 ### Enhanced
