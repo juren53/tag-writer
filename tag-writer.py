@@ -3402,6 +3402,11 @@ class MainWindow(QMainWindow):
                 with open(user_guide_file, 'r') as f:
                     markdown_content = f.read()
                 
+                # Replace relative image paths with absolute paths
+                markdown_content = markdown_content.replace(
+                    '![Tag Writer Main Window](images/',
+                    f'![Tag Writer Main Window]({os.path.dirname(os.path.abspath(__file__))}/Docs/images/')
+                
                 # Display in a text edit with readable font
                 text_edit = QTextEdit()
                 text_edit.setReadOnly(True)
