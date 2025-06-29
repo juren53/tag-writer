@@ -75,6 +75,8 @@ Tag Writer features a clean, intuitive interface divided into several main compo
 - **Image Viewer**: Preview the current image (right side)
 - **Status Bar**: Displays current status and file information
 
+![Tag Writer Main Window](Images/main-window.png)
+
 ## Menu Options
 - **File**: Open images, access recent files and directories, save metadata, exit
 - **Edit**: Clear fields, export/import metadata as JSON, set today's date, rotate images
