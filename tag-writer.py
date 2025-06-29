@@ -3488,7 +3488,25 @@ class MainWindow(QMainWindow):
         
     def on_keyboard_shortcuts(self):
         """Show keyboard shortcuts documentation from local file or GitHub URL if not found locally."""
-        shortcuts_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "KeyBoard-ShortCuts.md")
+        # Try possible locations in order
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "Docs", "KeyBoard-ShortCuts.md"),  # Standard location
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "usr", "bin", "docs", "KeyBoard-ShortCuts.md"),  # AppImage location
+            "./usr/bin/docs/KeyBoard-ShortCuts.md"  # AppImage relative location
+        ]
+        
+        # Find first existing file
+        # For Linux, case sensitivity matters
+        shortcuts_file = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                shortcuts_file = path
+                break
+
+        # Debug output
+        logger.info(f"Looking for keyboard shortcuts file in paths:")
+        for path in possible_paths:
+            logger.info(f"  {path} - {'Exists' if os.path.exists(path) else 'Not found'}")
         
         # Try to open local file first
         if os.path.exists(shortcuts_file):
@@ -3531,7 +3549,7 @@ class MainWindow(QMainWindow):
         
         # If local file doesn't exist or failed to open, open GitHub URL
         import webbrowser
-        shortcuts_url = "https://github.com/juren53/tag-writer/blob/main/KeyBoard-ShortCuts.md"
+        shortcuts_url = "https://github.com/juren53/tag-writer/blob/main/Docs/KeyBoard-ShortCuts.md"
         
         try:
             webbrowser.open(shortcuts_url)
