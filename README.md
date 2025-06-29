@@ -4,6 +4,8 @@ Tag Writer is a free, open-source application designed to view and edit IPTC met
 
 The application provides a simple graphical user interface for editing common IPTC metadata fields, allowing photographers, archivists, and digital asset managers to properly tag their images with essential information.
 
+![Tag Writer Main Window](Docs/Images/main-window.png)
+
 tag-writer has been tested against the following file types:
 
 - JPEG / JPG
