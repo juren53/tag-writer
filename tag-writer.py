@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07t"
+        self.app_version = "0.07u"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1113,7 +1113,12 @@ class MetadataPanel(QWidget):
         # Create metadata fields with mapping to model fields
         self.headline = QLineEdit()
         self.text_fields.append(self.headline)  # Add to tracked text fields
-        form.addRow("Headline:", self.headline)
+        headline_label = QLabel("Headline:")
+        headline_label.setToolTip("Title")
+        headline_label.setToolTipDuration(10000)  # Show for 10 seconds
+        headline_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        headline_label.setMouseTracking(True)
+        form.addRow(headline_label, self.headline)
         
         # Caption/Abstract with character count
         caption_container = QWidget()
@@ -1134,19 +1139,41 @@ class MetadataPanel(QWidget):
         # Connect text changed signal to update character count
         self.caption.textChanged.connect(self.update_char_count)
         
-        form.addRow("Caption/Abstract:", caption_container)
+        caption_label = QLabel("Caption/Abstract:")
+        caption_label.setToolTip("Description")
+        caption_label.setToolTipDuration(10000)  # Show for 10 seconds
+        caption_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        caption_label.setMouseTracking(True)
+        form.addRow(caption_label, caption_container)
         
         self.credit = QLineEdit()
         form.addRow("Credit:", self.credit)
         
         self.object_name = QLineEdit()
-        form.addRow("Object Name:", self.object_name)
+        object_name_label = QLabel("Object Name:")
+        object_name_label.setToolTip("Unique Identifier / Accession Number")
+        object_name_label.setToolTipDuration(10000)  # Show for 10 seconds
+        object_name_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        object_name_label.setMouseTracking(True)
+        form.addRow(object_name_label, self.object_name)
         
         self.byline = QLineEdit()
-        form.addRow("By-line:", self.byline)
+        byline_label = QLabel("By-line:")
+        byline_label.setToolTip("Photographer")
+        # Ensure tooltip is enabled and visible with better timing
+        byline_label.setToolTipDuration(10000)  # Show for 10 seconds
+        byline_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        # Set mouse tracking to improve tooltip responsiveness
+        byline_label.setMouseTracking(True)
+        form.addRow(byline_label, self.byline)
         
         self.byline_title = QLineEdit()
-        form.addRow("By-line Title:", self.byline_title)
+        byline_title_label = QLabel("By-line Title:")
+        byline_title_label.setToolTip("Photographer's organization")
+        byline_title_label.setToolTipDuration(10000)  # Show for 10 seconds
+        byline_title_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        byline_title_label.setMouseTracking(True)
+        form.addRow(byline_title_label, self.byline_title)
         
         # Create horizontal layout for Date Created and Source on same line
         date_source_container = QWidget()
@@ -2298,7 +2325,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 15:16:16)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-06-30 06:20:53)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer

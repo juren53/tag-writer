@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07u] - 2025-06-30 06:20:53
+
+### Added
+- **Help Tooltips for Metadata Fields** - Added informative tooltips to key metadata labels
+  - By-line: "Photographer"
+  - By-line Title: "Photographer's organization"
+  - Caption/Abstract: "Description"
+  - Headline: "Title"
+  - Object Name: "Unique Identifier / Accession Number"
+  - Tooltips appear on hover with 10-second display duration
+  - Enhanced responsiveness with mouse tracking enabled
+  - Consistent tooltip styling across all metadata fields
+
+### Enhanced
+- **Improved User Experience** - Tooltips provide clear guidance on metadata field purposes
+- **Better Accessibility** - Helpful descriptions assist users in understanding field usage
+- **Professional Interface** - Tooltips enhance the application's professional appearance
+
+### Technical
+- Enhanced metadata label creation with explicit QLabel objects
+- Implemented comprehensive tooltip settings (duration, mouse tracking, always show)
+- Added tooltip functionality to all major metadata input fields
+- Improved UI responsiveness with optimized tooltip timing
+
 ## [0.07t] - 2025-06-28 15:16:16
 
 ### Enhanced
