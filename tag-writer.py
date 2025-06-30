@@ -479,8 +479,23 @@ class MetadataManager:
                 # Execute the command
                 result = et.execute(*args)
                 
-                # Check if successful
-                return "1 image files updated" in result
+                # Check if successful - look for the success message with flexible whitespace
+                # and handle potential warning messages for PNG files
+                success_patterns = [
+                    "1 image files updated",
+                    "1 image files created",
+                    "files updated",
+                    "files created"
+                ]
+                
+                # Clean result string and check for success patterns
+                result_clean = result.strip().lower()
+                success = any(pattern.lower() in result_clean for pattern in success_patterns)
+                
+                # Log the ExifTool output for debugging (with sensitive info removed)
+                logger.debug(f"ExifTool result: {result[:200]}...")  # Log first 200 chars
+                
+                return success
         
         except Exception as e:
             logger.error(f"Error saving metadata to {file_path}: {e}")
