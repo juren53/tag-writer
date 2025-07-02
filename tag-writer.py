@@ -479,8 +479,23 @@ class MetadataManager:
                 # Execute the command
                 result = et.execute(*args)
                 
-                # Check if successful
-                return "1 image files updated" in result
+                # Check if successful - look for the success message with flexible whitespace
+                # and handle potential warning messages for PNG files
+                success_patterns = [
+                    "1 image files updated",
+                    "1 image files created",
+                    "files updated",
+                    "files created"
+                ]
+                
+                # Clean result string and check for success patterns
+                result_clean = result.strip().lower()
+                success = any(pattern.lower() in result_clean for pattern in success_patterns)
+                
+                # Log the ExifTool output for debugging (with sensitive info removed)
+                logger.debug(f"ExifTool result: {result[:200]}...")  # Log first 200 chars
+                
+                return success
         
         except Exception as e:
             logger.error(f"Error saving metadata to {file_path}: {e}")
@@ -1114,7 +1129,12 @@ class MetadataPanel(QWidget):
         # Create metadata fields with mapping to model fields
         self.headline = QLineEdit()
         self.text_fields.append(self.headline)  # Add to tracked text fields
-        form.addRow("Headline:", self.headline)
+        headline_label = QLabel("Headline:")
+        headline_label.setToolTip("Title")
+        headline_label.setToolTipDuration(10000)  # Show for 10 seconds
+        headline_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        headline_label.setMouseTracking(True)
+        form.addRow(headline_label, self.headline)
         
         # Caption/Abstract with character count
         caption_container = QWidget()
@@ -1135,19 +1155,41 @@ class MetadataPanel(QWidget):
         # Connect text changed signal to update character count
         self.caption.textChanged.connect(self.update_char_count)
         
-        form.addRow("Caption/Abstract:", caption_container)
+        caption_label = QLabel("Caption/Abstract:")
+        caption_label.setToolTip("Description")
+        caption_label.setToolTipDuration(10000)  # Show for 10 seconds
+        caption_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        caption_label.setMouseTracking(True)
+        form.addRow(caption_label, caption_container)
         
         self.credit = QLineEdit()
         form.addRow("Credit:", self.credit)
         
         self.object_name = QLineEdit()
-        form.addRow("Object Name:", self.object_name)
+        object_name_label = QLabel("Object Name:")
+        object_name_label.setToolTip("Unique Identifier / Accession Number")
+        object_name_label.setToolTipDuration(10000)  # Show for 10 seconds
+        object_name_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        object_name_label.setMouseTracking(True)
+        form.addRow(object_name_label, self.object_name)
         
         self.byline = QLineEdit()
-        form.addRow("By-line:", self.byline)
+        byline_label = QLabel("By-line:")
+        byline_label.setToolTip("Photographer")
+        # Ensure tooltip is enabled and visible with better timing
+        byline_label.setToolTipDuration(10000)  # Show for 10 seconds
+        byline_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        # Set mouse tracking to improve tooltip responsiveness
+        byline_label.setMouseTracking(True)
+        form.addRow(byline_label, self.byline)
         
         self.byline_title = QLineEdit()
-        form.addRow("By-line Title:", self.byline_title)
+        byline_title_label = QLabel("By-line Title:")
+        byline_title_label.setToolTip("Photographer's organization")
+        byline_title_label.setToolTipDuration(10000)  # Show for 10 seconds
+        byline_title_label.setAttribute(Qt.WidgetAttribute.WA_AlwaysShowToolTips, True)
+        byline_title_label.setMouseTracking(True)
+        form.addRow(byline_title_label, self.byline_title)
         
         # Create horizontal layout for Date Created and Source on same line
         date_source_container = QWidget()
@@ -3532,6 +3574,11 @@ class MainWindow(QMainWindow):
                 # Load markdown content
                 with open(user_guide_file, 'r') as f:
                     markdown_content = f.read()
+                
+                # Replace relative image paths with absolute paths
+                markdown_content = markdown_content.replace(
+                    '![Tag Writer Main Window](images/',
+                    f'![Tag Writer Main Window]({os.path.dirname(os.path.abspath(__file__))}/Docs/images/')
                 
                 # Display in a text edit with readable font
                 text_edit = QTextEdit()
