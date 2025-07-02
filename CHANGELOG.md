@@ -13,6 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07u] - 2025-07-02 18:14:36
+
+### Enhanced
+- **Image Information Table** - Added professionally formatted metadata table with Color Space Data and Bits Per Sample fields
+  - Replaced individual labels with neatly organized HTML table layout
+  - Added Color Space Data field showing image color components (RGB, Grayscale, CMYK, etc.)
+  - Added Bits Per Sample field displaying color depth information
+  - Optimized table layout with proper spacing and alignment for better readability
+  - Swapped order of "Dimension" and "File Size" columns for improved visual flow
+  - Professional appearance with consistent margins and padding
+  - Uses existing metadata reading approach for accurate color space and bits per sample extraction
+
+### Technical
+- Enhanced ImageViewer class with `extract_color_space_bits_per_sample()` method
+- Implemented HTML table layout for image metadata display in `setup_ui()` and `load_image()` methods
+- Updated metadata field extraction to use correct 'File:' prefixed keys for color components and bits per sample
+- Improved table formatting with optimized column ordering and professional styling
+- Integrated new metadata fields with existing exiftool JSON output processing
+
 ## [0.07t] - 2025-06-28 15:16:16
 
 ### Enhanced
