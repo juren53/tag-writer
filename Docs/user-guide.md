@@ -68,6 +68,8 @@ pip install -e .
 
 Tag Writer features a clean, intuitive interface divided into several main components:
 
+![Tag Writer Main Window](https://github.com/juren53/tag-writer/raw/main/Docs/images/main-window-1st-gen.png)
+
 ### Main Window
 - **Menu Bar**: Access to all application functions
 - **Toolbar**: Quick access to common actions

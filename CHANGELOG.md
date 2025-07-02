@@ -25,12 +25,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Professional appearance with consistent margins and padding
   - Uses existing metadata reading approach for accurate color space and bits per sample extraction
 
+### Added
+- **Help Tooltips for Metadata Fields** - Added informative tooltips to key metadata labels
+  - By-line: "Photographer"
+  - By-line Title: "Photographer's organization"
+  - Caption/Abstract: "Description"
+  - Headline: "Title"
+  - Object Name: "Unique Identifier / Accession Number"
+  - Tooltips appear on hover with 10-second display duration
+  - Enhanced responsiveness with mouse tracking enabled
+  - Consistent tooltip styling across all metadata fields
+
 ### Technical
 - Enhanced ImageViewer class with `extract_color_space_bits_per_sample()` method
 - Implemented HTML table layout for image metadata display in `setup_ui()` and `load_image()` methods
 - Updated metadata field extraction to use correct 'File:' prefixed keys for color components and bits per sample
 - Improved table formatting with optimized column ordering and professional styling
 - Integrated new metadata fields with existing exiftool JSON output processing
+- Enhanced metadata label creation with explicit QLabel objects
+- Implemented comprehensive tooltip settings (duration, mouse tracking, always show)
+- Added tooltip functionality to all major metadata input fields
+- Improved UI responsiveness with optimized tooltip timing
 
 ## [0.07t] - 2025-06-28 15:16:16
 
