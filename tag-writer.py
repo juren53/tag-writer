@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07t"
+        self.app_version = "0.07u"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -524,6 +524,7 @@ class MetadataManager:
         except Exception as e:
             logger.error(f"Error importing metadata from JSON: {e}")
             return False
+
 
 class ThemeManager:
     """Manages application themes and styling"""
@@ -1497,6 +1498,56 @@ class ImageViewer(QWidget):
         except Exception as e:
             logger.debug(f"Resolution detection error: {e}")
             return "Resolution: --"
+
+    def extract_color_space_bits_per_sample(self, image_path):
+        """Extract color space and bits per sample data using the existing metadata reading approach."""
+        try:
+            # Use the existing read_metadata function
+            metadata = read_metadata(image_path)
+            if not metadata:
+                logger.debug(f"No metadata found for color space/bits per sample extraction")
+                return '--', '--'
+            
+            # Debug: Log all available metadata keys that might contain color or bits info
+            relevant_keys = [key for key in metadata.keys() if any(term in key.lower() for term in ['color', 'bits', 'component'])]
+            logger.debug(f"Color/Bits related metadata keys found: {relevant_keys}")
+            
+            # Extract color components information (using the same metadata that View All Tags uses)
+            color_space = '--'
+            # Try different color space/components field names (with correct File: prefix)
+            for field in ['File:ColorComponents', 'ColorComponents', 'ColorSpace', 'Colorspace', 'EXIF:ColorSpace', 'EXIF:ColorComponents']:
+                if field in metadata and metadata[field]:
+                    value = metadata[field]
+                    logger.debug(f"Found color space field '{field}' with value: {value}")
+                    if 'ColorComponents' in field:
+                        # Format color components as a more descriptive string
+                        if value == 1:
+                            color_space = "Grayscale (1)"
+                        elif value == 3:
+                            color_space = "RGB (3)"
+                        elif value == 4:
+                            color_space = "CMYK (4)"
+                        else:
+                            color_space = f"Components: {value}"
+                    else:
+                        color_space = str(value)
+                    break
+            
+            # Extract bits per sample information (using the same metadata that View All Tags uses)
+            bits_per_sample = '--'
+            # Try different bits per sample field names (with correct File: prefix)
+            for field in ['File:BitsPerSample', 'BitsPerSample', 'EXIF:BitsPerSample', 'Bits Per Sample']:
+                if field in metadata and metadata[field]:
+                    bits_per_sample = str(metadata[field])
+                    logger.debug(f"Found bits per sample field '{field}' with value: {bits_per_sample}")
+                    break
+            
+            logger.debug(f"Final extraction result - Color space: {color_space}, Bits per sample: {bits_per_sample}")
+            return color_space, bits_per_sample
+            
+        except Exception as e:
+            logger.debug(f"Color space/bits per sample extraction error: {e}")
+            return '--', '--'
     
     def setup_ui(self):
         """Set up the user interface."""
@@ -1525,26 +1576,45 @@ class ImageViewer(QWidget):
         self.filename_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         info_layout.addWidget(self.filename_label)
         
-        # Dimensions label
+        # Create hidden labels for data storage (not displayed but used for table data)
         self.dimensions_label = QLabel("Dimensions: --")
-        self.dimensions_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_layout.addWidget(self.dimensions_label)
-        
-        # File size label
         self.file_size_label = QLabel("File size: --")
-        self.file_size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_layout.addWidget(self.file_size_label)
-        
-        # X/Y Resolution label
         self.resolution_label = QLabel("Resolution: --")
-        self.resolution_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_layout.addWidget(self.resolution_label)
-        
-        # Pixel count label
         self.pixel_count_label = QLabel("Pixel count: --")
-        self.pixel_count_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_layout.addWidget(self.pixel_count_label)
         
+        # Table of information using QLabel with HTML
+        table_html = """
+        <table style='width:100%; text-align:left; margin-left:20px; border-spacing:15px 5px;'>
+            <tr>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>File size:</td>
+                <td style='min-width:120px; padding-right:30px;'>{file_size}</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Dimension:</td>
+                <td style='min-width:120px;'>{dimension}</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Resolution:</td>
+                <td style='min-width:120px; padding-right:30px;'>{resolution}</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Pixel count:</td>
+                <td style='min-width:120px;'>{pixel_count}</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Color Space Data:</td>
+                <td style='min-width:120px; padding-right:30px;'>{color_space}</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
+                <td style='min-width:120px;'>{bits_per_sample}</td>
+            </tr>
+        </table>
+        """.format(
+            dimension=self.dimensions_label.text().split(': ')[1],
+            file_size=self.file_size_label.text().split(': ')[1],
+            resolution=self.resolution_label.text().split(': ')[1],
+            pixel_count=self.pixel_count_label.text().split(': ')[1],
+            color_space='--',
+            bits_per_sample='--'
+        )
+        self.table_label = QLabel(table_html)
+        info_layout.addWidget(self.table_label)
+
         # Add the container to the main layout
         layout.addWidget(info_container)
         
@@ -1608,7 +1678,42 @@ class ImageViewer(QWidget):
                 formatted_count = f"{pixel_count:,}"
                 self.pixel_count_label.setText(f"Pixel count: {formatted_count} pixels")
             
-            # Store path
+            # Extract color space data and bits per sample
+            color_space, bits_per_sample = self.extract_color_space_bits_per_sample(image_path)
+            
+            # Update table with color space and bits per sample
+            table_html = """
+            <table style='width:100%; text-align:left; margin-left:20px; border-spacing:15px 5px;'>
+                <tr>
+                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>File size:</td>
+                    <td style='min-width:120px; padding-right:30px;'>{file_size}</td>
+                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Dimension:</td>
+                    <td style='min-width:120px;'>{dimension}</td>
+                </tr>
+                <tr>
+                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Resolution:</td>
+                    <td style='min-width:120px; padding-right:30px;'>{resolution}</td>
+                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Pixel count:</td>
+                    <td style='min-width:120px;'>{pixel_count}</td>
+                </tr>
+                <tr>
+                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Color Space Data:</td>
+                    <td style='min-width:120px; padding-right:30px;'>{color_space}</td>
+                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
+                    <td style='min-width:120px;'>{bits_per_sample}</td>
+                </tr>
+            </table>
+            """.format(
+                dimension=self.dimensions_label.text().split(': ')[1],
+                file_size=self.file_size_label.text().split(': ')[1],
+                resolution=self.resolution_label.text().split(': ')[1],
+                pixel_count=self.pixel_count_label.text().split(': ')[1],
+                color_space=color_space,
+                bits_per_sample=bits_per_sample
+            )
+            self.table_label.setText(table_html)
+
+            
             self.current_image_path = image_path
             
             return True
@@ -1666,6 +1771,32 @@ class ImageViewer(QWidget):
         self.file_size_label.setText("File size: --")
         self.resolution_label.setText("Resolution: --")
         self.pixel_count_label.setText("Pixel count: --")
+        
+        # Clear the table as well
+        table_html = """
+        <table style='width:100%; text-align:left; margin-left:20px; border-spacing:15px 5px;'>
+            <tr>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>File size:</td>
+                <td style='min-width:120px; padding-right:30px;'>--</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Dimension:</td>
+                <td style='min-width:120px;'>--</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Resolution:</td>
+                <td style='min-width:120px; padding-right:30px;'>--</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Pixel count:</td>
+                <td style='min-width:120px;'>--</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Color Space Data:</td>
+                <td style='min-width:120px; padding-right:30px;'>--</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
+                <td style='min-width:120px;'>--</td>
+            </tr>
+        </table>
+        """
+        self.table_label.setText(table_html)
+        
         self.current_image_path = None
         self.pil_image = None
         self.original_thumbnail = None
@@ -2298,7 +2429,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-06-28 15:16:16)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-02 18:14:36)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
