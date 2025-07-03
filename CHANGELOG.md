@@ -13,6 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07v] - 2025-07-03 17:23:00
+
+### Fixed
+- **16-bit TIFF Image Support** - Resolved display issues with 16-bit grayscale TIFF images
+  - Added automatic conversion from 16-bit (`I;16`, `I;16B`) to 8-bit (`L`) for display compatibility
+  - Fixed NumPy 2.0 compatibility issue by replacing deprecated `array.ptp()` with `np.ptp()`
+  - Implemented proper normalization algorithm to preserve image quality during conversion
+  - Added division-by-zero protection for edge cases with uniform pixel values
+  - Enhanced `load_image()` function with robust 16-bit image mode detection
+  - Maintains original 16-bit data integrity for metadata operations while enabling display
+
+### Enhanced
+- **Image Loading Robustness** - Improved error handling and compatibility
+  - Better support for various TIFF image modes and bit depths
+  - Seamless handling of both 8-bit and 16-bit images in the same workflow
+  - Preserved all existing functionality for standard image formats
+  - No performance impact on non-16-bit image processing
+
+### Technical
+- Updated `load_image()` function with 16-bit to 8-bit conversion logic
+- Added NumPy array normalization using `np.ptp()` for peak-to-peak calculations
+- Implemented proper image mode detection for `'I;16'` and `'I;16B'` formats
+- Enhanced error handling with edge case protection (zero pixel value range)
+- Maintained backward compatibility with existing image processing pipeline
+
 ## [0.07u] - 2025-07-02 18:14:36
 
 ### Enhanced

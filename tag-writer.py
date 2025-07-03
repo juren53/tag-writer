@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07u"
+        self.app_version = "0.07v"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -265,6 +265,18 @@ def load_image(image_path):
         except Exception as e:
             logger.debug(f"Could not process EXIF orientation: {e}")
         
+        # Convert 16-bit images to 8-bit for display
+        if image.mode in ['I;16', 'I;16B']:
+            import numpy as np
+            np_image = np.array(image)
+            # Normalize to 8-bit range (0-255)
+            ptp_value = np.ptp(np_image)  # Use np.ptp() instead of array.ptp()
+            if ptp_value > 0:  # Avoid division by zero
+                norm_image = ((np_image - np_image.min()) / ptp_value * 255).astype(np.uint8)
+            else:
+                norm_image = np.zeros_like(np_image, dtype=np.uint8)
+            image = Image.fromarray(norm_image, mode='L')
+        
         return image
     except Exception as e:
         logger.error(f"Error loading image {image_path}: {e}")
@@ -279,6 +291,15 @@ def create_thumbnail(pil_image, max_size):
         from PIL import Image
         # Create a copy to avoid modifying the original
         thumbnail = pil_image.copy()
+        
+        # Handle 16-bit images (I;16 mode) by converting to a compatible mode
+        if thumbnail.mode == 'I;16':
+            # Convert 16-bit grayscale to 8-bit grayscale for thumbnail
+            # This preserves the visual appearance while making it compatible
+            thumbnail = thumbnail.convert('L')
+        elif thumbnail.mode in ['I', 'F']:  # Handle other problematic modes
+            # Convert to RGB for compatibility
+            thumbnail = thumbnail.convert('RGB')
         
         # Handle different Pillow versions for resampling
         try:
@@ -301,6 +322,7 @@ def adjust_zoom(pil_image, zoom_factor):
     
     try:
         from PIL import Image
+        import numpy as np
         original_width, original_height = pil_image.size
         new_width = int(original_width * zoom_factor)
         new_height = int(original_height * zoom_factor)
@@ -1087,13 +1109,16 @@ def pil_to_pixmap(pil_image):
         from PIL import Image
         import io
         
-        # Convert to RGB if it's not already
-        if pil_image.mode != "RGB":
-            pil_image = pil_image.convert("RGB")
+# Handle different image modes properly
+        display_image = pil_image
+        
+        # Convert any unsupported mode to RGB
+        if pil_image.mode != 'RGB':
+            display_image = pil_image.convert('RGB')
         
         # Convert to bytes
         byte_array = io.BytesIO()
-        pil_image.save(byte_array, format='PNG')
+        display_image.save(byte_array, format='PNG')
         
         # Create QImage from bytes
         byte_array.seek(0)
@@ -2471,7 +2496,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-02 18:14:36)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-03 17:23:00)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
