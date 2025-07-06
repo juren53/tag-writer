@@ -13,6 +13,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07w] - 2025-07-05 19:37:18
+
+### Added
+- **ExifTool Availability Check** - Application now checks for ExifTool at startup
+  - Automatic detection of ExifTool installation and accessibility
+  - Clear error dialog with installation instructions when ExifTool is missing
+  - Installation guidance for Windows, Linux, and macOS platforms
+  - Success status shown in status bar when ExifTool is available
+  - Prevents metadata operations from failing silently due to missing ExifTool
+  - Helpful troubleshooting for users who have accidentally moved or deleted ExifTool
+
+### Enhanced
+- **AppImage Build Artifacts Management** - Improved .gitignore to prevent accidental commits
+  - Added *.AppImage, appimagetool, and squashfs-root/ to .gitignore
+  - Prevents accidental staging of large build artifacts (3,780+ files)
+  - Cleaner repository management and reduced commit sizes
+  - Better development workflow for AppImage builds
+
+### Technical
+- Added `check_exiftool_availability()` function with comprehensive error handling
+- Implemented `show_exiftool_error_dialog()` with platform-specific installation instructions
+- Added `show_exiftool_success_status()` for non-intrusive success feedback
+- Enhanced startup sequence in `main()` function to include ExifTool validation
+- Updated .gitignore with AppImage build artifact patterns
+- FileNotFoundError and general exception handling for ExifTool detection
+- Cross-platform ExifTool executable detection and version reporting
+
 ## [0.07v] - 2025-07-03 17:23:00
 
 ### Fixed
@@ -675,6 +702,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.07w**: Added ExifTool availability check at startup and improved .gitignore for AppImage builds
+- **v0.07v**: Fixed 16-bit TIFF image display support
+- **v0.07u**: Enhanced metadata field tooltips and improved image information table
 - **v0.07m**: Added Glossary to Help menu and improved Help menu organization
 - **v0.07l**: Added keyboard shortcuts documentation and improved keyboard control discovery
 - **v0.07k**: Fixed keyboard focus in metadata text fields for proper arrow key handling

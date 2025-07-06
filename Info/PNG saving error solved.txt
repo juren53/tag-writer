@@ -1,0 +1,3 @@
+PNG saving error solved
+
+The issue is that the ExifTool output includes both a warning message AND the success message, but the success phrase includes leading spaces. Let me check what the actual ExifTool output looks like by examining the create_exiftool_instance function:

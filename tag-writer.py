@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-# Tag Writer - IPTC Metadata Editor v0.07s
+# Tag Writer - IPTC Metadata Editor v0.07w
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07v"
+        self.app_version = "0.07w"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -132,6 +132,65 @@ class Config:
 
 # Global configuration instance
 config = Config()
+
+def check_exiftool_availability():
+    """Check if ExifTool is available and accessible.
+    
+    Returns:
+        tuple: (is_available, version_info, error_message)
+    """
+    try:
+        # Try to create an ExifTool instance and get version
+        test_instance = create_exiftool_instance()
+        with test_instance as et:
+            # Try to get version info
+            version_output = et.execute("-ver")
+            version = version_output.strip() if version_output else "unknown"
+            logger.info(f"ExifTool found - version: {version}")
+            return True, version, None
+    except FileNotFoundError:
+        error_msg = "ExifTool executable not found. Please ensure ExifTool is installed and available in your system PATH."
+        logger.error(error_msg)
+        return False, None, error_msg
+    except Exception as e:
+        error_msg = f"ExifTool is installed but not accessible: {str(e)}"
+        logger.error(error_msg)
+        return False, None, error_msg
+
+def show_exiftool_error_dialog(error_message):
+    """Show an error dialog when ExifTool is not available."""
+    from PyQt6.QtWidgets import QMessageBox
+    
+    msg_box = QMessageBox()
+    msg_box.setIcon(QMessageBox.Icon.Critical)
+    msg_box.setWindowTitle("ExifTool Not Found")
+    msg_box.setText("Tag Writer requires ExifTool to function properly.")
+    msg_box.setDetailedText(f"Error: {error_message}\n\n"
+                           "Please install ExifTool:\n"
+                           "• Windows: Download from https://exiftool.org/ and add to PATH\n"
+                           "• Linux: Install via package manager (e.g., 'sudo apt install exiftool')\n"
+                           "• macOS: Install via Homebrew ('brew install exiftool')\n\n"
+                           "After installation, restart Tag Writer.")
+    msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+    msg_box.exec()
+
+def show_exiftool_success_status(window, version):
+    """Show ExifTool success status in the status bar."""
+    from PyQt6.QtCore import QTimer
+    
+    def delayed_status_update():
+        try:
+            if hasattr(window, 'statusBar'):
+                logger.info(f"Showing ExifTool status in status bar: ExifTool v{version} ready")
+                window.statusBar.showMessage(f"ExifTool v{version} ready", 5000)  # Show for 5 seconds
+            else:
+                logger.warning("Window does not have statusBar attribute")
+        except Exception as e:
+            logger.error(f"Error showing ExifTool status: {e}")
+    
+    # Delay the status message to ensure the window is fully initialized
+    QTimer.singleShot(100, delayed_status_update)  # 100ms delay
+    logger.info(f"ExifTool v{version} is ready to use")
 
 def create_exiftool_instance():
     """Create an ExifTool instance with Windows console window properly hidden."""
@@ -2496,7 +2555,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-03 17:23:00)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-05 19:37:18)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -3996,9 +4055,18 @@ def main():
     # Set application to quit when last window is closed
     app.setQuitOnLastWindowClosed(True)
     
+    # Check ExifTool availability before proceeding
+    is_available, version, error_msg = check_exiftool_availability()
+    
     # Create and show the main window
     window = MainWindow()
     window.show()
+    
+    # Show ExifTool status after window is visible
+    if is_available:
+        show_exiftool_success_status(window, version)
+    else:
+        show_exiftool_error_dialog(error_msg)
     
     # Load last file if available
     if config.selected_file and os.path.exists(config.selected_file):

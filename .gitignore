@@ -42,7 +42,13 @@ photos/
 tag-writer-latest/
 tag-writer-updated/
 
+# Ignore AppImage build artifacts
+*.AppImage
+appimagetool
+squashfs-root/
+
 # Ignore specific text files
 PROMPT_to-fix-Win11-arrow-button-bug.txt
 
 .buildozer/
+AppDir/
