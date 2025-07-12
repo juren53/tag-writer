@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-# Tag Writer - IPTC Metadata Editor v0.07w
+        # Tag Writer - IPTC Metadata Editor v0.07x
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07w"
+        self.app_version = "0.07x"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -2555,7 +2555,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-05 19:37:18)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-11 19:16:02)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -2683,7 +2683,8 @@ class MainWindow(QMainWindow):
         
         view_menu.addSeparator()
         
-        tags_action = QAction("&View All Tags...", self)
+        tags_action = QAction("\u0026View All Tags...", self)
+        tags_action.setShortcut("Ctrl+T")
         tags_action.triggered.connect(self.on_view_all_tags)
         view_menu.addAction(tags_action)
         
@@ -3319,7 +3320,6 @@ class MainWindow(QMainWindow):
         # Display metadata in a dialog
         dialog = QDialog(self)
         dialog.setWindowTitle(f"All Tags: {os.path.basename(config.selected_file)}")
-        dialog.resize(600, 400)
         
         # Set window flags to include minimize, maximize, and close buttons
         dialog.setWindowFlags(Qt.WindowType.Window | 
@@ -3327,7 +3327,32 @@ class MainWindow(QMainWindow):
                              Qt.WindowType.WindowMaximizeButtonHint | 
                              Qt.WindowType.WindowCloseButtonHint)
         
+        # Set dialog to full screen
+        from PyQt6.QtGui import QGuiApplication
+        screen_geometry = QGuiApplication.primaryScreen().geometry()
+        dialog.setGeometry(screen_geometry)
+        dialog.showMaximized()
+        
         layout = QVBoxLayout(dialog)
+        
+        # Create search bar
+        search_container = QWidget()
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        
+        search_label = QLabel("Search:")
+        search_edit = QLineEdit()
+        search_edit.setPlaceholderText("Type to search tags and values (Ctrl+F to focus)")
+        
+        # Create search status label
+        search_status = QLabel("")
+        search_status.setStyleSheet("font-size: 10pt; color: gray;")
+        
+        search_layout.addWidget(search_label)
+        search_layout.addWidget(search_edit)
+        search_layout.addWidget(search_status)
+        
+        layout.addWidget(search_container)
         
         # Create table with metadata
         from PyQt6.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView
@@ -3335,20 +3360,99 @@ class MainWindow(QMainWindow):
         table = QTableWidget()
         table.setColumnCount(2)
         table.setHorizontalHeaderLabels(["Tag", "Value"])
-        table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        
+        # Set column widths - increase Tag column width by 100%
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Interactive)  # Tag column - resizable
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)      # Value column - stretches
+        
+        # Set initial column widths (Tag column gets double the default width)
+        table.setColumnWidth(0, 400)  # Tag column - increased to 400px (100% wider than typical 200px)
+        
+        # Store original metadata for filtering
+        original_metadata = list(sorted(metadata.items()))
         
         # Fill table with metadata
-        table.setRowCount(len(metadata))
-        for i, (key, value) in enumerate(sorted(metadata.items())):
-            table.setItem(i, 0, QTableWidgetItem(key))
-            table.setItem(i, 1, QTableWidgetItem(str(value)))
+        def populate_table(items):
+            table.setRowCount(len(items))
+            for i, (key, value) in enumerate(items):
+                table.setItem(i, 0, QTableWidgetItem(key))
+                table.setItem(i, 1, QTableWidgetItem(str(value)))
+        
+        populate_table(original_metadata)
+        
+        # Search function
+        def search_metadata():
+            search_text = search_edit.text().lower()
+            if not search_text:
+                # Show all items if search is empty
+                populate_table(original_metadata)
+                search_status.setText("")
+                return
+            
+            # Filter metadata based on search text
+            filtered_items = []
+            for key, value in original_metadata:
+                if (search_text in key.lower() or 
+                    search_text in str(value).lower()):
+                    filtered_items.append((key, value))
+            
+            populate_table(filtered_items)
+            
+            # Update search status
+            if filtered_items:
+                search_status.setText(f"Found {len(filtered_items)} matches")
+            else:
+                search_status.setText("No matches found")
+        
+        # Connect search functionality
+        search_edit.textChanged.connect(search_metadata)
         
         layout.addWidget(table)
+        
+        # Button container
+        button_container = QWidget()
+        button_layout = QHBoxLayout(button_container)
+        button_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Add clear search button
+        clear_btn = QPushButton("Clear Search")
+        clear_btn.clicked.connect(lambda: search_edit.clear())
+        button_layout.addWidget(clear_btn)
+        
+        # Add spacer
+        button_layout.addStretch()
         
         # Add close button
         close_btn = QPushButton("Close")
         close_btn.clicked.connect(dialog.accept)
-        layout.addWidget(close_btn, alignment=Qt.AlignmentFlag.AlignRight)
+        button_layout.addWidget(close_btn)
+        
+        layout.addWidget(button_container)
+        
+        # Custom event filter for Ctrl+F shortcut
+        def event_filter(watched, event):
+            if event.type() == event.Type.KeyPress:
+                if event.key() == Qt.Key.Key_F and event.modifiers() == Qt.KeyboardModifier.ControlModifier:
+                    search_edit.setFocus()
+                    search_edit.selectAll()
+                    return True
+                elif event.key() == Qt.Key.Key_Escape:
+                    if search_edit.hasFocus() and search_edit.text():
+                        search_edit.clear()
+                        return True
+                    else:
+                        dialog.reject()
+                        return True
+            return False
+        
+        # Install event filter on dialog and table
+        dialog.installEventFilter(dialog)
+        table.installEventFilter(dialog)
+        dialog.eventFilter = event_filter
+        
+        # Set initial focus to table
+        table.setFocus()
         
         dialog.exec()
     
