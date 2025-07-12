@@ -13,6 +13,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07x] - 2025-07-11 19:16:02
+
+### Enhanced
+- **View All Tags Dialog Improvements** - Enhanced user experience and keyboard accessibility
+  - Increased Tag column width by 100% (from ~200px to 400px) for better readability of long metadata tag names
+  - Tag column now uses Interactive resize mode allowing users to adjust width as needed
+  - Value column stretches to fill remaining space for optimal table layout
+  - Added Ctrl+T keyboard shortcut for quick access to 'View All Tags' dialog
+  - Improved metadata tag visibility without horizontal scrolling or truncation
+  - Better workflow efficiency with keyboard shortcut integration
+
+### Technical
+- Modified View All Tags table configuration in `on_view_all_tags()` method
+- Updated Tag column (index 0) to use `QHeaderView.ResizeMode.Interactive` with 400px initial width
+- Value column (index 1) maintains `QHeaderView.ResizeMode.Stretch` for space efficiency
+- Added keyboard shortcut assignment `tags_action.setShortcut("Ctrl+T")` in View menu
+- Enhanced table usability while maintaining full-screen dialog functionality
+
 ## [0.07w] - 2025-07-05 19:37:18
 
 ### Added
