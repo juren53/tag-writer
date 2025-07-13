@@ -13,6 +13,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07z] - 2025-07-13 06:28:10
+
+### Fixed
+- **View All Tags Dialog** - Made the dialog read-only to prevent accidental metadata modification
+  - Added `QTableWidget.EditTrigger.NoEditTriggers` to disable editing in the metadata table
+  - Prevents users from accidentally modifying metadata values in the View All Tags dialog
+  - Maintains the dialog's purpose as a read-only metadata viewer
+  - Preserved all existing functionality including search, filtering, and column resizing
+
+### Technical
+- Modified View All Tags table configuration in `on_view_all_tags()` method
+- Added `table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)` to disable editing
+- Enhanced user experience by preventing unintended metadata modifications
+- Maintained full table functionality while removing edit capability
+
 ## [0.07y] - 2025-07-13 01:41:00
 
 ### Enhanced

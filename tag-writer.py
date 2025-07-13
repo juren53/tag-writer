@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.07y
+        # Tag Writer - IPTC Metadata Editor v0.07z
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07y"
+        self.app_version = "0.07z"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -2639,7 +2639,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-13 01:41:00)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-13 06:28:10)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -3444,6 +3444,9 @@ class MainWindow(QMainWindow):
         table = QTableWidget()
         table.setColumnCount(2)
         table.setHorizontalHeaderLabels(["Tag", "Value"])
+        
+        # Make table read-only - disable editing
+        table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         
         # Set column widths - increase Tag column width by 100%
         header = table.horizontalHeader()
