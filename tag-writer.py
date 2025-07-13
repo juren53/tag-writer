@@ -626,8 +626,15 @@ class MetadataManager:
                 ]
                 
                 # Clean result string and check for success patterns
-                result_clean = result.strip().lower()
-                success = any(pattern.lower() in result_clean for pattern in success_patterns)
+                # Handle multi-line output (warnings + success) by checking each line
+                result_lines = result.strip().split('\n')
+                success = False
+                
+                for line in result_lines:
+                    line_clean = line.strip().lower()
+                    if any(pattern.lower() in line_clean for pattern in success_patterns):
+                        success = True
+                        break
                 
                 # Log the ExifTool output for debugging (with sensitive info removed)
                 logger.debug(f"ExifTool result: {result[:200]}...")  # Log first 200 chars
