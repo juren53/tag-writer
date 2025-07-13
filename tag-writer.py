@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.07x
+        # Tag Writer - IPTC Metadata Editor v0.07y
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -29,6 +29,10 @@ if sys.platform.startswith('win'):
     # Constants for hiding console windows on Windows
     CREATE_NO_WINDOW = 0x08000000
     SW_HIDE = 0
+    
+    # Windows API for taskbar icon
+    import ctypes
+    from ctypes import wintypes
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
     QLabel, QPushButton, QLineEdit, QTextEdit, QComboBox,
@@ -37,7 +41,7 @@ from PyQt6.QtWidgets import (
     QDialogButtonBox, QInputDialog, QFrame
 )
 from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor
+from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor, QIcon
 
 # Note: This is a self-contained PyQt6 implementation
 # All functionality is integrated within this file
@@ -51,7 +55,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07x"
+        self.app_version = "0.07y"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -132,6 +136,58 @@ class Config:
 
 # Global configuration instance
 config = Config()
+
+def set_windows_taskbar_icon(window_handle=None):
+    """Set the taskbar icon on Windows using Windows API."""
+    if not sys.platform.startswith('win'):
+        return False
+    
+    try:
+        import ctypes
+        from ctypes import wintypes
+        
+        # Find icon file
+        icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.ico")
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.png")
+            if not os.path.exists(icon_path):
+                return False
+        
+        # Convert to absolute path
+        icon_path = os.path.abspath(icon_path)
+        
+        # Set the application user model ID (helps Windows distinguish this app)
+        app_id = "TagWriter.MetadataEditor.v07x"
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
+        except:
+            pass  # Ignore if not available
+        
+        # If we have a window handle, set the icon directly
+        if window_handle:
+            try:
+                # Load icon from file
+                if icon_path.endswith('.ico'):
+                    # Load icon using Windows API
+                    icon_handle = ctypes.windll.user32.LoadImageW(
+                        None, icon_path, 1, 0, 0, 0x00000010 | 0x00008000
+                    )
+                    if icon_handle:
+                        # Set both small and large icons
+                        ctypes.windll.user32.SendMessageW(
+                            window_handle, 0x0080, 0, icon_handle  # WM_SETICON, ICON_SMALL
+                        )
+                        ctypes.windll.user32.SendMessageW(
+                            window_handle, 0x0080, 1, icon_handle  # WM_SETICON, ICON_BIG
+                        )
+            except Exception as e:
+                logger.error(f"Error setting window icon via API: {e}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error setting Windows taskbar icon: {e}")
+        return False
 
 def check_exiftool_availability():
     """Check if ExifTool is available and accessible.
@@ -1227,7 +1283,11 @@ class MetadataPanel(QWidget):
         caption_layout.setSpacing(2)
         
         self.caption = QTextEdit()
-        self.caption.setMaximumHeight(100)
+        # Remove fixed height constraint to allow expansion - keep minimum height for usability
+        self.caption.setMinimumHeight(80)
+        # Set size policy to expand vertically
+        from PyQt6.QtWidgets import QSizePolicy
+        self.caption.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         caption_layout.addWidget(self.caption)
         
         # Character count label
@@ -1301,6 +1361,13 @@ class MetadataPanel(QWidget):
         self.copyright = QLineEdit()
         form.addRow("Copyright Notice:", self.copyright)
         
+        # Add horizontal line separator
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        separator.setStyleSheet("color: #888888; margin: 5px 0px;")
+        form.addRow(separator)
+        
         self.additional_info = QLineEdit()
         form.addRow("Additional Info:", self.additional_info)
         
@@ -1336,17 +1403,17 @@ class MetadataPanel(QWidget):
         # Add caption to tracking list (it's a QTextEdit, not a QLineEdit)
         self.text_fields.append(self.caption)
         
-        # Wrap form in a scroll area for better handling of different screen sizes
+        # Wrap form in a scroll area but allow it to expand to fill available space
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         form_widget = QWidget()
         form_widget.setLayout(form)
         scroll.setWidget(form_widget)
         
-        # Add scroll area to main layout
-        layout.addWidget(scroll)
+        # Add scroll area to main layout with stretch factor to fill space
+        layout.addWidget(scroll, 1)  # Give it stretch factor to expand
         
-        # Write metadata button
+        # Write metadata button at bottom
         self.write_button = QPushButton("Write Metadata")
         self.write_button.clicked.connect(self.on_write_metadata)
         layout.addWidget(self.write_button, alignment=Qt.AlignmentFlag.AlignHCenter)
@@ -2523,6 +2590,16 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Tag Writer")
         self.resize(1000, 600)
         
+        # Set window icon
+        icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+        else:
+            # Fallback to PNG if ICO doesn't exist
+            png_icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.png")
+            if os.path.exists(png_icon_path):
+                self.setWindowIcon(QIcon(png_icon_path))
+        
         # Create central widget and main layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -2555,7 +2632,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-11 19:16:02)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-13 01:41:00)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
@@ -4153,11 +4230,24 @@ def main():
     """Run the application."""
     app = QApplication(sys.argv)
     
+    # Set Windows taskbar icon early (before window creation)
+    set_windows_taskbar_icon()
+    
     # Set application style
     app.setStyle("Fusion")
     
     # Set application to quit when last window is closed
     app.setQuitOnLastWindowClosed(True)
+    
+    # Set application icon (affects taskbar icon)
+    icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.ico")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+    else:
+        # Fallback to PNG if ICO doesn't exist
+        png_icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.png")
+        if os.path.exists(png_icon_path):
+            app.setWindowIcon(QIcon(png_icon_path))
     
     # Check ExifTool availability before proceeding
     is_available, version, error_msg = check_exiftool_availability()
@@ -4165,6 +4255,15 @@ def main():
     # Create and show the main window
     window = MainWindow()
     window.show()
+    
+    # Set taskbar icon with window handle after window is shown
+    if sys.platform.startswith('win'):
+        try:
+            # Get the window handle
+            window_handle = int(window.winId())
+            set_windows_taskbar_icon(window_handle)
+        except Exception as e:
+            logger.error(f"Error setting taskbar icon with window handle: {e}")
     
     # Show ExifTool status after window is visible
     if is_available:

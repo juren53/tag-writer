@@ -13,6 +13,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional image format support
 - Custom metadata templates
 
+## [0.07y] - 2025-07-13 01:41:00
+
+### Enhanced
+- **Caption/Abstract Field Improvements** - Enhanced Caption/Abstract text box to automatically fill available space
+  - Removed fixed height constraint (was 100px max) to allow dynamic expansion
+  - Added minimum height of 80px for consistent usability
+  - Implemented expanding size policy to fill available vertical space in metadata panel
+  - Caption/Abstract field now grows and shrinks with window resizing for optimal text entry space
+  - Maintained original position between Headline and Credit fields
+  - Preserved all existing functionality including character counter and validation
+
+- **Metadata Panel Visual Organization** - Added horizontal separator line for better field grouping
+  - Added horizontal line separator between Copyright Notice and Additional Info fields
+  - Improved visual organization and scanning of metadata form
+  - Subtle sunken line style with gray color (#888888) and proper spacing (5px margins)
+  - Better separation between primary metadata fields and auxiliary information
+
+### Technical
+- Modified Caption/Abstract container with `QSizePolicy.Policy.Expanding` for vertical growth
+- Updated scroll area layout with stretch factor to accommodate expanding caption field
+- Added `QFrame` separator with `HLine` shape and `Shadow.Sunken` styling
+- Enhanced form layout organization while maintaining all existing field functionality
+- Improved metadata panel layout efficiency and user experience
+
 ## [0.07x] - 2025-07-11 19:16:02
 
 ### Enhanced
