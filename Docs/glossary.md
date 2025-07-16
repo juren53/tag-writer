@@ -54,7 +54,7 @@ A comprehensive reference guide for terms related to digital photography, image 
 - TIFF, JPEG, PNG and GIF can contain IPTC metadata
 
 ### **A Note on IPTC Metadata Implementation:** 
-It must be stated up front that many IPTC fields overlap, and their 
+It must be stated up front that the scope of many IPTC fields overlap, and their 
 use will often vary. How an organization implements IPTC metadata 
 largely depends on its specific needs, the tools it uses, 
 and its industry practices.  Below contains specific methods used
