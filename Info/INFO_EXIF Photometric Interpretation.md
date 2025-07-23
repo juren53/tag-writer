@@ -93,7 +93,7 @@ Sources and references that document and explain the `PhotometricInterpretation`
 
    * The original and most cited source for TIFF tag definitions.
    * Defines `Tag 262` – **PhotometricInterpretation** and its valid values.
-   * 📄 [TIFF 6.0 Spec (Adobe, 1992)](https://www.adobe.io/content/dam/udp/en/open/standards/tiff/TIFF6.pdf)
+   * 📄 [TIFF 6.0 Spec (Adobe, 1992)](https://github.com/juren53/tag-writer/blob/main/Info/tiff6.pdf)
 
      * See page 33 (Section 8, Tag Descriptions).
 
