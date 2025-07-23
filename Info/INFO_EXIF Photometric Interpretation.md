@@ -83,5 +83,57 @@ Understanding `PhotometricInterpretation` is essential when:
 
 ---
 
-Would you like to see examples of how the pixel values differ visually for some of these modes?
+Sources and references that document and explain the `PhotometricInterpretation` EXIF tag and its values:
+
+---
+
+### 🧾 Official Specifications
+
+1. **TIFF 6.0 Specification (Adobe)**
+
+   * The original and most cited source for TIFF tag definitions.
+   * Defines `Tag 262` – **PhotometricInterpretation** and its valid values.
+   * 📄 [TIFF 6.0 Spec (Adobe, 1992)](https://www.adobe.io/content/dam/udp/en/open/standards/tiff/TIFF6.pdf)
+
+     * See page 33 (Section 8, Tag Descriptions).
+
+2. **Exif Version 2.3 or 2.31 Standard (JEITA)**
+
+   * Defines how EXIF data is embedded in JPEG/TIFF and other image formats.
+   * 📄 [EXIF 2.31 Standard PDF (JEITA)](https://web.archive.org/web/20210125023255/http://www.cipa.jp/std/documents/e/DC-008-Translation-2016-E.pdf) (archived)
+
+     * `PhotometricInterpretation` is discussed where TIFF tags are included.
+
+---
+
+### 🛠 Tools and Libraries
+
+3. **ExifTool Documentation (by Phil Harvey)**
+
+   * Extensive, developer-friendly documentation for reading EXIF metadata.
+   * 📘 [ExifTool Tag Descriptions – TIFF Tags](https://exiftool.org/TagNames/TIFF.html#PhotometricInterpretation)
+
+4. **Python Pillow Library Docs**
+
+   * Python's imaging library supports TIFF and JPEG EXIF tags.
+   * 📚 [Pillow Documentation – TIFF Tags](https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#tiff)
+
+---
+
+### 🧪 Technical Background and Image File Format References
+
+5. **LibTIFF TIFF Tag Reference**
+
+   * Maintained by the developers of `libtiff`, a popular TIFF-handling library.
+   * 📄 [LibTIFF Tag Reference](http://www.simplesystems.org/libtiff/)
+
+6. **Wikipedia – TIFF & PhotometricInterpretation**
+
+   * Useful for quick reference, but always verify with primary sources.
+   * 🌐 [Wikipedia – TIFF](https://en.wikipedia.org/wiki/Tagged_Image_File_Format)
+   * 🌐 [Wikipedia – PhotometricInterpretation](https://en.wikipedia.org/wiki/TIFF#PhotometricInterpretation)
+
+---
+
+
 

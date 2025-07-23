@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Get the directory where this AppImage is located
+HERE="$(dirname "$(readlink -f "${0}")")"
+
+# Set up the environment
+export PATH="${HERE}/usr/bin:${PATH}"
+export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+
+# Launch the application
+exec python3 "${HERE}/usr/bin/tag-writer" "$@"
