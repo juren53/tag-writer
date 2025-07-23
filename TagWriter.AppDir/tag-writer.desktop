@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Tag Writer
+Comment=IPTC Metadata Editor for TIF and JPG images
+Exec=tag-writer
+Icon=tag-writer
+Categories=Graphics;Photography;
+Keywords=IPTC;metadata;images;photos;tags;
+StartupNotify=true
