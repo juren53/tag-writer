@@ -100,7 +100,7 @@ Sources and references that document and explain the `PhotometricInterpretation`
 2. **Exif Version 2.3 or 2.31 Standard (JEITA)**
 
    * Defines how EXIF data is embedded in JPEG/TIFF and other image formats.
-   * 📄 [EXIF 2.31 Standard PDF (JEITA)](https://web.archive.org/web/20210125023255/http://www.cipa.jp/std/documents/e/DC-008-Translation-2016-E.pdf) (archived)
+   * 📄 [EXIF 2.31 Standard PDF (JEITA)](https://github.com/dsoprea/go-exif/blob/master/assets/DC-008-Translation-2016-E.pdf) (archived)
 
      * `PhotometricInterpretation` is discussed where TIFF tags are included.
 
