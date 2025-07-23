@@ -692,19 +692,19 @@ class ThemeManager:
         self.themes = {
             'Default Light': {
                 'name': 'Default Light',
-                'background': '#ffffff',
-                'text': '#000000',
-                'selection_bg': '#3399ff',
+                'background': '#fafafa',        # Soft off-white instead of harsh white
+                'text': '#2d3748',             # Dark blue-gray instead of pure black
+                'selection_bg': '#4299e1',     # Softer blue for selections
                 'selection_text': '#ffffff',
-                'menubar_bg': '#f0f0f0',
-                'menubar_text': '#000000',
-                'toolbar_bg': '#f5f5f5',
-                'statusbar_bg': '#e0e0e0',
-                'statusbar_text': '#000000',
-                'button_bg': '#e1e1e1',
-                'button_text': '#000000',
-                'button_hover': '#d4d4d4',
-                'border': '#c0c0c0'
+                'menubar_bg': '#f7fafc',       # Very light blue-gray
+                'menubar_text': '#2d3748',
+                'toolbar_bg': '#f7fafc',       # Consistent with menubar
+                'statusbar_bg': '#edf2f7',     # Light gray-blue
+                'statusbar_text': '#4a5568',   # Medium gray
+                'button_bg': '#e2e8f0',        # Light blue-gray buttons
+                'button_text': '#2d3748',
+                'button_hover': '#cbd5e0',     # Slightly darker on hover
+                'border': '#cbd5e0'            # Soft gray borders
             },
             'Warm Light': {
                 'name': 'Warm Light',
@@ -942,7 +942,7 @@ class ThemeManager:
             color: {theme['statusbar_text']};
         }}
         
-        /* Labels */
+        /* Labels - Ensure proper text color */
         QLabel {{
             background-color: transparent;
             color: {theme['text']};
@@ -957,6 +957,44 @@ class ThemeManager:
             padding: 4px;
             selection-background-color: {theme['selection_bg']};
             selection-color: {theme['selection_text']};
+        }}
+        
+        QLineEdit:focus {{
+            border: 2px solid {theme['selection_bg']};
+        }}
+        
+        /* Text Edit Focus */
+        QTextEdit:focus, QPlainTextEdit:focus {{
+            border: 2px solid {theme['selection_bg']};
+        }}
+        
+        /* Widget containers */
+        QWidget {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+        }}
+        
+        /* Form layout specific styling */
+        QFormLayout {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+        }}
+        
+        /* Scroll Area */
+        QScrollArea {{
+            background-color: {theme['background']};
+            color: {theme['text']};
+            border: 1px solid {theme['border']};
+        }}
+        
+        QScrollArea > QWidget > QWidget {{
+            background-color: {theme['background']};
+        }}
+        
+        /* Frame styling */
+        QFrame {{
+            background-color: {theme['background']};
+            color: {theme['text']};
         }}
         
         /* Dialog */
@@ -1699,54 +1737,36 @@ class ImageViewer(QWidget):
             logger.debug(f"Resolution detection error: {e}")
             return "Resolution: --"
 
-    def extract_color_space_bits_per_sample(self, image_path):
-        """Extract color space and bits per sample data using the existing metadata reading approach."""
+    def extract_photometric_interpretation_bits_per_sample(self, image_path):
+        """Extract photometric interpretation and bits per sample data using the existing metadata reading approach."""
         try:
             # Use the existing read_metadata function
             metadata = read_metadata(image_path)
             if not metadata:
-                logger.debug(f"No metadata found for color space/bits per sample extraction")
+                logger.debug(f"No metadata found for photometric interpretation/bits per sample extraction")
                 return '--', '--'
             
-            # Debug: Log all available metadata keys that might contain color or bits info
-            relevant_keys = [key for key in metadata.keys() if any(term in key.lower() for term in ['color', 'bits', 'component'])]
-            logger.debug(f"Color/Bits related metadata keys found: {relevant_keys}")
+            # Debug: Log all available metadata keys that might contain photometric interpretation
+            relevant_keys = [key for key in metadata.keys() if 'photometric' in key.lower()]
+            logger.debug(f"Photometric related metadata keys found: {relevant_keys}")
             
-            # Extract color components information (using the same metadata that View All Tags uses)
-            color_space = '--'
-            # Try different color space/components field names (with correct File: prefix)
-            for field in ['File:ColorComponents', 'ColorComponents', 'ColorSpace', 'Colorspace', 'EXIF:ColorSpace', 'EXIF:ColorComponents']:
-                if field in metadata and metadata[field]:
-                    value = metadata[field]
-                    logger.debug(f"Found color space field '{field}' with value: {value}")
-                    if 'ColorComponents' in field:
-                        # Format color components as a more descriptive string
-                        if value == 1:
-                            color_space = "Grayscale (1)"
-                        elif value == 3:
-                            color_space = "RGB (3)"
-                        elif value == 4:
-                            color_space = "CMYK (4)"
-                        else:
-                            color_space = f"Components: {value}"
-                    else:
-                        color_space = str(value)
-                    break
+            # Extract photometric interpretation information
+            photometric_interpretation = metadata.get('EXIF:PhotometricInterpretation', '--')
+            logger.debug(f"Found photometric interpretation with value: {photometric_interpretation}")
             
-            # Extract bits per sample information (using the same metadata that View All Tags uses)
+            # Extract bits per sample information
             bits_per_sample = '--'
-            # Try different bits per sample field names (with correct File: prefix)
             for field in ['File:BitsPerSample', 'BitsPerSample', 'EXIF:BitsPerSample', 'Bits Per Sample']:
                 if field in metadata and metadata[field]:
                     bits_per_sample = str(metadata[field])
                     logger.debug(f"Found bits per sample field '{field}' with value: {bits_per_sample}")
                     break
             
-            logger.debug(f"Final extraction result - Color space: {color_space}, Bits per sample: {bits_per_sample}")
-            return color_space, bits_per_sample
+            logger.debug(f"Final extraction result - Photometric Interpretation: {photometric_interpretation}, Bits per sample: {bits_per_sample}")
+            return photometric_interpretation, bits_per_sample
             
         except Exception as e:
-            logger.debug(f"Color space/bits per sample extraction error: {e}")
+            logger.debug(f"Photometric Interpretation/bits per sample extraction error: {e}")
             return '--', '--'
     
     def setup_ui(self):
@@ -1798,8 +1818,8 @@ class ImageViewer(QWidget):
                 <td style='min-width:120px;'>{pixel_count}</td>
             </tr>
             <tr>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Color Space Data:</td>
-                <td style='min-width:120px; padding-right:30px;'>{color_space}</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Photometric Interpretation:</td>
+                <td style='min-width:120px; padding-right:30px;'>{photometric_interpretation}</td>
                 <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
                 <td style='min-width:120px;'>{bits_per_sample}</td>
             </tr>
@@ -1809,7 +1829,7 @@ class ImageViewer(QWidget):
             file_size=self.file_size_label.text().split(': ')[1],
             resolution=self.resolution_label.text().split(': ')[1],
             pixel_count=self.pixel_count_label.text().split(': ')[1],
-            color_space='--',
+            photometric_interpretation='--',
             bits_per_sample='--'
         )
         self.table_label = QLabel(table_html)
@@ -1878,10 +1898,10 @@ class ImageViewer(QWidget):
                 formatted_count = f"{pixel_count:,}"
                 self.pixel_count_label.setText(f"Pixel count: {formatted_count} pixels")
             
-            # Extract color space data and bits per sample
-            color_space, bits_per_sample = self.extract_color_space_bits_per_sample(image_path)
+# Extract photometric interpretation and bits per sample
+            photometric_interpretation, bits_per_sample = self.extract_photometric_interpretation_bits_per_sample(image_path)
             
-            # Update table with color space and bits per sample
+            # Update table with photometric interpretation and bits per sample
             table_html = """
             <table style='width:100%; text-align:left; margin-left:20px; border-spacing:15px 5px;'>
                 <tr>
@@ -1897,8 +1917,8 @@ class ImageViewer(QWidget):
                     <td style='min-width:120px;'>{pixel_count}</td>
                 </tr>
                 <tr>
-                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Color Space Data:</td>
-                    <td style='min-width:120px; padding-right:30px;'>{color_space}</td>
+<td style='font-weight:bold; min-width:140px; padding-right:10px;'>Photometric Interpretation:</td>
+                    <td style='min-width:120px; padding-right:30px;'>{photometric_interpretation}</td>
                     <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
                     <td style='min-width:120px;'>{bits_per_sample}</td>
                 </tr>
@@ -1908,7 +1928,7 @@ class ImageViewer(QWidget):
                 file_size=self.file_size_label.text().split(': ')[1],
                 resolution=self.resolution_label.text().split(': ')[1],
                 pixel_count=self.pixel_count_label.text().split(': ')[1],
-                color_space=color_space,
+                photometric_interpretation=photometric_interpretation,
                 bits_per_sample=bits_per_sample
             )
             self.table_label.setText(table_html)
@@ -1988,7 +2008,7 @@ class ImageViewer(QWidget):
                 <td style='min-width:120px;'>--</td>
             </tr>
             <tr>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Color Space Data:</td>
+                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Photometric Interpretation:</td>
                 <td style='min-width:120px; padding-right:30px;'>--</td>
                 <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
                 <td style='min-width:120px;'>--</td>
@@ -2639,7 +2659,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-13 06:28:10)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-23 10:02:10)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
