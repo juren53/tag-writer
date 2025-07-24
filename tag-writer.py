@@ -1748,11 +1748,15 @@ class ImageViewer(QWidget):
             
             # Debug: Log all available metadata keys that might contain photometric interpretation
             relevant_keys = [key for key in metadata.keys() if 'photometric' in key.lower()]
-            logger.debug(f"Photometric related metadata keys found: {relevant_keys}")
+            logger.info(f"Photometric related metadata keys found: {relevant_keys}")
             
             # Extract photometric interpretation information
-            photometric_interpretation = metadata.get('EXIF:PhotometricInterpretation', '--')
-            logger.debug(f"Found photometric interpretation with value: {photometric_interpretation}")
+            photometric_raw = metadata.get('EXIF:PhotometricInterpretation', '--')
+            logger.info(f"Found raw photometric interpretation value: {photometric_raw}")
+            
+            # Convert numeric photometric interpretation values to descriptive text
+            photometric_interpretation = self._convert_photometric_interpretation(photometric_raw)
+            logger.debug(f"Converted photometric interpretation to: {photometric_interpretation}")
             
             # Extract bits per sample information
             bits_per_sample = '--'
@@ -1768,6 +1772,31 @@ class ImageViewer(QWidget):
         except Exception as e:
             logger.debug(f"Photometric Interpretation/bits per sample extraction error: {e}")
             return '--', '--'
+    
+    def _convert_photometric_interpretation(self, raw_value):
+        """Convert numeric photometric interpretation values to descriptive text."""
+        if raw_value == '--' or raw_value is None:
+            return '--'
+        
+        # Mapping based on TIFF/EXIF specification
+        photometric_map = {
+            '0': 'WhiteIsZero',
+            '1': 'BlackIsZero', 
+            '2': 'RGB',
+            '3': 'Palette',
+            '4': 'Transparency Mask',
+            '5': 'CMYK',
+            '6': 'YCbCr',
+            '8': 'CIELab',
+            '9': 'ICCLab',
+            '10': 'ITULab'
+        }
+        
+        # Convert to string in case it's a number
+        str_value = str(raw_value).strip()
+        
+        # Return the descriptive text if we have a mapping, otherwise return the original value
+        return photometric_map.get(str_value, str_value)
     
     def setup_ui(self):
         """Set up the user interface."""
@@ -2659,7 +2688,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-23 10:02:10)")
+        version_label = QLabel(f"Ver {config.app_version} (2025-07-24 18:42:21)")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
