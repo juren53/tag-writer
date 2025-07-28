@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Command-line File Argument Support** - Application now accepts image file paths as command-line arguments
+  - Enhanced `main()` function to handle single file path argument on startup
+  - Automatic validation to ensure argument is a valid image file (by existence, type, and supported extensions)
+  - Supported extensions: .jpg, .jpeg, .png, .gif, .tif, .tiff, .bmp
+  - If valid image file provided as argument, it will be opened automatically on startup
+  - Enables "Open with tag-writer" functionality from OS file managers
+  - Falls back to loading last used file if no command-line argument provided (maintains existing behavior)
+  - Usage: `python3 tag-writer.py /path/to/image.tiff`
+  - Improved integration with operating system file associations
+
 ### Planned
 - Enhanced metadata field support
 - Batch processing capabilities
