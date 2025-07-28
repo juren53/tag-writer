@@ -56,6 +56,7 @@ class Config:
     """Global configuration and state management"""
     def __init__(self):
         self.app_version = "0.07z"
+        self.app_timestamp = "2025-07-28 08:00:29"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -2688,7 +2689,7 @@ class MainWindow(QMainWindow):
         self.statusBar.addWidget(path_container, 1)
         
         # Right section - Version only
-        version_label = QLabel(f"Ver {config.app_version} (2025-07-24 18:42:21)")
+        version_label = QLabel(f"Ver {config.app_version} ({config.app_timestamp})")
         self.statusBar.addPermanentWidget(version_label)
         
         # Create splitter for metadata panel and image viewer
