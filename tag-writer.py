@@ -4289,6 +4289,19 @@ def main():
     """Run the application."""
     app = QApplication(sys.argv)
     
+    # Handle command-line arguments for file paths
+    file_to_open = None
+    if len(sys.argv) > 1:
+        # Check if the argument is a valid image file
+        potential_file = sys.argv[1]
+        if os.path.exists(potential_file) and os.path.isfile(potential_file):
+            # Check if it's an image file by extension
+            file_ext = os.path.splitext(potential_file)[1].lower()
+            image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.bmp']
+            if file_ext in image_extensions:
+                file_to_open = os.path.abspath(potential_file)
+                logger.info(f"File to open from command line: {file_to_open}")
+    
     # Set Windows taskbar icon early (before window creation)
     set_windows_taskbar_icon()
     
@@ -4330,8 +4343,10 @@ def main():
     else:
         show_exiftool_error_dialog(error_msg)
     
-    # Load last file if available
-    if config.selected_file and os.path.exists(config.selected_file):
+    # Load file from command line argument or last file if available
+    if file_to_open:
+        window.load_file(file_to_open)
+    elif config.selected_file and os.path.exists(config.selected_file):
         window.load_file(config.selected_file)
     
     # Run the application
