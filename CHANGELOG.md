@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Enhanced
+- **Dynamic Version Timestamp Display** - Status bar now uses timestamp from application configuration
+  - Version label in status bar now dynamically pulls timestamp from `config.app_timestamp`
+  - Replaced hardcoded timestamp "2025-07-28 08:00:29" with configurable value
+  - Centralizes timestamp management in Config class for better maintainability
+  - Enables easy timestamp updates without modifying UI code
+  - Maintains consistent timestamp display across application components
+
 ### Added
 - **Command-line File Argument Support** - Application now accepts image file paths as command-line arguments
   - Enhanced `main()` function to handle single file path argument on startup
