@@ -1,4 +1,4 @@
-# Changelog
+# Tag-writer Changelog
 
 All notable changes to the Tag Writer project will be documented in this file.
 
@@ -16,20 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved accessibility and understanding of technical image metadata
   - Better debugging and analysis capabilities for advanced users
 
-- **Dynamic Version Timestamp Display** - Status bar now uses timestamp from application configuration (2025-07-28 11:30:52)
-  - Version label in status bar now dynamically pulls timestamp from `config.app_timestamp`
-  - Replaced hardcoded timestamp "2025-07-28 08:00:29" with configurable value
-  - Centralizes timestamp management in Config class for better maintainability
-  - Enables easy timestamp updates without modifying UI code
-  - Maintains consistent timestamp display across application components
-
 ### Added
-- **GitHub Actions CI/CD Pipeline** - Automated build and testing infrastructure (2025-07-29 09:15:32)
-  - Added `python-app.yml` workflow for continuous integration
-  - Automated testing and validation on code changes
-  - Improved development workflow with automated checks
-  - Enhanced code quality assurance and deployment preparation
-  - Streamlined contribution process with automated testing
+
+- **Command-line File Argument Support** - Application now accepts image file paths as command-line arguments (2025-07-28 15:42:27)
+  - Enhanced `main()` function to handle single file path argument on startup
+  - Automatic validation to ensure argument is a valid image file (by existence, type, and supported extensions)
+  - Supported extensions: .jpg, .jpeg, .png, .gif, .tif, .tiff, .bmp
+  - If valid image file provided as argument, it will be opened automatically on startup
+  - Enables "Open with tag-writer" functionality from OS file managers
+  - Falls back to loading last used file if no command-line argument provided (maintains existing behavior)
+  - Usage: `python3 tag-writer.py /path/to/image.tiff`
+  - Improved integration with operating system file associations
 
 - **EXIF Photometric Interpretation Documentation** - Comprehensive technical documentation resources (2025-07-29 08:45:18)
   - Added `INFO_EXIF Photometric Interpretation.md` with detailed explanations of photometric interpretation values
@@ -54,22 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced reproducible builds and deployments
   - Better dependency management for contributors and users
 
-- **Command-line File Argument Support** - Application now accepts image file paths as command-line arguments (2025-07-28 15:42:27)
-  - Enhanced `main()` function to handle single file path argument on startup
-  - Automatic validation to ensure argument is a valid image file (by existence, type, and supported extensions)
-  - Supported extensions: .jpg, .jpeg, .png, .gif, .tif, .tiff, .bmp
-  - If valid image file provided as argument, it will be opened automatically on startup
-  - Enables "Open with tag-writer" functionality from OS file managers
-  - Falls back to loading last used file if no command-line argument provided (maintains existing behavior)
-  - Usage: `python3 tag-writer.py /path/to/image.tiff`
-  - Improved integration with operating system file associations
+- **Theme Issues**  Fixed default Light theme styling for form labels and input fields  ()Wed Jul 23 2025 10:22:10)  
+  - Enhanced label styling with proper text color inheritance and transparent backgrounds
+  - Added focus states for input fields with visual feedback (border changes on focus)
+  - Improved widget container styling with proper background and text color inheritance
+  - Added form layout specific styling to ensure proper theming
+  - Fixed scroll area background colors and child widget styling
+  - Added proper theming for frame elements
+  - Resolved issue with dark backgrounds behind metadata fields making labels unreadable
+  - Default Light theme now uses softer, more readable color palette throughout
 
-
-### Planned
-- Enhanced metadata field support
-- Batch processing capabilities
-- Additional image format support
-- Custom metadata templates
 
 ## [0.07z] - 2025-07-13 06:28:10
 
@@ -120,6 +111,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added Ctrl+T keyboard shortcut for quick access to 'View All Tags' dialog
   - Improved metadata tag visibility without horizontal scrolling or truncation
   - Better workflow efficiency with keyboard shortcut integration
+  - Addition of a search bar to filter tags and values
+  - Keyboard shortcut (Ctrl+F) to focus on the search field
 
 ### Technical
 - Modified View All Tags table configuration in `on_view_all_tags()` method
