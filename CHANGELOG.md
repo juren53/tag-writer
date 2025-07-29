@@ -25,30 +25,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **GitHub Actions CI/CD Pipeline** - Automated build and testing infrastructure (2025-07-29 09:15:32)
-  - Added python-app.yml workflow for continuous integration
+  - Added `python-app.yml` workflow for continuous integration
   - Automated testing and validation on code changes
   - Improved development workflow with automated checks
   - Enhanced code quality assurance and deployment preparation
   - Streamlined contribution process with automated testing
 
 - **EXIF Photometric Interpretation Documentation** - Comprehensive technical documentation resources (2025-07-29 08:45:18)
-  - Added INFO_EXIF Photometric Interpretation.md with detailed explanations of photometric interpretation values
-  - Added INFO_EXIF Photometric Interpretation.txt with technical reference details
-  - Included official TIFF 6.0 specification PDF (tiff6.pdf) for complete technical reference
+  - Added `INFO_EXIF Photometric Interpretation.md` with detailed explanations of photometric interpretation values
+  - Added `INFO_EXIF Photometric Interpretation.txt` with technical reference details
+  - Included official TIFF 6.0 specification PDF (`tiff6.pdf`) for complete technical reference
   - Documentation covers different photometric interpretation values and their meanings
   - Enhanced user understanding of color space and image technical details
   - Fixed broken links and improved documentation accessibility
   - Valuable resource for photographers and technical users
 
 - **AppImage Packaging Infrastructure** - Complete Linux distribution packaging system (2025-07-29 07:30:45)
-  - Added complete TagWriter.AppDir structure for AppImage builds
+  - Added complete `TagWriter.AppDir` structure for AppImage builds
   - Includes desktop entry files, application icons, and executable binaries
   - Professional application packaging for Linux distribution
   - Self-contained portable application format
   - Enhanced cross-platform deployment capabilities
   - Simplified installation process for Linux users
 
-- **Python Dependencies Management** - Added requirements.txt for better development workflow (2025-07-29 06:55:12)
+- **Python Dependencies Management** - Added `requirements.txt` for better development workflow (2025-07-29 06:55:12)
   - Explicit Python package dependencies specification
   - Improved development environment setup
   - Enhanced reproducible builds and deployments
@@ -63,6 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Falls back to loading last used file if no command-line argument provided (maintains existing behavior)
   - Usage: `python3 tag-writer.py /path/to/image.tiff`
   - Improved integration with operating system file associations
+
 
 ### Planned
 - Enhanced metadata field support
