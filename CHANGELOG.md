@@ -8,7 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Enhanced
-- **Dynamic Version Timestamp Display** - Status bar now uses timestamp from application configuration
+- **Photometric Interpretation Display** - Improved readability of color space information (2025-07-28 18:25:14)
+  - Added human-readable photometric interpretation values in image metadata table
+  - Converts numeric EXIF codes (0,1,2,etc.) to descriptive text (WhiteIsZero, BlackIsZero, RGB, etc.)
+  - Based on official TIFF/EXIF specification mapping for photometric interpretation values
+  - Enhanced user experience by displaying meaningful text instead of cryptic numeric codes
+  - Improved accessibility and understanding of technical image metadata
+  - Better debugging and analysis capabilities for advanced users
+
+- **Dynamic Version Timestamp Display** - Status bar now uses timestamp from application configuration (2025-07-28 11:30:52)
   - Version label in status bar now dynamically pulls timestamp from `config.app_timestamp`
   - Replaced hardcoded timestamp "2025-07-28 08:00:29" with configurable value
   - Centralizes timestamp management in Config class for better maintainability
@@ -16,7 +24,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Maintains consistent timestamp display across application components
 
 ### Added
-- **Command-line File Argument Support** - Application now accepts image file paths as command-line arguments
+- **GitHub Actions CI/CD Pipeline** - Automated build and testing infrastructure (2025-07-29 09:15:32)
+  - Added python-app.yml workflow for continuous integration
+  - Automated testing and validation on code changes
+  - Improved development workflow with automated checks
+  - Enhanced code quality assurance and deployment preparation
+  - Streamlined contribution process with automated testing
+
+- **EXIF Photometric Interpretation Documentation** - Comprehensive technical documentation resources (2025-07-29 08:45:18)
+  - Added INFO_EXIF Photometric Interpretation.md with detailed explanations of photometric interpretation values
+  - Added INFO_EXIF Photometric Interpretation.txt with technical reference details
+  - Included official TIFF 6.0 specification PDF (tiff6.pdf) for complete technical reference
+  - Documentation covers different photometric interpretation values and their meanings
+  - Enhanced user understanding of color space and image technical details
+  - Fixed broken links and improved documentation accessibility
+  - Valuable resource for photographers and technical users
+
+- **AppImage Packaging Infrastructure** - Complete Linux distribution packaging system (2025-07-29 07:30:45)
+  - Added complete TagWriter.AppDir structure for AppImage builds
+  - Includes desktop entry files, application icons, and executable binaries
+  - Professional application packaging for Linux distribution
+  - Self-contained portable application format
+  - Enhanced cross-platform deployment capabilities
+  - Simplified installation process for Linux users
+
+- **Python Dependencies Management** - Added requirements.txt for better development workflow (2025-07-29 06:55:12)
+  - Explicit Python package dependencies specification
+  - Improved development environment setup
+  - Enhanced reproducible builds and deployments
+  - Better dependency management for contributors and users
+
+- **Command-line File Argument Support** - Application now accepts image file paths as command-line arguments (2025-07-28 15:42:27)
   - Enhanced `main()` function to handle single file path argument on startup
   - Automatic validation to ensure argument is a valid image file (by existence, type, and supported extensions)
   - Supported extensions: .jpg, .jpeg, .png, .gif, .tif, .tiff, .bmp
