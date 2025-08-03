@@ -1,0 +1,228 @@
+name: "Build TagWriter AppImage"
+description: "Automated workflow to build TagWriter AppImage from tag-writer.py"
+author: "Tag Writer Development Team"
+version: "1.0"
+
+# Environment variables
+env:
+  APP_NAME: "TagWriter"
+  APP_VERSION: "0.07z"
+  ARCH: "x86_64"
+  APPDIR_NAME: "TagWriter.AppDir"
+
+# Workflow steps
+steps:
+  - name: "Clean previous build artifacts"
+    description: "Remove any existing AppDir and old AppImages"
+    command: |
+      echo "🧹 Cleaning up previous build artifacts..."
+      rm -rf ${APPDIR_NAME}
+      rm -f Tag_Writer-*.AppImage TagWriter-*.AppImage 2>/dev/null || true
+      echo "✅ Cleanup complete"
+
+  - name: "Create AppDir structure"
+    description: "Create the directory structure required for AppImage"
+    command: |
+      echo "📁 Creating AppDir structure..."
+      mkdir -p ${APPDIR_NAME}/usr/bin
+      mkdir -p ${APPDIR_NAME}/usr/share/applications
+      mkdir -p ${APPDIR_NAME}/usr/share/icons/hicolor/256x256/apps
+      mkdir -p ${APPDIR_NAME}/usr/bin/docs
+      echo "✅ AppDir structure created"
+
+  - name: "Copy application files"
+    description: "Copy the main script and dependencies"
+    command: |
+      echo "📋 Copying application files..."
+      cp tag-writer.py ${APPDIR_NAME}/usr/bin/
+      cp ICON_tw.ico ${APPDIR_NAME}/usr/bin/
+      cp ICON_tw.png ${APPDIR_NAME}/usr/share/icons/hicolor/256x256/apps/tagwriter.png
+      cp ICON_tw.png ${APPDIR_NAME}/tagwriter.png
+      echo "✅ Application files copied"
+
+  - name: "Copy documentation"
+    description: "Copy documentation files if they exist"
+    command: |
+      echo "📚 Copying documentation..."
+      if [ -d "Docs" ]; then
+        cp -r Docs/* ${APPDIR_NAME}/usr/bin/docs/ 2>/dev/null || true
+        echo "✅ Documentation copied"
+      else
+        echo "ℹ️  No Docs directory found, skipping documentation copy"
+      fi
+
+  - name: "Create desktop entry"
+    description: "Create the .desktop file for system integration"
+    command: |
+      echo "🖥️  Creating desktop entry..."
+      cat > ${APPDIR_NAME}/usr/share/applications/tagwriter.desktop << 'EOF'
+      [Desktop Entry]
+      Version=1.0
+      Type=Application
+      Name=Tag Writer
+      Comment=IPTC Metadata Editor for Images
+      Exec=tag-writer.py %F
+      Icon=tagwriter
+      Categories=Graphics;Photography;
+      StartupNotify=true
+      MimeType=image/jpeg;image/jpg;image/tiff;image/tif;image/png;
+      Keywords=metadata;IPTC;image;photo;tags;
+      EOF
+      
+      # Copy desktop file to AppDir root
+      cp ${APPDIR_NAME}/usr/share/applications/tagwriter.desktop ${APPDIR_NAME}/
+      echo "✅ Desktop entry created"
+
+  - name: "Create AppRun script"
+    description: "Create the AppRun launcher script"
+    command: |
+      echo "🚀 Creating AppRun script..."
+      cat > ${APPDIR_NAME}/AppRun << 'EOF'
+      #!/bin/bash
+      
+      # Get the directory where this script is located (the AppDir)
+      HERE="$(dirname "$(readlink -f "${0}")")"
+      
+      # Add the usr/bin directory to PATH
+      export PATH="${HERE}/usr/bin:${PATH}"
+      
+      # Set APPDIR for the application to find its resources
+      export APPDIR="${HERE}"
+      
+      # Set PYTHONPATH to include the application directory
+      export PYTHONPATH="${HERE}/usr/bin:${PYTHONPATH}"
+      
+      # Change to the usr/bin directory so the app can find its files
+      cd "${HERE}/usr/bin"
+      
+      # Run the application with Python3, passing all arguments
+      exec python3 "${HERE}/usr/bin/tag-writer.py" "$@"
+      EOF
+      
+      chmod +x ${APPDIR_NAME}/AppRun
+      chmod +x ${APPDIR_NAME}/usr/bin/tag-writer.py
+      echo "✅ AppRun script created and made executable"
+
+  - name: "Verify appimagetool availability"
+    description: "Check if appimagetool is available"
+    command: |
+      echo "🔍 Checking for appimagetool..."
+      if [ -f "./appimagetool" ]; then
+        echo "✅ Found local appimagetool"
+        APPIMAGETOOL="./appimagetool"
+      elif command -v appimagetool >/dev/null 2>&1; then
+        echo "✅ Found system appimagetool"
+        APPIMAGETOOL="appimagetool"
+      else
+        echo "❌ appimagetool not found!"
+        echo "Please download appimagetool from: https://github.com/AppImage/AppImageKit/releases"
+        exit 1
+      fi
+      echo "APPIMAGETOOL=${APPIMAGETOOL}" > .build_env
+
+  - name: "Build AppImage"
+    description: "Build the final AppImage using appimagetool"
+    command: |
+      echo "🔨 Building AppImage..."
+      source .build_env
+      
+      # Set architecture and build
+      export ARCH=${ARCH}
+      ${APPIMAGETOOL} ${APPDIR_NAME}
+      
+      # Check if build was successful
+      if [ $? -eq 0 ]; then
+        APPIMAGE_FILE=$(ls Tag_Writer-*.AppImage 2>/dev/null | head -1)
+        if [ -n "$APPIMAGE_FILE" ]; then
+          # Create versioned filename
+          VERSIONED_NAME="${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage"
+          cp "$APPIMAGE_FILE" "$VERSIONED_NAME"
+          echo "✅ AppImage built successfully!"
+          echo "📦 Created: $VERSIONED_NAME"
+          echo "📏 Size: $(du -h "$VERSIONED_NAME" | cut -f1)"
+        else
+          echo "❌ AppImage file not found after build"
+          exit 1
+        fi
+      else
+        echo "❌ AppImage build failed"
+        exit 1
+      fi
+
+  - name: "Test AppImage"
+    description: "Verify the AppImage works correctly"
+    command: |
+      echo "🧪 Testing AppImage..."
+      VERSIONED_NAME="${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage"
+      
+      if [ -f "$VERSIONED_NAME" ]; then
+        # Test if AppImage can start (timeout after 3 seconds)
+        timeout 3s ./"$VERSIONED_NAME" > /dev/null 2>&1 &
+        TEST_PID=$!
+        sleep 1
+        
+        if kill -0 $TEST_PID 2>/dev/null; then
+          kill $TEST_PID 2>/dev/null
+          echo "✅ AppImage test successful - application starts correctly"
+        else
+          echo "⚠️  AppImage may have issues starting"
+        fi
+      else
+        echo "❌ AppImage file not found for testing"
+        exit 1
+      fi
+
+  - name: "Cleanup build files"
+    description: "Clean up temporary build files"
+    command: |
+      echo "🧹 Cleaning up build files..."
+      rm -rf ${APPDIR_NAME}
+      rm -f .build_env
+      echo "✅ Build cleanup complete"
+
+  - name: "Build summary"
+    description: "Display build summary and next steps"
+    command: |
+      echo ""
+      echo "🎉 AppImage Build Complete!"
+      echo "=============================="
+      
+      VERSIONED_NAME="${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage"
+      if [ -f "$VERSIONED_NAME" ]; then
+        echo "📦 File: $VERSIONED_NAME"
+        echo "📏 Size: $(du -h "$VERSIONED_NAME" | cut -f1)"
+        echo "🏗️  Architecture: ${ARCH}"
+        echo ""
+        echo "🚀 Usage:"
+        echo "   Direct run: ./$VERSIONED_NAME"
+        echo "   With file:  ./$VERSIONED_NAME /path/to/image.jpg"
+        echo ""
+        echo "📋 Available AppImages:"
+        ls -lh *.AppImage 2>/dev/null || echo "   No AppImages found"
+      else
+        echo "❌ Build may have failed - AppImage not found"
+      fi
+      echo ""
+
+# Optional: Define workflow dependencies
+dependencies:
+  - name: "python3"
+    description: "Python 3 interpreter"
+    check: "python3 --version"
+  
+  - name: "PyQt6"
+    description: "PyQt6 GUI framework"
+    check: "python3 -c 'import PyQt6; print(\"PyQt6 available\")'"
+  
+  - name: "exiftool"
+    description: "ExifTool for metadata operations"
+    check: "exiftool -ver"
+
+# Workflow metadata
+tags:
+  - "build"
+  - "appimage"
+  - "packaging"
+  - "linux"
+  - "python"
+  - "gui"

@@ -1,0 +1,90 @@
+name: "Quick Build AppImage"
+description: "Fast AppImage build without cleanup and testing"
+author: "Tag Writer Development Team"
+version: "1.0"
+
+env:
+  APP_NAME: "TagWriter"
+  APP_VERSION: "0.07z"
+  ARCH: "x86_64"
+
+steps:
+  - name: "Quick Setup"
+    description: "Setup AppDir and copy files"
+    command: |
+      echo "⚡ Quick AppImage build starting..."
+      
+      # Clean and create structure
+      rm -rf TagWriter.AppDir
+      mkdir -p TagWriter.AppDir/{usr/{bin,share/{applications,icons/hicolor/256x256/apps}},usr/bin/docs}
+      
+      # Copy files
+      cp tag-writer.py TagWriter.AppDir/usr/bin/
+      cp ICON_tw.{ico,png} TagWriter.AppDir/usr/bin/ 2>/dev/null || cp ICON_tw.png TagWriter.AppDir/usr/bin/
+      cp ICON_tw.png TagWriter.AppDir/usr/share/icons/hicolor/256x256/apps/tagwriter.png
+      cp ICON_tw.png TagWriter.AppDir/tagwriter.png
+      [ -d "Docs" ] && cp -r Docs/* TagWriter.AppDir/usr/bin/docs/ 2>/dev/null || true
+      
+      echo "✅ Files copied"
+
+  - name: "Create Configuration"  
+    description: "Create desktop entry and AppRun"
+    command: |
+      # Desktop entry
+      cat > TagWriter.AppDir/tagwriter.desktop << 'EOF'
+      [Desktop Entry]
+      Version=1.0
+      Type=Application
+      Name=Tag Writer
+      Comment=IPTC Metadata Editor for Images
+      Exec=tag-writer.py %F
+      Icon=tagwriter
+      Categories=Graphics;Photography;
+      StartupNotify=true
+      MimeType=image/jpeg;image/jpg;image/tiff;image/tif;image/png;
+      EOF
+      
+      cp TagWriter.AppDir/tagwriter.desktop TagWriter.AppDir/usr/share/applications/
+      
+      # AppRun script
+      cat > TagWriter.AppDir/AppRun << 'EOF'
+      #!/bin/bash
+      HERE="$(dirname "$(readlink -f "${0}")")"
+      export PATH="${HERE}/usr/bin:${PATH}"
+      export APPDIR="${HERE}"
+      cd "${HERE}/usr/bin"
+      exec python3 "${HERE}/usr/bin/tag-writer.py" "$@"
+      EOF
+      
+      chmod +x TagWriter.AppDir/AppRun TagWriter.AppDir/usr/bin/tag-writer.py
+      echo "✅ Configuration created"
+
+  - name: "Build"
+    description: "Build the AppImage"
+    command: |
+      echo "🔨 Building AppImage..."
+      
+      if [ -f "./appimagetool" ]; then
+        TOOL="./appimagetool"
+      else
+        TOOL="appimagetool"
+      fi
+      
+      ARCH=${ARCH} ${TOOL} TagWriter.AppDir
+      
+      if [ -f "Tag_Writer-${ARCH}.AppImage" ]; then
+        mv "Tag_Writer-${ARCH}.AppImage" "${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage"
+        echo "✅ AppImage created: ${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage"
+        echo "📏 Size: $(du -h "${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage" | cut -f1)"
+      else
+        echo "❌ Build failed"
+        exit 1
+      fi
+      
+      rm -rf TagWriter.AppDir
+      echo "🎉 Quick build complete!"
+
+tags:
+  - "build"
+  - "quick"
+  - "appimage"

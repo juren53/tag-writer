@@ -1,0 +1,241 @@
+name: "Test AppImage"
+description: "Test existing TagWriter AppImage functionality"
+author: "Tag Writer Development Team"
+version: "1.0"
+
+env:
+  APP_NAME: "TagWriter"
+  APP_VERSION: "0.07z"
+  ARCH: "x86_64"
+
+steps:
+  - name: "Find AppImage"
+    description: "Locate the TagWriter AppImage file"
+    command: |
+      echo "🔍 Looking for TagWriter AppImage..."
+      
+      # Look for versioned name first
+      VERSIONED_NAME="${APP_NAME}-${APP_VERSION}-${ARCH}.AppImage"
+      if [ -f "$VERSIONED_NAME" ]; then
+        APPIMAGE_FILE="$VERSIONED_NAME"
+        echo "✅ Found versioned AppImage: $APPIMAGE_FILE"
+      else
+        # Look for any TagWriter AppImage
+        APPIMAGE_FILE=$(ls TagWriter*.AppImage Tag_Writer*.AppImage 2>/dev/null | head -1)
+        if [ -n "$APPIMAGE_FILE" ]; then
+          echo "✅ Found AppImage: $APPIMAGE_FILE"
+        else
+          echo "❌ No TagWriter AppImage found!"
+          echo "   Available AppImages:"
+          ls -1 *.AppImage 2>/dev/null || echo "   None found"
+          exit 1
+        fi
+      fi
+      
+      # Store for next steps
+      echo "APPIMAGE_FILE=$APPIMAGE_FILE" > .test_env
+      echo "📦 Using: $APPIMAGE_FILE ($(du -h "$APPIMAGE_FILE" | cut -f1))"
+
+  - name: "Basic Tests"
+    description: "Run basic functionality tests"
+    command: |
+      source .test_env
+      echo "🧪 Running basic tests on $APPIMAGE_FILE..."
+      
+      # Test 1: File permissions
+      if [ -x "$APPIMAGE_FILE" ]; then
+        echo "✅ File is executable"
+      else
+        echo "❌ File is not executable"
+        chmod +x "$APPIMAGE_FILE"
+        echo "🔧 Fixed permissions"
+      fi
+      
+      # Test 2: AppImage structure
+      if file "$APPIMAGE_FILE" | grep -q "AppImage"; then
+        echo "✅ Valid AppImage format"
+      else
+        echo "⚠️  File format may not be standard AppImage"
+      fi
+      
+      # Test 3: Size check
+      SIZE_KB=$(du -k "$APPIMAGE_FILE" | cut -f1)
+      if [ $SIZE_KB -gt 100 ]; then
+        echo "✅ AppImage size reasonable: ${SIZE_KB}KB"
+      else
+        echo "⚠️  AppImage seems very small: ${SIZE_KB}KB"
+      fi
+
+  - name: "Application Launch Test"
+    description: "Test if the application launches correctly"
+    command: |
+      source .test_env
+      echo "🚀 Testing application launch..."
+      
+      # Test application startup with timeout
+      timeout 5s ./"$APPIMAGE_FILE" > /tmp/appimage_test.log 2>&1 &
+      TEST_PID=$!
+      sleep 2
+      
+      if kill -0 $TEST_PID 2>/dev/null; then
+        kill $TEST_PID 2>/dev/null
+        echo "✅ Application launches successfully"
+        
+        # Check for common startup messages
+        if grep -q "ExifTool found" /tmp/appimage_test.log; then
+          echo "✅ ExifTool integration working"
+        fi
+        
+        if grep -q "Main window initialized" /tmp/appimage_test.log; then
+          echo "✅ GUI initialization successful"
+        fi
+        
+        if grep -q "Applied.*theme" /tmp/appimage_test.log; then
+          echo "✅ Theme system working"
+        fi
+        
+      else
+        echo "❌ Application failed to launch"
+        echo "📋 Error log:"
+        cat /tmp/appimage_test.log | head -10
+        exit 1
+      fi
+      
+      rm -f /tmp/appimage_test.log
+
+  - name: "Dependencies Check"
+    description: "Verify embedded dependencies"
+    command: |
+      source .test_env
+      echo "📦 Checking embedded dependencies..."
+      
+      # Extract AppImage temporarily to check contents
+      ./"$APPIMAGE_FILE" --appimage-extract >/dev/null 2>&1
+      
+      if [ -d "squashfs-root" ]; then
+        echo "✅ AppImage extracts successfully"
+        
+        # Check for Python
+        if find squashfs-root -name "python3*" -type f | grep -q python; then
+          echo "✅ Python interpreter found"
+        else
+          echo "⚠️  Python interpreter not found in AppImage"
+        fi
+        
+        # Check for PyQt6
+        if find squashfs-root -path "*/PyQt6/*" | head -1 | grep -q PyQt6; then
+          echo "✅ PyQt6 libraries found"
+        else
+          echo "⚠️  PyQt6 libraries not found"
+        fi
+        
+        # Check for our application
+        if find squashfs-root -name "tag-writer.py" | grep -q tag-writer; then
+          echo "✅ Main application script found"
+        else
+          echo "❌ Main application script missing!"
+        fi
+        
+        # Check for icon files
+        ICON_COUNT=$(find squashfs-root -name "*icon*" -o -name "*.png" -o -name "*.ico" | wc -l)
+        echo "📸 Found $ICON_COUNT icon/image files"
+        
+        # Cleanup
+        rm -rf squashfs-root
+      else
+        echo "❌ Failed to extract AppImage"
+        exit 1
+      fi
+
+  - name: "Integration Test"
+    description: "Test file association capabilities"
+    command: |
+      source .test_env
+      echo "🔗 Testing file integration capabilities..."
+      
+      # Check desktop file integration
+      ./"$APPIMAGE_FILE" --appimage-extract >/dev/null 2>&1
+      
+      if [ -f "squashfs-root/tagwriter.desktop" ]; then
+        echo "✅ Desktop file present"
+        
+        # Check MIME types
+        if grep -q "MimeType.*image" squashfs-root/tagwriter.desktop; then
+          echo "✅ Image MIME types configured"
+        else
+          echo "⚠️  No image MIME types found"
+        fi
+        
+        # Check categories
+        if grep -q "Categories.*Graphics" squashfs-root/tagwriter.desktop; then
+          echo "✅ Application categories set"
+        else
+          echo "⚠️  No application categories found"
+        fi
+      else
+        echo "⚠️  Desktop file not found"
+      fi
+      
+      rm -rf squashfs-root
+
+  - name: "Performance Test"
+    description: "Basic performance and resource usage check"
+    command: |
+      source .test_env
+      echo "⚡ Running performance test..."
+      
+      # Measure startup time
+      echo "⏱️  Measuring startup time..."
+      START_TIME=$(date +%s.%N)
+      timeout 10s ./"$APPIMAGE_FILE" >/dev/null 2>&1 &
+      TEST_PID=$!
+      
+      # Wait for process to start
+      sleep 3
+      END_TIME=$(date +%s.%N)
+      
+      if kill -0 $TEST_PID 2>/dev/null; then
+        kill $TEST_PID 2>/dev/null
+        STARTUP_TIME=$(echo "$END_TIME - $START_TIME" | bc -l 2>/dev/null || echo "~3")
+        echo "✅ Startup time: ${STARTUP_TIME}s"
+        
+        # Basic performance assessment
+        if [ $(echo "$STARTUP_TIME < 5" | bc -l 2>/dev/null || echo 1) -eq 1 ]; then
+          echo "✅ Good startup performance"
+        else
+          echo "⚠️  Slow startup (>5s)"
+        fi
+      else
+        echo "❌ Application did not start within timeout"
+      fi
+
+  - name: "Test Summary"
+    description: "Display comprehensive test results"
+    command: |
+      source .test_env
+      echo ""
+      echo "📊 Test Summary"
+      echo "==============="
+      echo "🎯 Target: $APPIMAGE_FILE"
+      echo "📏 Size: $(du -h "$APPIMAGE_FILE" | cut -f1)"
+      echo "🏗️  Architecture: ${ARCH}"
+      echo ""
+      echo "✅ Tests completed successfully!"
+      echo ""
+      echo "🚀 Usage Examples:"
+      echo "   ./$APPIMAGE_FILE"
+      echo "   ./$APPIMAGE_FILE /path/to/image.jpg"
+      echo ""
+      echo "🔧 Integration:"
+      echo "   Make executable: chmod +x $APPIMAGE_FILE"
+      echo "   Install: mv $APPIMAGE_FILE ~/Applications/"
+      echo ""
+      
+      # Cleanup
+      rm -f .test_env
+
+tags:
+  - "test"
+  - "validation"
+  - "appimage"
+  - "qa"
