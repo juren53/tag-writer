@@ -64,13 +64,13 @@ Key points about IFD0:
 
 IFD0 is essential for any software parsing technical and descriptive information from digital image files in these formats[5][7][8].
 
-[1] https://www.media.mit.edu/pia/Research/deepview/exif.html
-[2] https://exiftool.org/TagNames/EXIF.html
-[3] https://exiv2.org/tags.html
-[4] https://www.php.net/manual/en/function.exif-read-data.php
-[5] https://dpb587.me/entries/tiff-ifd-and-subifd-20240226
-[6] https://www.bitsgalore.org/2024/03/11/multi-image-tiffs-subfiles-and-image-file-directories
-[7] https://auth0.com/blog/read-edit-exif-metadata-in-photos-with-javascript/
-[8] https://hexdocs.pm/exif_parser/ExifParser.html
-[9] https://exiftool.org/forum/index.php?topic=4927.0
-[10] https://www.photools.com/community/index.php?topic=13589.0
+- [1] https://www.media.mit.edu/pia/Research/deepview/exif.html
+- [2] https://exiftool.org/TagNames/EXIF.html
+- [3] https://exiv2.org/tags.html
+- [4] https://www.php.net/manual/en/function.exif-read-data.php
+- [5] https://dpb587.me/entries/tiff-ifd-and-subifd-20240226
+- [6] https://www.bitsgalore.org/2024/03/11/multi-image-tiffs-subfiles-and-image-file-directories
+- [7] https://auth0.com/blog/read-edit-exif-metadata-in-photos-with-javascript/
+- [8] https://hexdocs.pm/exif_parser/ExifParser.html
+- [9] https://exiftool.org/forum/index.php?topic=4927.0
+- [10] https://www.photools.com/community/index.php?topic=13589.0
