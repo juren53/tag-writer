@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.07z
+        # Tag Writer - IPTC Metadata Editor v0.1.0
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -55,8 +55,8 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.07z"
-        self.app_timestamp = "2025-07-28 08:00:29"
+        self.app_version = "0.1.0"
+        self.app_timestamp = "2025-12-15 04:40"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -309,10 +309,10 @@ def create_exiftool_instance():
                     # If version parsing fails, continue anyway
                     self._ver = "unknown"
         
-        return WindowsExifTool()
+        return WindowsExifTool(encoding='utf-8')
     else:
         # For non-Windows platforms, use standard ExifTool
-        return exiftool.ExifTool()
+        return exiftool.ExifTool(encoding='utf-8')
 
 def get_image_files(directory):
     """Get a sorted list of image files in the directory"""
