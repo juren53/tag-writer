@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2025-12-15 04:40
+
+### Fixed
+- **UTF-8 Encoding for Metadata Display** - Resolved mojibake issues with special characters in IPTC metadata
+  - Added `encoding='utf-8'` parameter to ExifTool instances in `create_exiftool_instance()` function
+  - Fixed display of special characters (ñ, é, etc.) in IPTC:Headline and IPTC:Caption-Abstract fields
+  - Application now correctly interprets `IPTC:CodedCharacterSet=UTF8` from TIFF files
+  - Eliminates mojibake display (e.g., "NiÃ±os HÃ©roes" now correctly displays as "Niños Héroes")
+  - Matches UTF-8 encoding implementation from HSTL Photo Framework
+  - Affects both WindowsExifTool and standard ExifTool instances for cross-platform consistency
+
+### Changed
+- **Version Update** - Bumped version from 0.07z to 0.1.0
+  - Updated version display in main window status bar
+  - Updated version display in Help > About dialog
+  - Timestamp updated to 2025-12-15 04:40
+
+### Technical
+- Modified `create_exiftool_instance()` at lines 312 and 315
+- Changed `WindowsExifTool()` to `WindowsExifTool(encoding='utf-8')`
+- Changed `exiftool.ExifTool()` to `exiftool.ExifTool(encoding='utf-8')`
+- Ensures consistent UTF-8 handling across all metadata read/write operations
+
 ### Enhanced
 - **Photometric Interpretation Display** - Improved readability of color space information (2025-07-28 18:25:14)
   - Added human-readable photometric interpretation values in image metadata table
