@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.1.0
+        # Tag Writer - IPTC Metadata Editor v0.1.1
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -40,7 +40,7 @@ from PyQt6.QtWidgets import (
     QStatusBar, QFileDialog, QMessageBox, QToolBar, QDialog, QProgressDialog,
     QDialogButtonBox, QInputDialog, QFrame
 )
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QTimer
 from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor, QIcon
 
 # Note: This is a self-contained PyQt6 implementation
@@ -55,8 +55,8 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.0"
-        self.app_timestamp = "2025-12-15 04:40"
+        self.app_version = "0.1.1"
+        self.app_timestamp = "2025-12-31 17:15"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1608,33 +1608,27 @@ class MetadataPanel(QWidget):
         if not config.selected_file:
             QMessageBox.warning(self, "No File Selected", "Please select an image file first.")
             return
-        
-        # Show a progress dialog
-        progress_dialog = QMessageBox(QMessageBox.Icon.Information, "Writing Metadata",
-                                     f"Writing metadata to {os.path.basename(config.selected_file)}...",
-                                     QMessageBox.StandardButton.Ok, self)
-        progress_dialog.button(QMessageBox.StandardButton.Ok).setEnabled(False)
-        progress_dialog.show()
-        QApplication.processEvents()
-        
+
         try:
             # Update metadata manager from UI
             self.update_manager_from_ui()
-            
+
             # Save to file
             if self.metadata_manager.save_to_file(config.selected_file):
-                progress_dialog.button(QMessageBox.StandardButton.Ok).setEnabled(True)
-                progress_dialog.setText("Metadata saved successfully!")
+                # Get the parent window and update its status bar
+                parent = self.parent()
+                while parent is not None and not isinstance(parent, QMainWindow):
+                    parent = parent.parent()
+
+                if parent and hasattr(parent, 'status_label'):
+                    parent.status_label.setText("Metadata saved")
+
                 logger.info(f"Metadata saved to {config.selected_file}")
             else:
-                progress_dialog.button(QMessageBox.StandardButton.Ok).setEnabled(True)
-                progress_dialog.setIcon(QMessageBox.Icon.Critical)
-                progress_dialog.setText("Error saving metadata")
+                QMessageBox.critical(self, "Error", "Failed to save metadata")
                 logger.error(f"Error saving metadata to {config.selected_file}")
         except Exception as e:
-            progress_dialog.button(QMessageBox.StandardButton.Ok).setEnabled(True)
-            progress_dialog.setIcon(QMessageBox.Icon.Critical)
-            progress_dialog.setText(f"Error saving metadata: {str(e)}")
+            QMessageBox.critical(self, "Error", f"Error saving metadata: {str(e)}")
             logger.error(f"Exception saving metadata: {e}")
 
 class ImageViewer(QWidget):
@@ -3136,21 +3130,51 @@ class MainWindow(QMainWindow):
         
         if file_path:
             self.load_file(file_path)
-    
+
+    def show_auto_close_message(self, title, message, icon=QMessageBox.Icon.Information, timeout=3000):
+        """Show a message box that auto-closes after a timeout.
+
+        Args:
+            title: Dialog title
+            message: Dialog message
+            icon: QMessageBox icon (default: Information)
+            timeout: Time in milliseconds before auto-close (default: 3000)
+        """
+        # Store as instance variable to prevent garbage collection
+        self._auto_close_msg_box = QMessageBox(self)
+        self._auto_close_msg_box.setWindowTitle(title)
+        self._auto_close_msg_box.setText(message)
+        self._auto_close_msg_box.setIcon(icon)
+        self._auto_close_msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
+        self._auto_close_msg_box.setModal(True)
+
+        # Create timer for auto-close with self as parent
+        self._auto_close_timer = QTimer(self)
+        self._auto_close_timer.setSingleShot(True)
+        self._auto_close_timer.timeout.connect(self._close_auto_message)
+        self._auto_close_timer.start(timeout)
+
+        # Use open() instead of exec() - it's non-blocking but still modal
+        self._auto_close_msg_box.open()
+
+    def _close_auto_message(self):
+        """Helper to close the auto-close message box."""
+        if hasattr(self, '_auto_close_msg_box') and self._auto_close_msg_box.isVisible():
+            self._auto_close_msg_box.close()
+
     def on_save(self):
         """Handle Save action."""
         if not config.selected_file:
             QMessageBox.warning(self, "No File Selected", "Please select an image file first.")
             return
-        
+
         # Update metadata from UI
         self.metadata_panel.update_manager_from_ui()
-        
+
         # Save to file
         success = self.metadata_manager.save_to_file(config.selected_file)
-        
+
         if success:
-            QMessageBox.information(self, "Success", "Metadata saved successfully.")
             self.status_label.setText("Metadata saved")
         else:
             QMessageBox.critical(self, "Error", "Failed to save metadata.")
@@ -4139,52 +4163,63 @@ class MainWindow(QMainWindow):
         if not os.path.exists(file_path):
             QMessageBox.warning(self, "File Not Found", f"The file {file_path} does not exist.")
             return False
-        
-        # Update configuration
-        config.selected_file = file_path
-        config.add_recent_file(file_path)
-        
-        # Get directory image files for navigation
-        directory = os.path.dirname(file_path)
-        config.last_directory = directory
-        config.directory_image_files = get_image_files(directory)
-        
-        # Add directory to recent directories
-        config.add_recent_directory(directory)
-        
-        # Update recent directories menu
-        self.update_recent_directories_menu()
-        
+
+        # Show loading feedback
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        file_name = os.path.basename(file_path)
+        self.status_label.setText(f"Loading {file_name}... Please wait")
+        QApplication.processEvents()  # Force UI update
+
         try:
-            # Find index of current file
-            config.current_file_index = config.directory_image_files.index(file_path)
-        except ValueError:
-            config.current_file_index = -1
-        
-        # Load metadata
-        if not self.metadata_manager.load_from_file(file_path):
-            # If no metadata, just clear the fields
-            self.metadata_panel.clear_fields()
-        
-        # Update UI from metadata
-        self.metadata_panel.update_from_manager()
-        
-        # Load image
-        if not self.image_viewer.load_image(file_path):
-            QMessageBox.warning(self, "Error", f"Failed to load image: {file_path}")
-            return False
-        
-        # Update UI
-        self.file_label.setText(os.path.basename(file_path))
-        self.path_label.setText(os.path.dirname(file_path))
-        self.setWindowTitle(f"Tag Writer - {os.path.basename(file_path)}")
-        self.status_label.setText(f"Loaded {os.path.basename(file_path)}")
-        
-        # Update recent files menu
-        self.update_recent_menu()
-        
-        logger.info(f"Loaded file: {file_path}")
-        return True
+            # Update configuration
+            config.selected_file = file_path
+            config.add_recent_file(file_path)
+
+            # Get directory image files for navigation
+            directory = os.path.dirname(file_path)
+            config.last_directory = directory
+            config.directory_image_files = get_image_files(directory)
+
+            # Add directory to recent directories
+            config.add_recent_directory(directory)
+
+            # Update recent directories menu
+            self.update_recent_directories_menu()
+
+            try:
+                # Find index of current file
+                config.current_file_index = config.directory_image_files.index(file_path)
+            except ValueError:
+                config.current_file_index = -1
+
+            # Load metadata
+            if not self.metadata_manager.load_from_file(file_path):
+                # If no metadata, just clear the fields
+                self.metadata_panel.clear_fields()
+
+            # Update UI from metadata
+            self.metadata_panel.update_from_manager()
+
+            # Load image
+            if not self.image_viewer.load_image(file_path):
+                QMessageBox.warning(self, "Error", f"Failed to load image: {file_path}")
+                return False
+
+            # Update UI
+            self.file_label.setText(os.path.basename(file_path))
+            self.path_label.setText(os.path.dirname(file_path))
+            self.setWindowTitle(f"Tag Writer - {os.path.basename(file_path)}")
+            self.status_label.setText(f"Loaded {os.path.basename(file_path)}")
+
+            # Update recent files menu
+            self.update_recent_menu()
+
+            logger.info(f"Loaded file: {file_path}")
+            return True
+
+        finally:
+            # Always restore cursor, even if an error occurred
+            QApplication.restoreOverrideCursor()
     
     def save_window_geometry(self):
         """Save the current window geometry and state to config."""
