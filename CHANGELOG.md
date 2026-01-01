@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2025-12-31
+
+### Changed
+- **PyInstaller Build Configuration** - Switched to single-file executable mode
+  - Modified tag-writer.spec from COLLECT mode to onefile mode
+  - Bundles all dependencies into a single executable file
+  - Changed application icon from ICON_tw.ico to ICON_tw.png format
+  - Simplified distribution with single executable instead of directory structure
+  - Improved portability and ease of deployment
+
+### Added
+- **Display Scaling Documentation** - Added comprehensive guide for high-DPI display handling
+  - New Info/Display Scaling.md document covering PyQt DPI scaling strategies
+  - Includes best practices for cross-platform theme management on high-resolution displays
+  - Detailed implementation guide for handling different screen densities
+  - Helpful for developers working with the theme system on various display configurations
+
+### Technical
+- Updated PyInstaller spec file to include binaries and data files in EXE section
+- Removed separate COLLECT step for cleaner single-file builds
+- Added runtime_tmpdir and upx_exclude parameters for better executable configuration
+
 ## [0.1.0] - 2025-12-15 04:40
 
 ### Fixed
