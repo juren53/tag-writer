@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.2"
+        self.app_version = "0.1.3"
         self.app_timestamp = "2026-01-01 00:00"
         self.selected_file = None
         self.last_directory = None
