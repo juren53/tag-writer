@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **TBD** - Next feature development
+
+## [0.1.2] - 2026-01-01
+
 ## [0.1.2] - 2025-12-31
 
 ### Changed
@@ -18,6 +23,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved portability and ease of deployment
 
 ### Added
+- **GitHub Version Checking System** - Integrated comprehensive update checking functionality
+  - Added automatic startup checks with configurable frequency (default: 24 hours)
+  - Added manual "Check for Updates" menu item in Help menu
+  - Implemented non-blocking version checks using PyQt6 threading
+  - Added rich update dialogs with release notes and download options
+  - Added version skipping functionality with persistent user preferences
+  - Implemented semantic version comparison supporting pre-release versions
+  - Added comprehensive error handling for network and API issues
+  - Added user preferences for update checking behavior
+  - Enhanced error messages for repositories without releases
+  - Integrated proven version checker module from system-monitor project
+
+## [0.1.3] - 2026-01-01
+
+### Added
+- **Improved Update Error Handling** - Enhanced user feedback for repositories without releases
+  - Added friendly "No Releases Available" message when repository has no published releases
+  - Improved error message clarity and user experience
+  - Maintained backward compatibility with existing version checking functionality
+
+### Changed
 - **Display Scaling Documentation** - Added comprehensive guide for high-DPI display handling
   - New Info/Display Scaling.md document covering PyQt DPI scaling strategies
   - Includes best practices for cross-platform theme management on high-resolution displays
