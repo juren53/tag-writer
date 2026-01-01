@@ -40,8 +40,11 @@ from PyQt6.QtWidgets import (
     QStatusBar, QFileDialog, QMessageBox, QToolBar, QDialog, QProgressDialog,
     QDialogButtonBox, QInputDialog, QFrame
 )
-from PyQt6.QtCore import Qt, QSize, QTimer
+from PyQt6.QtCore import Qt, QSize, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor, QIcon
+
+# Import version checker module
+from github_version_checker import GitHubVersionChecker, VersionCheckResult
 
 # Note: This is a self-contained PyQt6 implementation
 # All functionality is integrated within this file
@@ -55,8 +58,8 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.1"
-        self.app_timestamp = "2025-12-31 17:15"
+        self.app_version = "0.1.2"
+        self.app_timestamp = "2026-01-01 00:00"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -68,6 +71,13 @@ class Config:
         self.current_theme = 'Dark'
         self.window_geometry = None  # Store window position and size
         self.window_maximized = False  # Store window maximized state
+        
+        # Version checking settings
+        self.auto_check_updates = True
+        self.last_update_check = None
+        self.skipped_versions = []
+        self.update_check_frequency = 86400  # 24 hours in seconds
+        
         self.config_file = os.path.join(os.path.expanduser("~"), ".tag_writer_config.json")
         
         # Load configuration on startup
@@ -106,7 +116,11 @@ class Config:
                 'current_theme': self.current_theme,
                 'selected_file': self.selected_file,
                 'window_geometry': self.window_geometry,
-                'window_maximized': self.window_maximized
+                'window_maximized': self.window_maximized,
+                'auto_check_updates': self.auto_check_updates,
+                'last_update_check': self.last_update_check,
+                'skipped_versions': self.skipped_versions,
+                'update_check_frequency': self.update_check_frequency
             }
             with open(self.config_file, 'w') as f:
                 json.dump(config_data, f)
@@ -130,6 +144,12 @@ class Config:
                 self.selected_file = config_data.get('selected_file', None)
                 self.window_geometry = config_data.get('window_geometry', None)
                 self.window_maximized = config_data.get('window_maximized', False)
+                
+                # Load version checking settings
+                self.auto_check_updates = config_data.get('auto_check_updates', True)
+                self.last_update_check = config_data.get('last_update_check', None)
+                self.skipped_versions = config_data.get('skipped_versions', [])
+                self.update_check_frequency = config_data.get('update_check_frequency', 86400)  # 24 hours
                 
                 logger.debug(f"Configuration loaded from {self.config_file}")
         except Exception as e:
@@ -2602,6 +2622,13 @@ class MainWindow(QMainWindow):
         self.metadata_manager = MetadataManager()
         self.theme_manager = ThemeManager()
         
+        # Initialize version checker
+        self.version_checker = GitHubVersionChecker(
+            repo_url="juren53/tag-writer",
+            current_version=config.app_version,
+            timeout=10
+        )
+        
         # Initialize state
         self.dark_mode = config.dark_mode
         self.ui_scale_factor = config.ui_zoom_factor
@@ -2633,6 +2660,11 @@ class MainWindow(QMainWindow):
         
         # Restore window geometry from saved config
         self.restore_window_geometry()
+        
+        # Check for updates on startup (if enabled)
+        if config.auto_check_updates:
+            # Use a timer to check after UI is fully loaded
+            QTimer.singleShot(3000, self.on_startup_update_check)
         
         logger.info("Main window initialized")
         
@@ -2852,6 +2884,13 @@ class MainWindow(QMainWindow):
         shortcuts_action = QAction("\u0026Keyboard Shortcuts", self)
         shortcuts_action.triggered.connect(self.on_keyboard_shortcuts)
         help_menu.addAction(shortcuts_action)
+        
+        help_menu.addSeparator()
+        
+        # Check for updates menu item
+        check_updates_action = QAction("Check for &Updates", self)
+        check_updates_action.triggered.connect(self.on_check_for_updates)
+        help_menu.addAction(check_updates_action)
         
         about_action = QAction("\u0026About", self)
         about_action.triggered.connect(self.on_about)
@@ -4158,6 +4197,172 @@ class MainWindow(QMainWindow):
         self.status_label.setText(f"Refreshed {os.path.basename(file_path)}")
         logger.info(f"Refreshed file: {file_path}")
     
+    # Version checking methods
+    class UpdateCheckThread(QThread):
+        """Thread for checking updates in background"""
+        result_ready = pyqtSignal(object)
+        
+        def __init__(self, checker):
+            super().__init__()
+            self.checker = checker
+        
+        def run(self):
+            result = self.checker.get_latest_version()
+            self.result_ready.emit(result)
+    
+    def on_startup_update_check(self):
+        """Check for updates on startup (silent)"""
+        self.check_for_updates(silent=True)
+    
+    def check_for_updates(self, silent=False):
+        """Check for updates with optional silent mode"""
+        import time
+        
+        # Check if we should check (rate limiting) - skip for silent mode
+        if not silent:
+            current_time = time.time()
+            if config.last_update_check and (current_time - config.last_update_check) < config.update_check_frequency:
+                reply = QMessageBox.question(
+                    self, "Update Check", 
+                    "You recently checked for updates. Check again anyway?",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                    QMessageBox.StandardButton.No
+                )
+                if reply == QMessageBox.StandardButton.No:
+                    return
+            
+            # Update last check time
+            config.last_update_check = current_time
+            config.save_config()
+        
+        # Show progress in status bar only if not silent
+        if not silent:
+            self.status_label.setText("Checking for updates...")
+        
+        # Start background check
+        self.update_check_thread = self.UpdateCheckThread(self.version_checker)
+        self.update_check_thread.result_ready.connect(self.on_update_check_complete)
+        self.update_check_thread.start()
+    
+    def on_check_for_updates(self):
+        """Handle Check for Updates menu action"""
+        self.check_for_updates(silent=False)
+    
+    def on_update_check_complete(self, result):
+        """Handle completion of version check"""
+        if result.error_message:
+            self.status_label.setText("Update check failed")
+            error_msg = result.error_message
+            
+            # Provide more helpful message for 404 errors
+            if "404" in error_msg and "Not Found" in error_msg:
+                friendly_msg = (
+                    "TagWriter repository doesn't have any releases yet.\n\n"
+                    "The update checking system is working correctly, but "
+                    "no official releases have been published.\n\n"
+                    "You're using the latest available version!"
+                )
+                QMessageBox.information(self, "No Releases Available", friendly_msg)
+            else:
+                QMessageBox.warning(
+                    self, 
+                    "Update Check Failed", 
+                    f"Could not check for updates:\n\n{error_msg}"
+                )
+            return
+        
+        # Update status
+        self.status_label.setText("Update check complete")
+        
+        # Check if we should show update (not in skipped versions)
+        if result.has_update and result.latest_version not in config.skipped_versions:
+            self.show_update_dialog(result)
+        elif result.has_update and result.latest_version in config.skipped_versions:
+            self.status_label.setText(f"Skipped version {result.latest_version}")
+            QMessageBox.information(
+                self,
+                "Update Available",
+                f"Version {result.latest_version} is available but you chose to skip it."
+            )
+        else:
+            # Provide more informative message for no update case
+            if not result.error_message:
+                self.status_label.setText("You have the latest version")
+                QMessageBox.information(
+                    self,
+                    "Up to Date",
+                    f"TagWriter {result.current_version} is the latest version available."
+                )
+    
+    def show_update_dialog(self, result):
+        """Show update available dialog"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Update Available")
+        dialog.resize(500, 400)
+        
+        layout = QVBoxLayout(dialog)
+        
+        # Update information
+        info_text = f"""
+        <h3>Update Available!</h3>
+        <p><b>Current Version:</b> {result.current_version}</p>
+        <p><b>Latest Version:</b> {result.latest_version}</p>
+        <p><b>Published:</b> {result.published_date[:10]}</p>
+        <p><b>Download URL:</b> <a href="{result.download_url}">{result.download_url}</a></p>
+        """
+        
+        info_label = QLabel(info_text)
+        info_label.setOpenExternalLinks(True)
+        info_label.setTextFormat(Qt.TextFormat.RichText)
+        layout.addWidget(info_label)
+        
+        # Release notes (if available)
+        if result.release_notes:
+            layout.addWidget(QLabel("<h4>Release Notes:</h4>"))
+            notes_edit = QTextEdit()
+            notes_edit.setPlainText(result.release_notes)
+            notes_edit.setReadOnly(True)
+            notes_edit.setMaximumHeight(150)
+            layout.addWidget(notes_edit)
+        
+        # Buttons
+        button_layout = QHBoxLayout()
+        
+        download_btn = QPushButton("Download Update")
+        download_btn.clicked.connect(lambda: self.on_download_update(result.download_url))
+        button_layout.addWidget(download_btn)
+        
+        skip_btn = QPushButton("Skip This Version")
+        skip_btn.clicked.connect(lambda: self.on_skip_version(result.latest_version, dialog))
+        button_layout.addWidget(skip_btn)
+        
+        later_btn = QPushButton("Remind Later")
+        later_btn.clicked.connect(dialog.accept)
+        button_layout.addWidget(later_btn)
+        
+        layout.addLayout(button_layout)
+        
+        # Show dialog
+        dialog.exec()
+    
+    def on_download_update(self, download_url):
+        """Open download URL in browser"""
+        import webbrowser
+        try:
+            webbrowser.open(download_url)
+            self.status_label.setText("Opening download page...")
+        except Exception as e:
+            logger.error(f"Error opening download URL: {e}")
+            QMessageBox.warning(self, "Error", f"Could not open download page: {str(e)}")
+    
+    def on_skip_version(self, version, dialog):
+        """Skip a specific version"""
+        if version not in config.skipped_versions:
+            config.skipped_versions.append(version)
+            config.save_config()
+            self.status_label.setText(f"Skipped version {version}")
+        dialog.accept()
+
     def load_file(self, file_path):
         """Load an image file and update the UI."""
         if not os.path.exists(file_path):
