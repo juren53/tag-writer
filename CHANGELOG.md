@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **TBD** - Next feature development
 
+## [0.1.3] - 2026-01-01
+
+### Added
+- **Help Menu Changelog Link** - Added "&Changelog" menu item
+  - Opens local CHANGELOG.md when available (standard and AppImage locations)
+  - Falls back to GitHub repository when local file not found
+  - Modal dialog with scrollable text area and proper UTF-8 encoding
+  - Comprehensive error handling for file access and network issues
+  - Follows established Help menu UI patterns and naming conventions
+
 ## [0.1.2] - 2026-01-01
 
 ## [0.1.2] - 2025-12-31
