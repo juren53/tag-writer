@@ -2885,6 +2885,11 @@ class MainWindow(QMainWindow):
         shortcuts_action.triggered.connect(self.on_keyboard_shortcuts)
         help_menu.addAction(shortcuts_action)
         
+        # Changelog menu item
+        changelog_action = QAction("&Changelog", self)
+        changelog_action.triggered.connect(self.on_changelog)
+        help_menu.addAction(changelog_action)
+        
         help_menu.addSeparator()
         
         # Check for updates menu item
@@ -4122,7 +4127,68 @@ class MainWindow(QMainWindow):
         except Exception as e:
             logger.error(f"Error opening keyboard shortcuts URL: {e}")
             QMessageBox.warning(self, "Error", f"Error opening keyboard shortcuts: {str(e)}\n\nURL: {shortcuts_url}")
+    
+    def on_changelog(self):
+        """Open changelog from local file or GitHub URL if not found locally."""
+        # Try possible locations in order
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "CHANGELOG.md"),  # Standard location
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "usr", "bin", "docs", "CHANGELOG.md"),  # AppImage location
+            "./usr/bin/docs/CHANGELOG.md"  # AppImage relative location
+        ]
         
+        # Find first existing file
+        changelog_file = None
+        for path in possible_paths:
+            if os.path.exists(path):
+                changelog_file = path
+                break
+        
+        # Debug output
+        logger.info(f"Looking for changelog file in paths:")
+        for path in possible_paths:
+            logger.info(f"  {path} - {'Exists' if os.path.exists(path) else 'Not found'}")
+        
+        # Try to open local file first
+        if os.path.exists(changelog_file):
+            try:
+                # Create a dialog to display changelog
+                dialog = QDialog(self)
+                dialog.setWindowTitle("Changelog")
+                dialog.resize(800, 600)  # Larger size for better readability
+                
+                # Text display area
+                text_widget = QTextEdit()
+                text_widget.setReadOnly(True)
+                
+                # Read and display changelog content
+                with open(changelog_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                text_widget.setPlainText(content)
+                layout = QVBoxLayout(dialog)
+                layout.addWidget(text_widget)
+                
+                # Close button
+                close_btn = QPushButton("Close")
+                close_btn.clicked.connect(dialog.accept)
+                layout.addWidget(close_btn)
+                
+                dialog.exec()
+            except Exception as e:
+                logger.error(f"Error opening changelog file: {e}")
+                QMessageBox.warning(self, "Error", f"Could not open changelog: {str(e)}")
+        else:
+            # Fallback to GitHub URL
+            import webbrowser
+            changelog_url = "https://github.com/juren53/tag-writer/blob/main/CHANGELOG.md"
+            
+            try:
+                webbrowser.open(changelog_url)
+            except Exception as e:
+                logger.error(f"Error opening changelog URL: {e}")
+                QMessageBox.warning(self, "Error", f"Could not open changelog: {str(e)}\n\nURL: {changelog_url}")
+    
     def on_refresh(self):
         """Refresh the current image and metadata."""
         if not config.selected_file:
