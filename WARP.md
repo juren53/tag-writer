@@ -15,7 +15,7 @@ Tag Writer is a free, open-source desktop application for viewing and editing IP
 - **Packaging**: AppImage for Linux distribution
 
 ### Current Version
-- **Version**: 0.07z (as of 2025-07-28)
+- **Version**: 0.1.2 (as of 2026-01-01)
 - **Main File**: `tag-writer.py`
 - **Architecture**: Single-file PyQt6 application with integrated functionality
 
