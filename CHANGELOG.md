@@ -5,6 +5,20 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-01-01
+
+### Added
+- **Documentation Accessibility** - Enhanced changelog accessibility through Help menu
+  - Centralized version history access with offline/online capability
+  - Professional modal dialog with scrollable content and proper encoding
+  - Comprehensive error handling for file permission and network issues
+  - Consistent UI patterns with existing Help menu items
+
+### Changed
+- **Help Menu Order** - Changelog item positioned logically in documentation flow
+- **File Priority** - Local CHANGELOG.md prioritized over GitHub fallback
+- **Dialog Sizing** - Optimized for changelog readability (800x600 pixels)
+
 ## [Unreleased]
 
 ### Added
