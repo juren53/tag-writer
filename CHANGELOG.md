@@ -5,7 +5,36 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-01-01
+
+### Added
+- **Documentation Accessibility** - Enhanced changelog accessibility through Help menu
+  - Centralized version history access with offline/online capability
+  - Professional modal dialog with scrollable content and proper encoding
+  - Comprehensive error handling for file permission and network issues
+  - Consistent UI patterns with existing Help menu items
+
+### Changed
+- **Help Menu Order** - Changelog item positioned logically in documentation flow
+- **File Priority** - Local CHANGELOG.md prioritized over GitHub fallback
+- **Dialog Sizing** - Optimized for changelog readability (800x600 pixels)
+
 ## [Unreleased]
+
+### Added
+- **TBD** - Next feature development
+
+## [0.1.3] - 2026-01-01
+
+### Added
+- **Help Menu Changelog Link** - Added "&Changelog" menu item
+  - Opens local CHANGELOG.md when available (standard and AppImage locations)
+  - Falls back to GitHub repository when local file not found
+  - Modal dialog with scrollable text area and proper UTF-8 encoding
+  - Comprehensive error handling for file access and network issues
+  - Follows established Help menu UI patterns and naming conventions
+
+## [0.1.2] - 2026-01-01
 
 ## [0.1.2] - 2025-12-31
 
@@ -18,6 +47,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved portability and ease of deployment
 
 ### Added
+- **GitHub Version Checking System** - Integrated comprehensive update checking functionality
+  - Added automatic startup checks with configurable frequency (default: 24 hours)
+  - Added manual "Check for Updates" menu item in Help menu
+  - Implemented non-blocking version checks using PyQt6 threading
+  - Added rich update dialogs with release notes and download options
+  - Added version skipping functionality with persistent user preferences
+  - Implemented semantic version comparison supporting pre-release versions
+  - Added comprehensive error handling for network and API issues
+  - Added user preferences for update checking behavior
+  - Enhanced error messages for repositories without releases
+  - Integrated proven version checker module from system-monitor project
+
+## [0.1.3] - 2026-01-01
+
+### Added
+- **Improved Update Error Handling** - Enhanced user feedback for repositories without releases
+  - Added friendly "No Releases Available" message when repository has no published releases
+  - Improved error message clarity and user experience
+  - Maintained backward compatibility with existing version checking functionality
+
+### Changed
 - **Display Scaling Documentation** - Added comprehensive guide for high-DPI display handling
   - New Info/Display Scaling.md document covering PyQt DPI scaling strategies
   - Includes best practices for cross-platform theme management on high-resolution displays
