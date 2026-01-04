@@ -4324,8 +4324,8 @@ class MainWindow(QMainWindow):
             if "404" in error_msg and "Not Found" in error_msg:
                 friendly_msg = (
                     "TagWriter repository doesn't have any releases yet.\n\n"
-                    "The update checking system is working correctly, but "
-                    "no official releases have been published.\n\n"
+                    # "The update checking system is working correctly, but "
+                    # "no official releases have been published.\n\n"
                     "You're using the latest available version!"
                 )
                 QMessageBox.information(self, "No Releases Available", friendly_msg)
