@@ -21,6 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Update Message Simplification** - Commented out technical explanation in "No Releases Available" message
+  - Removed "The update checking system is working correctly, but no official releases have been published"
+  - Users now see more concise message when repository has no releases
+  - Maintains friendly user experience while reducing technical jargon
+
 ### Added
 - **TBD** - Next feature development
 
