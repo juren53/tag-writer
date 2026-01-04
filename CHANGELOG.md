@@ -21,14 +21,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **TBD** - Next feature development
+
+## [0.1.5] - 2026-01-04
+
 ### Changed
+- **Image Viewer Panel Layout Optimization** - Improved space efficiency with vertical layout
+  - Removed Photometric Interpretation and Bits Per Sample fields (no longer needed)
+  - Reconfigured from 2-column horizontal layout to single-column vertical layout
+  - Added QScrollArea with automatic vertical scrolling when needed
+  - Optimized spacing and margins for compact display (10px margins, 3px row spacing)
+  - Improved readability with better organization of image metadata
+  - Consistent user experience with Metadata Panel scrolling behavior
+  - More efficient use of available space in Image Viewer panel
+
 - **Update Message Simplification** - Commented out technical explanation in "No Releases Available" message
   - Removed "The update checking system is working correctly, but no official releases have been published"
   - Users now see more concise message when repository has no releases
   - Maintains friendly user experience while reducing technical jargon
 
-### Added
-- **TBD** - Next feature development
+### Technical
+- Enhanced ImageViewer class with vertical table layout using HTML formatting
+- Implemented QScrollArea for metadata table with horizontal scrollbar disabled
+- Removed extract_photometric_interpretation_bits_per_sample() method call
+- Streamlined metadata display to 8 essential fields (file size, dimension, resolution, pixel count, dates)
 
 ## [0.1.3] - 2026-01-01
 
