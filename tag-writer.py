@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.1.1
+        # Tag Writer - IPTC Metadata Editor v0.1.5
 # 
 # A GUI application for entering and writing IPTC metadata tags 
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -58,8 +58,8 @@ logger = logging.getLogger(__name__)
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.4"
-        self.app_timestamp = "2026-01-01 00:00"
+        self.app_version = "0.1.5"
+        self.app_timestamp = "2026-01-04 14:10"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -1813,6 +1813,83 @@ class ImageViewer(QWidget):
         # Return the descriptive text if we have a mapping, otherwise return the original value
         return photometric_map.get(str_value, str_value)
     
+    def extract_date_metadata(self, image_path):
+        """Extract date-related metadata for display including system file dates and image metadata dates."""
+        try:
+            import os
+            import datetime
+            
+            # Initialize all date fields
+            dates = {
+                'date_created': '--',
+                'date_modified': '--',
+                'file_creation_date': '--',
+                'file_modification_date': '--',
+                'file_access_date': '--'
+            }
+            
+            # Get image metadata dates using existing read_metadata function
+            metadata = read_metadata(image_path)
+            if metadata:
+                # Extract image metadata dates with source information
+                date_created_fields = ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated']
+                date_modified_fields = ['EXIF:ModifyDate', 'EXIF:FileModifyDate', 'XMP:ModifyDate', 'ICC_Profile:ProfileDateTime']
+                
+                for field in date_created_fields:
+                    if field in metadata and metadata[field]:
+                        dates['date_created'] = self._format_date_with_source(metadata[field], f"({field})")
+                        break
+                
+                for field in date_modified_fields:
+                    if field in metadata and metadata[field]:
+                        dates['date_modified'] = self._format_date_with_source(metadata[field], f"({field})")
+                        break
+            
+            # Get system file dates
+            if os.path.exists(image_path):
+                try:
+                    # Get file stats
+                    stat = os.stat(image_path)
+                    
+                    # Format system dates with source information
+                    creation_time = datetime.datetime.fromtimestamp(stat.st_ctime)
+                    modification_time = datetime.datetime.fromtimestamp(stat.st_mtime)
+                    access_time = datetime.datetime.fromtimestamp(stat.st_atime)
+                    
+                    dates['file_creation_date'] = self._format_date_with_source(creation_time.strftime('%Y:%m:%d %H:%M:%S'), "(System)")
+                    dates['file_modification_date'] = self._format_date_with_source(modification_time.strftime('%Y:%m:%d %H:%M:%S'), "(System)")
+                    dates['file_access_date'] = self._format_date_with_source(access_time.strftime('%Y:%m:%d %H:%M:%S'), "(System)")
+                    
+                except Exception as e:
+                    logger.debug(f"Error getting system file dates: {e}")
+            
+            return dates
+            
+        except Exception as e:
+            logger.debug(f"Date metadata extraction error: {e}")
+            return {
+                'date_created': '--',
+                'date_modified': '--',
+                'file_creation_date': '--',
+                'file_modification_date': '--',
+                'file_access_date': '--'
+            }
+    
+    def _format_date_with_source(self, date_str, source):
+        """Format date string with source information."""
+        if date_str == '--' or not date_str:
+            return '--'
+        
+        # Clean up the date string and add source
+        cleaned_date = str(date_str).strip()
+        
+        # If the date already contains time info, use it as-is
+        if ':' in cleaned_date and len(cleaned_date) > 10:
+            return f"{cleaned_date} {source}"
+        else:
+            # If only date, it's likely already in the right format
+            return f"{cleaned_date} {source}"
+    
     def setup_ui(self):
         """Set up the user interface."""
         layout = QVBoxLayout(self)
@@ -1829,43 +1906,59 @@ class ImageViewer(QWidget):
         self.view_button.clicked.connect(self.on_view_full_image)
         layout.addWidget(self.view_button, alignment=Qt.AlignmentFlag.AlignHCenter)
         
-        # Information container for filename, dimensions, and file size with minimal spacing
-        info_container = QWidget()
-        info_layout = QVBoxLayout(info_container)
-        info_layout.setContentsMargins(0, 5, 0, 0)  # Small top margin for spacing from button
-        info_layout.setSpacing(8)  # Single-spaced appearance between labels
-        
         # File name label
         self.filename_label = QLabel("File: --")
         self.filename_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        info_layout.addWidget(self.filename_label)
-        
+        layout.addWidget(self.filename_label)
+
         # Create hidden labels for data storage (not displayed but used for table data)
         self.dimensions_label = QLabel("Dimensions: --")
         self.file_size_label = QLabel("File size: --")
         self.resolution_label = QLabel("Resolution: --")
         self.pixel_count_label = QLabel("Pixel count: --")
-        
-        # Table of information using QLabel with HTML
+
+        # Create scrollable area for metadata table
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+        # Table of information using QLabel with HTML - vertical single column layout
         table_html = """
-        <table style='width:100%; text-align:left; margin-left:20px; border-spacing:15px 5px;'>
+        <table style='width:100%; text-align:left; margin-left:10px; margin-right:10px; border-spacing:5px 3px;'>
             <tr>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>File size:</td>
-                <td style='min-width:120px; padding-right:30px;'>{file_size}</td>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Dimension:</td>
-                <td style='min-width:120px;'>{dimension}</td>
+                <td style='font-weight:bold; padding-right:10px;'>File size:</td>
+                <td>{file_size}</td>
             </tr>
             <tr>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Resolution:</td>
-                <td style='min-width:120px; padding-right:30px;'>{resolution}</td>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Pixel count:</td>
-                <td style='min-width:120px;'>{pixel_count}</td>
+                <td style='font-weight:bold; padding-right:10px;'>Dimension:</td>
+                <td>{dimension}</td>
             </tr>
             <tr>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Photometric Interpretation:</td>
-                <td style='min-width:120px; padding-right:30px;'>{photometric_interpretation}</td>
-                <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
-                <td style='min-width:120px;'>{bits_per_sample}</td>
+                <td style='font-weight:bold; padding-right:10px;'>Resolution:</td>
+                <td>{resolution}</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; padding-right:10px;'>Pixel count:</td>
+                <td>{pixel_count}</td>
+            </tr>
+            <tr>
+                <td colspan='2' style='height:8px;'></td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; padding-right:10px;'>Date Created:</td>
+                <td>{date_created}</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; padding-right:10px;'>Date Modified:</td>
+                <td>{date_modified}</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; padding-right:10px;'>File Creation:</td>
+                <td>{file_creation_date}</td>
+            </tr>
+            <tr>
+                <td style='font-weight:bold; padding-right:10px;'>File Modified:</td>
+                <td>{file_modification_date}</td>
             </tr>
         </table>
         """.format(
@@ -1873,14 +1966,25 @@ class ImageViewer(QWidget):
             file_size=self.file_size_label.text().split(': ')[1],
             resolution=self.resolution_label.text().split(': ')[1],
             pixel_count=self.pixel_count_label.text().split(': ')[1],
-            photometric_interpretation='--',
-            bits_per_sample='--'
+            date_created='--',
+            date_modified='--',
+            file_creation_date='--',
+            file_modification_date='--'
         )
         self.table_label = QLabel(table_html)
-        info_layout.addWidget(self.table_label)
+        self.table_label.setWordWrap(True)
 
-        # Add the container to the main layout
-        layout.addWidget(info_container)
+        # Wrap table in a widget for the scroll area
+        table_widget = QWidget()
+        table_layout = QVBoxLayout(table_widget)
+        table_layout.setContentsMargins(5, 5, 5, 5)
+        table_layout.addWidget(self.table_label)
+        table_layout.addStretch()
+
+        scroll.setWidget(table_widget)
+
+        # Add scroll area to main layout
+        layout.addWidget(scroll, 1)
         
     def load_image(self, image_path):
         """Load and display an image."""
@@ -1941,30 +2045,47 @@ class ImageViewer(QWidget):
                 # Format with commas for readability
                 formatted_count = f"{pixel_count:,}"
                 self.pixel_count_label.setText(f"Pixel count: {formatted_count} pixels")
+
+            # Extract date metadata
+            date_data = self.extract_date_metadata(image_path)
             
-# Extract photometric interpretation and bits per sample
-            photometric_interpretation, bits_per_sample = self.extract_photometric_interpretation_bits_per_sample(image_path)
-            
-            # Update table with photometric interpretation and bits per sample
+            # Update table with date information - vertical single column layout
             table_html = """
-            <table style='width:100%; text-align:left; margin-left:20px; border-spacing:15px 5px;'>
+            <table style='width:100%; text-align:left; margin-left:10px; margin-right:10px; border-spacing:5px 3px;'>
                 <tr>
-                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>File size:</td>
-                    <td style='min-width:120px; padding-right:30px;'>{file_size}</td>
-                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Dimension:</td>
-                    <td style='min-width:120px;'>{dimension}</td>
+                    <td style='font-weight:bold; padding-right:10px;'>File size:</td>
+                    <td>{file_size}</td>
                 </tr>
                 <tr>
-                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Resolution:</td>
-                    <td style='min-width:120px; padding-right:30px;'>{resolution}</td>
-                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Pixel count:</td>
-                    <td style='min-width:120px;'>{pixel_count}</td>
+                    <td style='font-weight:bold; padding-right:10px;'>Dimension:</td>
+                    <td>{dimension}</td>
                 </tr>
                 <tr>
-<td style='font-weight:bold; min-width:140px; padding-right:10px;'>Photometric Interpretation:</td>
-                    <td style='min-width:120px; padding-right:30px;'>{photometric_interpretation}</td>
-                    <td style='font-weight:bold; min-width:140px; padding-right:10px;'>Bits Per Sample:</td>
-                    <td style='min-width:120px;'>{bits_per_sample}</td>
+                    <td style='font-weight:bold; padding-right:10px;'>Resolution:</td>
+                    <td>{resolution}</td>
+                </tr>
+                <tr>
+                    <td style='font-weight:bold; padding-right:10px;'>Pixel count:</td>
+                    <td>{pixel_count}</td>
+                </tr>
+                <tr>
+                    <td colspan='2' style='height:8px;'></td>
+                </tr>
+                <tr>
+                    <td style='font-weight:bold; padding-right:10px;'>Date Created:</td>
+                    <td>{date_created}</td>
+                </tr>
+                <tr>
+                    <td style='font-weight:bold; padding-right:10px;'>Date Modified:</td>
+                    <td>{date_modified}</td>
+                </tr>
+                <tr>
+                    <td style='font-weight:bold; padding-right:10px;'>File Creation:</td>
+                    <td>{file_creation_date}</td>
+                </tr>
+                <tr>
+                    <td style='font-weight:bold; padding-right:10px;'>File Modified:</td>
+                    <td>{file_modification_date}</td>
                 </tr>
             </table>
             """.format(
@@ -1972,8 +2093,10 @@ class ImageViewer(QWidget):
                 file_size=self.file_size_label.text().split(': ')[1],
                 resolution=self.resolution_label.text().split(': ')[1],
                 pixel_count=self.pixel_count_label.text().split(': ')[1],
-                photometric_interpretation=photometric_interpretation,
-                bits_per_sample=bits_per_sample
+                date_created=date_data['date_created'],
+                date_modified=date_data['date_modified'],
+                file_creation_date=date_data['file_creation_date'],
+                file_modification_date=date_data['file_modification_date']
             )
             self.table_label.setText(table_html)
 
