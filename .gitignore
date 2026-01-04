@@ -1,6 +1,11 @@
+.gitignore
+
 # Ignore build artifacts
 build/
 dist/
+
+# Specific file
+notes/TW_scratchpad.txt
 
 # Ignore executable files
 *.exe
