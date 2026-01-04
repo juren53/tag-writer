@@ -1,6 +1,10 @@
+.gitignore
 # Ignore build artifacts
 build/
 dist/
+
+# Ignore specific files
+TagWriter_Project_Rules.md
 
 # Ignore executable files
 *.exe
