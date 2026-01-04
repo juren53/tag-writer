@@ -1,10 +1,12 @@
 .gitignore
+
 # Ignore build artifacts
 build/
 dist/
 
 # Ignore specific files
 TagWriter_Project_Rules.md
+notes/TW_scratchpad.txt
 
 # Ignore executable files
 *.exe
