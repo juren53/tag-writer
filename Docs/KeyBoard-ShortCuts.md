@@ -77,9 +77,13 @@ When the full image viewer is open:
 
 | Shortcut | Action |
 |----------|--------|
-| **+** button in toolbar | Increase UI zoom |
-| **-** button in toolbar | Decrease UI zoom |
+| **+** button in toolbar | Increase UI zoom by 10% |
+| **-** button in toolbar | Decrease UI zoom by 10% |
 | **Reset** button | Reset UI zoom to 100% |
+| **Ctrl++** or **Ctrl+Shift+=** | Increase UI zoom by 10% |
+| **Ctrl+-** or **Ctrl+_** | Decrease UI zoom by 10% |
+| **Ctrl+0** | Reset UI zoom to 100% |
+| **Ctrl+Mouse Wheel** | Zoom UI (5% per scroll step) |
 
 ## Menu Access Shortcuts
 

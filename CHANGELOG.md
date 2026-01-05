@@ -7,8 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - Mon 05 Jan 2026 08:42:50 AM CST
+
 ### Added
-- **TBD** - Next feature development
+- **Enhanced UI Zoom Controls** - Comprehensive keyboard and mouse wheel support
+  - Added keyboard shortcuts: Ctrl++/Ctrl+Shift+= for zoom in, Ctrl+-/Ctrl+_ for zoom out
+  - Added Ctrl+0 shortcut for zoom reset to 100%
+  - Added Ctrl+mouse wheel support with 5% zoom steps
+  - Keyboard shortcuts use 10% increments, mouse wheel uses 5% increments
+
+- **Single Instance Enforcement** - Prevents multiple instances from running simultaneously
+  - Only one instance of Tag Writer can run at a time
+  - Displays informative dialog when attempting to launch additional instances
+  - Uses cross-platform file locking mechanism (works on Windows, Linux, macOS)
+  - Lock file automatically cleaned up on application exit
+  - Prevents data conflicts and resource contention
+  - Improved application stability and user experience
+
+### Fixed
+- **Desktop Icon Display** - Resolved icon visibility issues in application menus
+  - Removed 4 conflicting userapp-tag-writer-*.desktop files causing display conflicts
+  - Installed icon to standard XDG locations (~/.local/share/icons/hicolor/256x256/apps/)
+  - Enhanced .desktop file with proper Version, GenericName, and Keywords fields
+  - Added comprehensive MIME type associations for image file handling
+  - Added Photography category and improved Categories metadata
+  - Icon now properly displays in desktop environment application menus
+  - Desktop database and icon cache updated for immediate recognition
+
+### Changed
+- **UI Zoom Persistence** - Removed startup reset, user zoom preference now persists across sessions
+  - UI zoom factor is now loaded from saved configuration
+  - Users no longer need to manually adjust zoom each application restart
+  - Forced 100% reset on startup removed from Config class
+
+### Technical
+- Enhanced eventFilter to support Ctrl+mouse wheel zoom detection
+- Added QPropertyAnimation for smooth zoom transitions with InOutQuad easing
+- Updated zoom_ui() method to support both instant and animated zoom changes
+- Multiple keyboard shortcuts supported for international keyboard layouts
+- Implemented SingleInstanceChecker class with cross-platform file locking
+- Added fcntl-based locking for Unix/Linux and msvcrt-based locking for Windows
+- Lock file stored in system temp directory with automatic cleanup on exit
+- Comprehensive exception handling for lock acquisition and release
 
 ## [2.0.0] - Sat 04 Jan 2026 06:39:47 PM CST
 
@@ -939,6 +979,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Version History Summary
 
 ### Recent Releases
+- **v0.1.6** - Mon 05 Jan 2026 08:42:50 AM CST: Single instance enforcement, desktop icon fixes, enhanced UI zoom controls with persistence
 - **v2.0.0** - Sat 04 Jan 2026 06:39:47 PM CST: **MAJOR RELEASE** - Complete GitHub release management implementation, version checking system functional, professional release infrastructure
 - **v0.1.5** - Sat 04 Jan 2026 02:24:22 PM CST: Image Viewer panel layout optimization, improved space efficiency with vertical layout
 - **v0.1.4** - Wed 01 Jan 2026 06:12:30 PM CST: Enhanced changelog accessibility through Help menu, improved documentation integration
