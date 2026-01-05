@@ -7,9 +7,9 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.1.5
-# 
-# A GUI application for entering and writing IPTC metadata tags 
+        # Tag Writer - IPTC Metadata Editor v0.1.6
+#
+# A GUI application for entering and writing IPTC metadata tags
 # to TIF and JPG images. Designed for free-form metadata tagging
 # when metadata cannot be pulled from online databases.
 #
@@ -22,7 +22,14 @@ import logging
 import json
 import exiftool
 import subprocess
+import tempfile
 from datetime import datetime
+
+# Platform-specific imports for file locking
+if sys.platform.startswith('win'):
+    import msvcrt
+else:
+    import fcntl
 
 # Windows console window hiding functionality
 if sys.platform.startswith('win'):
@@ -50,16 +57,104 @@ from github_version_checker import GitHubVersionChecker, VersionCheckResult
 # All functionality is integrated within this file
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Single instance checker
+class SingleInstanceChecker:
+    """
+    Ensures only one instance of the application runs at a time.
+    Uses file locking to prevent multiple instances.
+    """
+    def __init__(self, app_name="tag-writer"):
+        """
+        Initialize the single instance checker.
+
+        Args:
+            app_name: Name of the application for the lock file
+        """
+        self.app_name = app_name
+        # Create lock file in system temp directory
+        self.lock_file_path = os.path.join(tempfile.gettempdir(), f"{app_name}.lock")
+        self.lock_file = None
+        self.is_locked = False
+
+    def is_already_running(self):
+        """
+        Check if another instance is already running.
+
+        Returns:
+            bool: True if another instance is running, False otherwise
+        """
+        try:
+            # Open the lock file
+            self.lock_file = open(self.lock_file_path, 'w')
+
+            # Try to acquire an exclusive lock
+            if sys.platform.startswith('win'):
+                # Windows file locking
+                try:
+                    msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_NBLCK, 1)
+                    self.is_locked = True
+                    # Write PID to lock file
+                    self.lock_file.write(str(os.getpid()))
+                    self.lock_file.flush()
+                    return False
+                except (OSError, IOError):
+                    return True
+            else:
+                # Unix/Linux file locking
+                try:
+                    fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    self.is_locked = True
+                    # Write PID to lock file
+                    self.lock_file.write(str(os.getpid()))
+                    self.lock_file.flush()
+                    return False
+                except (OSError, IOError):
+                    return True
+        except Exception as e:
+            logger.error(f"Error checking for running instance: {e}")
+            return False
+
+    def release(self):
+        """Release the lock file."""
+        if self.is_locked and self.lock_file:
+            try:
+                if sys.platform.startswith('win'):
+                    try:
+                        msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+                    except:
+                        pass
+                else:
+                    try:
+                        fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_UN)
+                    except:
+                        pass
+
+                self.lock_file.close()
+                self.is_locked = False
+
+                # Try to remove the lock file
+                try:
+                    if os.path.exists(self.lock_file_path):
+                        os.remove(self.lock_file_path)
+                except:
+                    pass
+            except Exception as e:
+                logger.error(f"Error releasing lock: {e}")
+
+    def __del__(self):
+        """Ensure lock is released when object is destroyed."""
+        self.release()
 
 # Global configuration and state management
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.5"
-        self.app_timestamp = "2026-01-04 14:10"
+        self.app_version = "0.1.6"
+        self.app_timestamp = "2026-01-05 08:42"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -83,8 +178,7 @@ class Config:
         # Load configuration on startup
         self.load_config()
         
-        # Always reset zoom to 100% on startup
-        self.ui_zoom_factor = 1.0
+        # UI zoom factor will be loaded from config, allowing user preference persistence
     
     def add_recent_file(self, file_path):
         """Add a file to the recent files list"""
@@ -2755,6 +2849,7 @@ class MainWindow(QMainWindow):
         # Initialize state
         self.dark_mode = config.dark_mode
         self.ui_scale_factor = config.ui_zoom_factor
+        print(f"DEBUG: Loaded ui_scale_factor = {self.ui_scale_factor} from config")
         self.current_theme = getattr(config, 'current_theme', 'Default Light')
         self.theme_manager.current_theme = self.current_theme
         
@@ -3090,6 +3185,35 @@ class MainWindow(QMainWindow):
         reset_zoom_btn.clicked.connect(self.reset_zoom)
         toolbar.addWidget(reset_zoom_btn)
         
+        # Create keyboard shortcuts for UI zoom
+        # Zoom in shortcuts (Ctrl++ and Ctrl+Shift+=)
+        zoom_in_action1 = QAction("Zoom In", self)
+        zoom_in_action1.setShortcut("Ctrl++")
+        zoom_in_action1.triggered.connect(lambda: self.zoom_ui(0.1))
+        self.addAction(zoom_in_action1)
+        
+        zoom_in_action2 = QAction("Zoom In", self) 
+        zoom_in_action2.setShortcut("Ctrl+Shift+=")
+        zoom_in_action2.triggered.connect(lambda: self.zoom_ui(0.1))
+        self.addAction(zoom_in_action2)
+        
+        # Zoom out shortcuts (Ctrl+- and Ctrl+_)
+        zoom_out_action1 = QAction("Zoom Out", self)
+        zoom_out_action1.setShortcut("Ctrl+-")
+        zoom_out_action1.triggered.connect(lambda: self.zoom_ui(-0.1))
+        self.addAction(zoom_out_action1)
+        
+        zoom_out_action2 = QAction("Zoom Out", self)
+        zoom_out_action2.setShortcut("Ctrl+_")
+        zoom_out_action2.triggered.connect(lambda: self.zoom_ui(-0.1))
+        self.addAction(zoom_out_action2)
+        
+        # Reset zoom shortcut (Ctrl+0)
+        reset_zoom_action = QAction("Reset Zoom", self)
+        reset_zoom_action.setShortcut("Ctrl+0")
+        reset_zoom_action.triggered.connect(self.reset_zoom)
+        self.addAction(reset_zoom_action)
+        
         toolbar.addSeparator()
         
         # File label (stretches to fill space)
@@ -3128,6 +3252,8 @@ class MainWindow(QMainWindow):
         # Round to avoid floating point precision issues
         new_zoom = round(new_zoom, 1)
         
+        print(f"DEBUG: zoom_ui called - current={self.ui_scale_factor}, delta={zoom_delta}, new={new_zoom}")
+        
         # Ensure zoom level is within bounds (50% to 150%)
         if 0.5 <= new_zoom <= 1.5:
             self.ui_scale_factor = new_zoom
@@ -3154,7 +3280,7 @@ class MainWindow(QMainWindow):
         self.ui_scale_factor = 1.0
         self.apply_ui_zoom()
         self.zoom_label.setText("UI Zoom: 100%")
-        config.ui_zoom_factor = 1.0
+        config.ui_zoom_factor = self.ui_scale_factor  # Use current value (1.0)
         config.save_config()
     
     def apply_ui_zoom(self):
@@ -3844,7 +3970,7 @@ class MainWindow(QMainWindow):
         config.save_config()
     
     def eventFilter(self, obj, event):
-        """Application-level event filter to intercept arrow keys before they reach widgets."""
+        """Application-level event filter to intercept arrow keys and Ctrl+mouse wheel before they reach widgets."""
         if event.type() == event.Type.KeyPress:
             if event.key() == Qt.Key.Key_Up:
                 self.on_previous()
@@ -3852,6 +3978,16 @@ class MainWindow(QMainWindow):
             elif event.key() == Qt.Key.Key_Down:
                 self.on_next()
                 return True  # Event handled, don't pass to widget
+        elif event.type() == event.Type.Wheel:
+            # Handle Ctrl+mouse wheel for UI zoom
+            if QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier:
+                # Get wheel delta and apply UI zoom (5% steps)
+                delta = event.angleDelta().y()
+                if delta > 0:
+                    self.zoom_ui(0.05)  # Zoom in 5%
+                else:
+                    self.zoom_ui(-0.05)  # Zoom out 5%
+                return True  # Event handled
         return super().eventFilter(obj, event)
     
     def keyPressEvent(self, event):
@@ -4717,8 +4853,29 @@ class MainWindow(QMainWindow):
 
 def main():
     """Run the application."""
+    # Check for single instance before creating QApplication
+    instance_checker = SingleInstanceChecker("tag-writer")
+
+    if instance_checker.is_already_running():
+        # Another instance is already running
+        logger.warning("Another instance of Tag Writer is already running")
+
+        # Create a minimal QApplication just to show the error dialog
+        app = QApplication(sys.argv)
+        QMessageBox.warning(
+            None,
+            "Tag Writer Already Running",
+            "Another instance of Tag Writer is already running.\n\n"
+            "Only one instance of Tag Writer can run at a time.\n"
+            "Please use the existing instance or close it first.",
+            QMessageBox.StandardButton.Ok
+        )
+        return 1
+
+    logger.info("Single instance check passed - starting application")
+
     app = QApplication(sys.argv)
-    
+
     # Handle command-line arguments for file paths
     file_to_open = None
     if len(sys.argv) > 1:
@@ -4781,11 +4938,18 @@ def main():
     
     # Run the application
     try:
-        return app.exec()
+        exit_code = app.exec()
+        # Release the instance lock before exiting
+        instance_checker.release()
+        return exit_code
     except KeyboardInterrupt:
         # Handle Ctrl+C gracefully
+        instance_checker.release()
         app.quit()
         return 0
+    finally:
+        # Ensure lock is released even if something goes wrong
+        instance_checker.release()
 
 if __name__ == "__main__":
     sys.exit(main())

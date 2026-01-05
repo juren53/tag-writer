@@ -170,9 +170,12 @@ Tag Writer can rotate images while preserving metadata:
 5. Use "Fit to Window" for optimal viewing
 
 ### UI Zoom Adjustment
-If the interface text is too small or large:
-1. Use the zoom controls in the toolbar (+ and - buttons)
-2. Or use keyboard shortcuts: Ctrl++ to zoom in, Ctrl+- to zoom out
+If interface text is too small or large:
+1. Use zoom controls in toolbar (+ and - buttons)
+2. Use keyboard shortcuts: Ctrl++ or Ctrl+Shift+= to zoom in, Ctrl+- or Ctrl+_ to zoom out
+3. Use Ctrl+0 to reset zoom to 100%
+4. Use Ctrl+mouse wheel to zoom (5% per scroll step)
+5. All zoom changes include smooth 500ms animations by default
 
 ### Recent Files and Directories
 Tag Writer keeps track of your recently used files and directories:
