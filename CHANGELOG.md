@@ -5,26 +5,40 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.4] - 2026-01-01
-
-### Added
-- **Documentation Accessibility** - Enhanced changelog accessibility through Help menu
-  - Centralized version history access with offline/online capability
-  - Professional modal dialog with scrollable content and proper encoding
-  - Comprehensive error handling for file permission and network issues
-  - Consistent UI patterns with existing Help menu items
-
-### Changed
-- **Help Menu Order** - Changelog item positioned logically in documentation flow
-- **File Priority** - Local CHANGELOG.md prioritized over GitHub fallback
-- **Dialog Sizing** - Optimized for changelog readability (800x600 pixels)
-
 ## [Unreleased]
 
 ### Added
 - **TBD** - Next feature development
 
-## [0.1.5] - 2026-01-04
+## [2.0.0] - Sat 04 Jan 2026 06:39:47 PM CST
+
+### Changed
+- **Major Release - GitHub Release Management Complete** - Professional release infrastructure implemented
+  - **All releases successfully published** to GitHub with comprehensive release notes
+  - **Version checking system now functional** - users can properly check for updates
+  - **Professional release history established** with v2.0.0, v0.1.5, v0.1.4, v0.1.3, v0.1.2
+  - **API integration working** - TagWriter can now fetch version information from GitHub releases
+  - **Download functionality operational** - users can download different versions directly
+  - **No more "no releases" message** - repository now has proper release management
+
+### Added
+- **Professional Release Management System** - Complete GitHub release workflow
+  - **Version 2.0.0** - Major release with comprehensive changes and optimizations
+  - **Version 0.1.5** - System optimizations and performance improvements  
+  - **Version 0.1.4** - Bug fixes and documentation integration
+  - **Version 0.1.3** - UI/UX improvements and help menu enhancements
+  - **Version 0.1.2** - Initial release with basic features
+  - **Comprehensive release notes** for each version with detailed changelog
+  - **Proper tagging** and version management following semantic versioning
+
+### Technical
+- **GitHub API Integration** - Version checking system now properly connected to GitHub releases
+- **Release Infrastructure** - Professional release management workflow established
+- **Version Control** - Semantic versioning properly implemented
+- **Download System** - Users can now download releases directly from GitHub
+- **Status Resolution** - Repository moved from "no releases" to "proper releases" status
+
+## [0.1.5] - Sat 04 Jan 2026 02:24:22 PM CST
 
 ### Changed
 - **Image Viewer Panel Layout Optimization** - Improved space efficiency with vertical layout
@@ -41,13 +55,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Users now see more concise message when repository has no releases
   - Maintains friendly user experience while reducing technical jargon
 
+### Added
+- **Documentation Accessibility** - Enhanced changelog accessibility through Help menu
+  - Centralized version history access with offline/online capability
+  - Professional modal dialog with scrollable content and proper encoding
+  - Comprehensive error handling for file permission and network issues
+  - Consistent UI patterns with existing Help menu items
+
 ### Technical
 - Enhanced ImageViewer class with vertical table layout using HTML formatting
 - Implemented QScrollArea for metadata table with horizontal scrollbar disabled
 - Removed extract_photometric_interpretation_bits_per_sample() method call
 - Streamlined metadata display to 8 essential fields (file size, dimension, resolution, pixel count, dates)
 
-## [0.1.3] - 2026-01-01
+## [0.1.4] - Wed 01 Jan 2026 06:12:30 PM CST
+
+### Added
+- **Documentation Accessibility** - Enhanced changelog accessibility through Help menu
+  - Centralized version history access with offline/online capability
+  - Professional modal dialog with scrollable content and proper encoding
+  - Comprehensive error handling for file permission and network issues
+  - Consistent UI patterns with existing Help menu items
+
+### Changed
+- **Help Menu Order** - Changelog item positioned logically in documentation flow
+- **File Priority** - Local CHANGELOG.md prioritized over GitHub fallback
+- **Dialog Sizing** - Optimized for changelog readability (800x600 pixels)
+
+## [0.1.3] - Wed 01 Jan 2026 05:14:37 PM CST
 
 ### Added
 - **Help Menu Changelog Link** - Added "&Changelog" menu item
@@ -57,9 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive error handling for file access and network issues
   - Follows established Help menu UI patterns and naming conventions
 
-## [0.1.2] - 2026-01-01
-
-## [0.1.2] - 2025-12-31
+## [0.1.2] - Wed 31 Dec 2025 11:32:48 PM CST
 
 ### Changed
 - **PyInstaller Build Configuration** - Switched to single-file executable mode
@@ -82,27 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced error messages for repositories without releases
   - Integrated proven version checker module from system-monitor project
 
-## [0.1.3] - 2026-01-01
-
-### Added
-- **Improved Update Error Handling** - Enhanced user feedback for repositories without releases
-  - Added friendly "No Releases Available" message when repository has no published releases
-  - Improved error message clarity and user experience
-  - Maintained backward compatibility with existing version checking functionality
-
-### Changed
-- **Display Scaling Documentation** - Added comprehensive guide for high-DPI display handling
-  - New Info/Display Scaling.md document covering PyQt DPI scaling strategies
-  - Includes best practices for cross-platform theme management on high-resolution displays
-  - Detailed implementation guide for handling different screen densities
-  - Helpful for developers working with the theme system on various display configurations
-
-### Technical
-- Updated PyInstaller spec file to include binaries and data files in EXE section
-- Removed separate COLLECT step for cleaner single-file builds
-- Added runtime_tmpdir and upx_exclude parameters for better executable configuration
-
-## [0.1.0] - 2025-12-15 04:40
+## [0.1.0] - Mon 15 Dec 2025 04:50:46 AM CST
 
 ### Fixed
 - **UTF-8 Encoding for Metadata Display** - Resolved mojibake issues with special characters in IPTC metadata
@@ -180,7 +193,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Default Light theme now uses softer, more readable color palette throughout
 
 
-## [0.07z] - 2025-07-13 06:28:10
+## [0.07z] - Sun 13 Jul 2025 06:31:30 AM CDT
 
 ### Fixed
 - **View All Tags Dialog** - Made the dialog read-only to prevent accidental metadata modification
@@ -195,7 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced user experience by preventing unintended metadata modifications
 - Maintained full table functionality while removing edit capability
 
-## [0.07y] - 2025-07-13 01:41:00
+## [0.07y] - Sat 12 Jul 2025 08:46:28 PM CDT
 
 ### Enhanced
 - **Caption/Abstract Field Improvements** - Enhanced Caption/Abstract text box to automatically fill available space
@@ -239,7 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added keyboard shortcut assignment `tags_action.setShortcut("Ctrl+T")` in View menu
 - Enhanced table usability while maintaining full-screen dialog functionality
 
-## [0.07w] - 2025-07-05 19:37:18
+## [0.07w] - Sat 05 Jul 2025 07:58:08 PM CDT
 
 ### Added
 - **ExifTool Availability Check** - Application now checks for ExifTool at startup
@@ -266,7 +279,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - FileNotFoundError and general exception handling for ExifTool detection
 - Cross-platform ExifTool executable detection and version reporting
 
-## [0.07v] - 2025-07-03 17:23:00
+## [0.07v] - Thu 03 Jul 2025 05:30:17 PM CDT
 
 ### Fixed
 - **16-bit TIFF Image Support** - Resolved display issues with 16-bit grayscale TIFF images
@@ -397,21 +410,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Consistent behavior with User Guide and Glossary documentation
   - Better accessibility to documentation whether local or remote
 
-### Technical
-- Enhanced status bar layout and text display logic
-- Updated Recent Directories menu to display full directory paths
-- Implemented keyboard shortcuts documentation fallback system
-- Improved help menu documentation access consistency
-
-## [0.07q] - 2025-06-26 20:55:49
-
-### Enhanced
 - **Full Image Pop-up Window Layout** - Improved control button organization
   - Arranged control buttons vertically on the right side of the window
   - Added clear visual separation between button groups with horizontal lines
   - Improved button grouping for better usability and appearance
   - Fixed panel width to 100px for consistent layout
   - Better organization of image display and controls
+
+### Technical
+- Enhanced status bar layout and text display logic
+- Updated Recent Directories menu to display full directory paths
+- Implemented keyboard shortcuts documentation fallback system
+- Improved help menu documentation access consistency
 
 ## [0.07p] - 2025-06-24 02:01:44
 
@@ -928,8 +938,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
-- **v0.07w**: Added ExifTool availability check at startup and improved .gitignore for AppImage builds
-- **v0.07v**: Fixed 16-bit TIFF image display support
+### Recent Releases
+- **v2.0.0** - Sat 04 Jan 2026 06:39:47 PM CST: **MAJOR RELEASE** - Complete GitHub release management implementation, version checking system functional, professional release infrastructure
+- **v0.1.5** - Sat 04 Jan 2026 02:24:22 PM CST: Image Viewer panel layout optimization, improved space efficiency with vertical layout
+- **v0.1.4** - Wed 01 Jan 2026 06:12:30 PM CST: Enhanced changelog accessibility through Help menu, improved documentation integration
+- **v0.1.3** - Wed 01 Jan 2026 05:14:37 PM CST: Added Help Menu Changelog link with local/GitHub fallback functionality
+- **v0.1.2** - Wed 31 Dec 2025 11:32:48 PM CST: PyInstaller build configuration switched to single-file executable mode
+
+### Historical Releases
+- **v0.07z** - Sun 13 Jul 2025 06:31:30 AM CDT: Added ExifTool availability check at startup and improved .gitignore for AppImage builds
+- **v0.07y** - Sat 12 Jul 2025 08:46:28 PM CDT: Enhanced Caption/Abstract field and metadata panel organization  
+- **v0.07w** - Sat 05 Jul 2025 07:58:08 PM CDT: Added ExifTool availability check at startup and improved .gitignore for AppImage builds
+- **v0.07v** - Thu 03 Jul 2025 05:30:17 PM CDT: Fixed 16-bit TIFF image display support
 - **v0.07u**: Enhanced metadata field tooltips and improved image information table
 - **v0.07m**: Added Glossary to Help menu and improved Help menu organization
 - **v0.07l**: Added keyboard shortcuts documentation and improved keyboard control discovery
@@ -945,6 +965,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **v0.07b**: Fixed resolution detection using EXIF metadata
 - **v0.07a**: Major conversion from wxPython to PyQt6 framework
 - **v0.06b**: Fixed caption abstract text box editor bugs
+- **v0.1.0** - Mon 15 Dec 2025 04:50:46 AM CST: Fixed UTF-8 mojibake in metadata display
 - **v0.06a**: Added view/list all tags menu functionality
 - **v0.05d**: Expanded caption abstract field to 1000 characters
 - **v0.05a**: Added keyboard arrow key navigation through directories
