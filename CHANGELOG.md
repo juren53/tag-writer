@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6a] - Mon 05 Jan 2026 11:08:39 AM CST
+
+### Added
+- **Windows App User Model ID** - Enhanced Windows 11 taskbar integration
+  - Set explicit App User Model ID (SynchroSoft.TagWriter.TW.0.1.6) for Windows systems
+  - Improved taskbar icon display and grouping in Windows 11
+  - Better application identification in Windows task switcher
+  - Enhanced integration with Windows shell features
+
+### Technical
+- Implemented Windows App User Model ID registration at application startup
+- Added logging for App User Model ID configuration
+- Integration with single instance checker for proper Windows behavior
+
 ## [0.1.6] - Mon 05 Jan 2026 08:42:50 AM CST
 
 ### Added
@@ -979,6 +993,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Version History Summary
 
 ### Recent Releases
+- **v0.1.6a** - Mon 05 Jan 2026 11:08:39 AM CST: Windows App User Model ID for enhanced Windows 11 taskbar integration
 - **v0.1.6** - Mon 05 Jan 2026 08:42:50 AM CST: Single instance enforcement, desktop icon fixes, enhanced UI zoom controls with persistence
 - **v2.0.0** - Sat 04 Jan 2026 06:39:47 PM CST: **MAJOR RELEASE** - Complete GitHub release management implementation, version checking system functional, professional release infrastructure
 - **v0.1.5** - Sat 04 Jan 2026 02:24:22 PM CST: Image Viewer panel layout optimization, improved space efficiency with vertical layout

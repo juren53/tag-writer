@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.1.6
+        # Tag Writer - IPTC Metadata Editor v0.1.6a  2026-01-05 1108 CST
 #
 # A GUI application for entering and writing IPTC metadata tags
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -153,8 +153,8 @@ class SingleInstanceChecker:
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.6"
-        self.app_timestamp = "2026-01-05 08:42"
+        self.app_version = "0.1.6a"
+        self.app_timestamp = "2026-01-05 11:08"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -252,6 +252,23 @@ class Config:
 # Global configuration instance
 config = Config()
 
+def set_app_user_model_id():
+    """Set Windows App User Model ID to distinguish this app from python.exe.
+
+    This tells Windows to treat this process as a unique application with its own
+    taskbar icon, separate from the default Python icon. Must be called before
+    creating any QApplication instances.
+    """
+    if sys.platform == 'win32':
+        try:
+            # Set the application user model ID
+            # Format: CompanyName.ProductName.SubProduct.VersionInformation
+            myappid = 'SynchroSoft.TagWriter.TW.0.1.6a'
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+            logger.info(f"Set Windows App User Model ID: {myappid}")
+        except Exception as e:
+            logger.warning(f"Could not set App User Model ID: {e}")
+
 def set_windows_taskbar_icon(window_handle=None):
     """Set the taskbar icon on Windows using Windows API."""
     if not sys.platform.startswith('win'):
@@ -272,7 +289,7 @@ def set_windows_taskbar_icon(window_handle=None):
         icon_path = os.path.abspath(icon_path)
         
         # Set the application user model ID (helps Windows distinguish this app)
-        app_id = "TagWriter.MetadataEditor.v07x"
+        app_id = "SynchroSoft.TagWriter.TW.0.1.6a"
         try:
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
         except:
@@ -4853,6 +4870,9 @@ class MainWindow(QMainWindow):
 
 def main():
     """Run the application."""
+    # Set Windows App User Model ID at the very start (before QApplication creation)
+    set_app_user_model_id()
+
     # Check for single instance before creating QApplication
     instance_checker = SingleInstanceChecker("tag-writer")
 
@@ -4876,6 +4896,33 @@ def main():
 
     app = QApplication(sys.argv)
 
+    # Set application name and organization (helps Windows identify the app)
+    app.setApplicationName("Tag Writer")
+    app.setOrganizationName("SynchroSoft")
+    app.setApplicationVersion("0.1.6a")
+
+    # Set application style
+    app.setStyle("Fusion")
+
+    # Set application to quit when last window is closed
+    app.setQuitOnLastWindowClosed(True)
+
+    # Set application icon (affects taskbar icon) - CRITICAL for Windows 11
+    icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.ico")
+    if os.path.exists(icon_path):
+        app_icon = QIcon(icon_path)
+        app.setWindowIcon(app_icon)
+        logger.info(f"Application icon set from: {icon_path}")
+    else:
+        # Fallback to PNG if ICO doesn't exist
+        png_icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.png")
+        if os.path.exists(png_icon_path):
+            app_icon = QIcon(png_icon_path)
+            app.setWindowIcon(app_icon)
+            logger.info(f"Application icon set from: {png_icon_path}")
+        else:
+            logger.warning("No icon file found - taskbar may show default icon")
+
     # Handle command-line arguments for file paths
     file_to_open = None
     if len(sys.argv) > 1:
@@ -4888,25 +4935,9 @@ def main():
             if file_ext in image_extensions:
                 file_to_open = os.path.abspath(potential_file)
                 logger.info(f"File to open from command line: {file_to_open}")
-    
+
     # Set Windows taskbar icon early (before window creation)
     set_windows_taskbar_icon()
-    
-    # Set application style
-    app.setStyle("Fusion")
-    
-    # Set application to quit when last window is closed
-    app.setQuitOnLastWindowClosed(True)
-    
-    # Set application icon (affects taskbar icon)
-    icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.ico")
-    if os.path.exists(icon_path):
-        app.setWindowIcon(QIcon(icon_path))
-    else:
-        # Fallback to PNG if ICO doesn't exist
-        png_icon_path = os.path.join(os.path.dirname(__file__), "ICON_tw.png")
-        if os.path.exists(png_icon_path):
-            app.setWindowIcon(QIcon(png_icon_path))
     
     # Check ExifTool availability before proceeding
     is_available, version, error_msg = check_exiftool_availability()
