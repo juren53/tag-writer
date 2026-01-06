@@ -1,11 +1,17 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+# Tag Writer - PyInstaller spec file for Windows executable
+# Version: 0.1.6a
+# Updated: 2026-01-05
 
 a = Analysis(
     ['tag-writer.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[
+        ('ICON_tw.ico', '.'),  # Include icon file in the bundle
+        ('ICON_tw.png', '.'),  # Include PNG fallback
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -29,11 +35,11 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=False,  # No console window
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['ICON_tw.png'],
+    icon='ICON_tw.ico',  # Use ICO file for Windows taskbar icon
 )
