@@ -41,11 +41,11 @@ if sys.platform.startswith('win'):
     import ctypes
     from ctypes import wintypes
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QLineEdit, QTextEdit, QComboBox,
     QFormLayout, QScrollArea, QSplitter, QMenu, QMenuBar,
     QStatusBar, QFileDialog, QMessageBox, QToolBar, QDialog, QProgressDialog,
-    QDialogButtonBox, QInputDialog, QFrame
+    QDialogButtonBox, QInputDialog, QFrame, QGroupBox, QCheckBox
 )
 from PyQt6.QtCore import Qt, QSize, QTimer, QThread, pyqtSignal
 from PyQt6.QtGui import QAction, QFont, QPalette, QColor, QPixmap, QImage, QTextCursor, QIcon
@@ -1371,6 +1371,58 @@ class ThemeDialog(QDialog):
     def get_selected_theme(self):
         """Get the selected theme name"""
         return self.selected_theme
+
+
+class PreferencesDialog(QDialog):
+    """Dialog for application preferences"""
+
+    def __init__(self, config, parent=None):
+        super().__init__(parent)
+        self.config = config
+        self.setWindowTitle("Preferences")
+        self.setFixedSize(450, 200)
+
+        layout = QVBoxLayout(self)
+
+        # Title
+        title_label = QLabel("<h3>Application Preferences</h3>")
+        layout.addWidget(title_label)
+
+        # Updates section
+        updates_group = QGroupBox("Updates")
+        updates_layout = QVBoxLayout()
+
+        # Auto-check for updates checkbox
+        self.auto_check_updates_checkbox = QCheckBox("Automatically check for updates on startup")
+        self.auto_check_updates_checkbox.setChecked(self.config.auto_check_updates)
+        self.auto_check_updates_checkbox.setToolTip(
+            "When enabled, Tag Writer will check for new versions on startup.\n"
+            "You can still manually check for updates from the Help menu."
+        )
+        updates_layout.addWidget(self.auto_check_updates_checkbox)
+
+        updates_group.setLayout(updates_layout)
+        layout.addWidget(updates_group)
+
+        # Add stretch to push everything to the top
+        layout.addStretch()
+
+        # Buttons
+        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box.accepted.connect(self.on_accept)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+    def on_accept(self):
+        """Save preferences when OK is clicked"""
+        # Update config
+        self.config.auto_check_updates = self.auto_check_updates_checkbox.isChecked()
+
+        # Save config to file
+        self.config.save_config()
+
+        # Accept the dialog
+        self.accept()
 
 
 # Legacy theme definitions for backward compatibility
@@ -3113,7 +3165,13 @@ class MainWindow(QMainWindow):
         rotate_ccw_action = QAction("Rotate &Counter-clockwise", self)
         rotate_ccw_action.triggered.connect(lambda: self.on_rotate_image(-90))
         rotate_menu.addAction(rotate_ccw_action)
-        
+
+        # Preferences
+        edit_menu.addSeparator()
+        preferences_action = QAction("&Preferences...", self)
+        preferences_action.triggered.connect(self.on_preferences)
+        edit_menu.addAction(preferences_action)
+
         # View menu
         view_menu = menu_bar.addMenu("&View")
         
@@ -4352,7 +4410,12 @@ class MainWindow(QMainWindow):
             "3. Click 'Write Metadata' or use File > Save to save changes\n"
             "4. Use the navigation buttons to move between images in a directory"
         )
-    
+
+    def on_preferences(self):
+        """Show Preferences dialog."""
+        dialog = PreferencesDialog(config, self)
+        dialog.exec()
+
     def on_user_guide(self):
         """Show User Guide from local file or GitHub URL if not found locally."""
         user_guide_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Docs", "user-guide.md")
