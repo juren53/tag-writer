@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7a] - Sun 11 Jan 2026 02:32:33 PM CST
+
+### Added
+- **Preferences Dialog** - New application preferences system
+  - Added Preferences dialog accessible from Edit menu
+  - "Automatically check for updates on startup" toggle option
+  - Extensible design for future preference additions
+  - Settings persist to configuration file
+
+### Changed
+- **Auto-update Default** - Changed default behavior for automatic update checking to OFF
+  - Users now opt-in to automatic update checking via Preferences
+  - No startup update check pop-ups unless explicitly enabled by user
+  - Manual update checking still available via Help menu
+  - Provides cleaner startup experience for users who prefer manual control
+
+### Technical
+- Added PreferencesDialog class with Updates section
+- Added QGroupBox and QCheckBox to PyQt6 imports
+- Added Preferences menu item to Edit menu
+- Changed auto_check_updates default from True to False
+- Preferences persist to config file via save_config()
+
 ## [0.1.7] - Sun 11 Jan 2026 08:21:25 AM CST
 
 ### Enhanced
@@ -1025,6 +1048,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Version History Summary
 
 ### Recent Releases
+- **v0.1.7a** - Sun 11 Jan 2026 02:32:33 PM CST: Added Preferences dialog with auto-update toggle, changed default auto-update behavior to OFF
 - **v0.1.7** - Sun 11 Jan 2026 08:21:25 AM CST: Enhanced date display with three-column layout, added Credits dialog with acknowledgments for ExifTool, PyQt, and Python creators
 - **v0.1.6a** - Mon 05 Jan 2026 11:08:39 AM CST: Windows App User Model ID for enhanced Windows 11 taskbar integration
 - **v0.1.6** - Mon 05 Jan 2026 08:42:50 AM CST: Single instance enforcement, desktop icon fixes, enhanced UI zoom controls with persistence
