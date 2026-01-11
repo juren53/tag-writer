@@ -153,8 +153,8 @@ class SingleInstanceChecker:
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.7"
-        self.app_timestamp = "2026-01-11 08:21"
+        self.app_version = "0.1.7a"
+        self.app_timestamp = "2026-01-11 14:32"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
