@@ -168,7 +168,7 @@ class Config:
         self.window_maximized = False  # Store window maximized state
         
         # Version checking settings
-        self.auto_check_updates = True
+        self.auto_check_updates = False  # Default to off, users can enable in Preferences
         self.last_update_check = None
         self.skipped_versions = []
         self.update_check_frequency = 86400  # 24 hours in seconds
@@ -240,7 +240,7 @@ class Config:
                 self.window_maximized = config_data.get('window_maximized', False)
                 
                 # Load version checking settings
-                self.auto_check_updates = config_data.get('auto_check_updates', True)
+                self.auto_check_updates = config_data.get('auto_check_updates', False)  # Default to off
                 self.last_update_check = config_data.get('last_update_check', None)
                 self.skipped_versions = config_data.get('skipped_versions', [])
                 self.update_check_frequency = config_data.get('update_check_frequency', 86400)  # 24 hours
