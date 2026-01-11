@@ -1929,77 +1929,116 @@ class ImageViewer(QWidget):
         try:
             import os
             import datetime
-            
-            # Initialize all date fields
+
+            # Initialize all date fields with structured data
             dates = {
-                'date_created': '--',
-                'date_modified': '--',
-                'file_creation_date': '--',
-                'file_modification_date': '--',
-                'file_access_date': '--'
+                'date_created': {'value': '--', 'source': '--'},
+                'date_modified': {'value': '--', 'source': '--'},
+                'file_creation_date': {'value': '--', 'source': 'File System'},
+                'file_modification_date': {'value': '--', 'source': 'File System'}
             }
-            
+
             # Get image metadata dates using existing read_metadata function
             metadata = read_metadata(image_path)
             if metadata:
                 # Extract image metadata dates with source information
-                date_created_fields = ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated']
-                date_modified_fields = ['EXIF:ModifyDate', 'EXIF:FileModifyDate', 'XMP:ModifyDate', 'ICC_Profile:ProfileDateTime']
-                
+                # Include time fields for more complete information
+                date_created_fields = [
+                    'IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated',
+                    'EXIF:DateTimeOriginal', 'EXIF:CreateDate'
+                ]
+                date_modified_fields = [
+                    'EXIF:ModifyDate', 'EXIF:FileModifyDate', 'XMP:ModifyDate',
+                    'ICC_Profile:ProfileDateTime'
+                ]
+
+                # Time fields to check for created date
+                time_created_fields = [
+                    'IPTC:TimeCreated', 'XMP:TimeCreated', 'EXIF:TimeOriginal'
+                ]
+
+                # Look for date created
                 for field in date_created_fields:
                     if field in metadata and metadata[field]:
-                        dates['date_created'] = self._format_date_with_source(metadata[field], f"({field})")
+                        date_value = self._format_date_value(metadata[field])
+
+                        # Try to find corresponding time if date doesn't include it
+                        if len(date_value.replace('-', ':').split(':')) <= 3:
+                            for time_field in time_created_fields:
+                                if time_field in metadata and metadata[time_field]:
+                                    time_value = str(metadata[time_field]).strip()
+                                    date_value = f"{date_value} {time_value}"
+                                    break
+
+                        dates['date_created'] = {
+                            'value': date_value,
+                            'source': field
+                        }
                         break
-                
+
+                # Look for date modified
                 for field in date_modified_fields:
                     if field in metadata and metadata[field]:
-                        dates['date_modified'] = self._format_date_with_source(metadata[field], f"({field})")
+                        dates['date_modified'] = {
+                            'value': self._format_date_value(metadata[field]),
+                            'source': field
+                        }
                         break
-            
+
             # Get system file dates
             if os.path.exists(image_path):
                 try:
                     # Get file stats
                     stat = os.stat(image_path)
-                    
-                    # Format system dates with source information
+
+                    # Format system dates
                     creation_time = datetime.datetime.fromtimestamp(stat.st_ctime)
                     modification_time = datetime.datetime.fromtimestamp(stat.st_mtime)
-                    access_time = datetime.datetime.fromtimestamp(stat.st_atime)
-                    
-                    dates['file_creation_date'] = self._format_date_with_source(creation_time.strftime('%Y:%m:%d %H:%M:%S'), "(System)")
-                    dates['file_modification_date'] = self._format_date_with_source(modification_time.strftime('%Y:%m:%d %H:%M:%S'), "(System)")
-                    dates['file_access_date'] = self._format_date_with_source(access_time.strftime('%Y:%m:%d %H:%M:%S'), "(System)")
-                    
+
+                    dates['file_creation_date'] = {
+                        'value': creation_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'source': 'File System'
+                    }
+                    dates['file_modification_date'] = {
+                        'value': modification_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'source': 'File System'
+                    }
+
                 except Exception as e:
                     logger.debug(f"Error getting system file dates: {e}")
-            
+
             return dates
-            
+
         except Exception as e:
             logger.debug(f"Date metadata extraction error: {e}")
             return {
-                'date_created': '--',
-                'date_modified': '--',
-                'file_creation_date': '--',
-                'file_modification_date': '--',
-                'file_access_date': '--'
+                'date_created': {'value': '--', 'source': '--'},
+                'date_modified': {'value': '--', 'source': '--'},
+                'file_creation_date': {'value': '--', 'source': 'File System'},
+                'file_modification_date': {'value': '--', 'source': 'File System'}
             }
-    
-    def _format_date_with_source(self, date_str, source):
-        """Format date string with source information."""
+
+    def _format_date_value(self, date_str):
+        """Format date string to YYYY-MM-DD HH:MM:SS format."""
         if date_str == '--' or not date_str:
             return '--'
-        
-        # Clean up the date string and add source
+
+        # Clean up the date string
         cleaned_date = str(date_str).strip()
-        
-        # If the date already contains time info, use it as-is
-        if ':' in cleaned_date and len(cleaned_date) > 10:
-            return f"{cleaned_date} {source}"
-        else:
-            # If only date, it's likely already in the right format
-            return f"{cleaned_date} {source}"
+
+        # Convert YYYY:MM:DD format to YYYY-MM-DD format
+        if ':' in cleaned_date:
+            parts = cleaned_date.split(' ')
+            if len(parts) > 0:
+                # Replace first set of colons (date part) with dashes
+                date_part = parts[0].replace(':', '-', 2)
+                if len(parts) > 1:
+                    # Keep time part with colons
+                    return f"{date_part} {' '.join(parts[1:])}"
+                else:
+                    return date_part
+
+        return cleaned_date
     
     def setup_ui(self):
         """Set up the user interface."""
@@ -2038,49 +2077,49 @@ class ImageViewer(QWidget):
         <table style='width:100%; text-align:left; margin-left:10px; margin-right:10px; border-spacing:5px 3px;'>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>File size:</td>
-                <td>{file_size}</td>
+                <td colspan='2'>{file_size}</td>
             </tr>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>Dimension:</td>
-                <td>{dimension}</td>
+                <td colspan='2'>{dimension}</td>
             </tr>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>Resolution:</td>
-                <td>{resolution}</td>
+                <td colspan='2'>{resolution}</td>
             </tr>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>Pixel count:</td>
-                <td>{pixel_count}</td>
+                <td colspan='2'>{pixel_count}</td>
             </tr>
             <tr>
-                <td colspan='2' style='height:8px;'></td>
+                <td colspan='3' style='height:8px;'></td>
             </tr>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>Date Created:</td>
-                <td>{date_created}</td>
+                <td style='padding-right:10px;'>--</td>
+                <td style='font-style:italic; color:#666;'>--</td>
             </tr>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>Date Modified:</td>
-                <td>{date_modified}</td>
+                <td style='padding-right:10px;'>--</td>
+                <td style='font-style:italic; color:#666;'>--</td>
             </tr>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>File Creation:</td>
-                <td>{file_creation_date}</td>
+                <td style='padding-right:10px;'>--</td>
+                <td style='font-style:italic; color:#666;'>--</td>
             </tr>
             <tr>
                 <td style='font-weight:bold; padding-right:10px;'>File Modified:</td>
-                <td>{file_modification_date}</td>
+                <td style='padding-right:10px;'>--</td>
+                <td style='font-style:italic; color:#666;'>--</td>
             </tr>
         </table>
         """.format(
             dimension=self.dimensions_label.text().split(': ')[1],
             file_size=self.file_size_label.text().split(': ')[1],
             resolution=self.resolution_label.text().split(': ')[1],
-            pixel_count=self.pixel_count_label.text().split(': ')[1],
-            date_created='--',
-            date_modified='--',
-            file_creation_date='--',
-            file_modification_date='--'
+            pixel_count=self.pixel_count_label.text().split(': ')[1]
         )
         self.table_label = QLabel(table_html)
         self.table_label.setWordWrap(True)
@@ -2159,44 +2198,48 @@ class ImageViewer(QWidget):
 
             # Extract date metadata
             date_data = self.extract_date_metadata(image_path)
-            
-            # Update table with date information - vertical single column layout
+
+            # Update table with date information - vertical layout with 3 columns for dates
             table_html = """
             <table style='width:100%; text-align:left; margin-left:10px; margin-right:10px; border-spacing:5px 3px;'>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>File size:</td>
-                    <td>{file_size}</td>
+                    <td colspan='2'>{file_size}</td>
                 </tr>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>Dimension:</td>
-                    <td>{dimension}</td>
+                    <td colspan='2'>{dimension}</td>
                 </tr>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>Resolution:</td>
-                    <td>{resolution}</td>
+                    <td colspan='2'>{resolution}</td>
                 </tr>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>Pixel count:</td>
-                    <td>{pixel_count}</td>
+                    <td colspan='2'>{pixel_count}</td>
                 </tr>
                 <tr>
-                    <td colspan='2' style='height:8px;'></td>
+                    <td colspan='3' style='height:8px;'></td>
                 </tr>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>Date Created:</td>
-                    <td>{date_created}</td>
+                    <td style='padding-right:10px;'>{date_created_value}</td>
+                    <td style='font-style:italic; color:#666;'>{date_created_source}</td>
                 </tr>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>Date Modified:</td>
-                    <td>{date_modified}</td>
+                    <td style='padding-right:10px;'>{date_modified_value}</td>
+                    <td style='font-style:italic; color:#666;'>{date_modified_source}</td>
                 </tr>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>File Creation:</td>
-                    <td>{file_creation_date}</td>
+                    <td style='padding-right:10px;'>{file_creation_date_value}</td>
+                    <td style='font-style:italic; color:#666;'>{file_creation_date_source}</td>
                 </tr>
                 <tr>
                     <td style='font-weight:bold; padding-right:10px;'>File Modified:</td>
-                    <td>{file_modification_date}</td>
+                    <td style='padding-right:10px;'>{file_modification_date_value}</td>
+                    <td style='font-style:italic; color:#666;'>{file_modification_date_source}</td>
                 </tr>
             </table>
             """.format(
@@ -2204,10 +2247,14 @@ class ImageViewer(QWidget):
                 file_size=self.file_size_label.text().split(': ')[1],
                 resolution=self.resolution_label.text().split(': ')[1],
                 pixel_count=self.pixel_count_label.text().split(': ')[1],
-                date_created=date_data['date_created'],
-                date_modified=date_data['date_modified'],
-                file_creation_date=date_data['file_creation_date'],
-                file_modification_date=date_data['file_modification_date']
+                date_created_value=date_data['date_created']['value'],
+                date_created_source=date_data['date_created']['source'],
+                date_modified_value=date_data['date_modified']['value'],
+                date_modified_source=date_data['date_modified']['source'],
+                file_creation_date_value=date_data['file_creation_date']['value'],
+                file_creation_date_source=date_data['file_creation_date']['source'],
+                file_modification_date_value=date_data['file_modification_date']['value'],
+                file_modification_date_source=date_data['file_modification_date']['source']
             )
             self.table_label.setText(table_html)
 
