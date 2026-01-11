@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - Sun 11 Jan 2026 08:21:25 AM CST
+
+### Enhanced
+- **View Image Pane Date Display** - Improved readability with three-column layout
+  - Restructured date information display to separate field name, date value, and metadata source
+  - Column 1: Field name (Date Created, Date Modified, File Creation, File Modified)
+  - Column 2: Date/time value in YYYY-MM-DD HH:MM:SS format
+  - Column 3: Metadata source tag (IPTC:DateCreated, EXIF:ModifyDate, File System, etc.)
+  - Date format standardized with dashes instead of colons for better readability
+  - Metadata source displayed in italics and grey color for visual distinction
+  - Includes time information when available from metadata or file system
+  - Enhanced date field detection to include EXIF:DateTimeOriginal and EXIF:CreateDate
+  - Automatic pairing of separate date and time fields when available
+  - System dates labeled as "File System" instead of "System" for clarity
+
+### Added
+- **Credits Dialog** - Recognition of key contributors to Tag Writer
+  - New Credits dialog accessible from About dialog via Credits button
+  - Phil Harvey acknowledged as Father of ExifTool
+  - PyQt Team credited for GUI framework libraries
+  - Guido van Rossum honored as Father of Python
+  - Professional formatted dialog with scrollable content
+  - Thank you message to open source community
+  - Enhanced About dialog converted to custom dialog with Credits button
+
+### Technical
+- Restructured `extract_date_metadata()` to return dictionaries with 'value' and 'source' keys
+- Added `_format_date_value()` method to convert YYYY:MM:DD format to YYYY-MM-DD
+- Updated HTML table layouts in `setup_ui()` and `load_image()` for three-column date display
+- Implemented `on_credits()` method with scrollable dialog and proper parent dialog handling
+- Enhanced About dialog with QDialog instead of QMessageBox for better control
+
 ## [0.1.6a] - Mon 05 Jan 2026 11:08:39 AM CST
 
 ### Added
@@ -993,6 +1025,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Version History Summary
 
 ### Recent Releases
+- **v0.1.7** - Sun 11 Jan 2026 08:21:25 AM CST: Enhanced date display with three-column layout, added Credits dialog with acknowledgments for ExifTool, PyQt, and Python creators
 - **v0.1.6a** - Mon 05 Jan 2026 11:08:39 AM CST: Windows App User Model ID for enhanced Windows 11 taskbar integration
 - **v0.1.6** - Mon 05 Jan 2026 08:42:50 AM CST: Single instance enforcement, desktop icon fixes, enhanced UI zoom controls with persistence
 - **v2.0.0** - Sat 04 Jan 2026 06:39:47 PM CST: **MAJOR RELEASE** - Complete GitHub release management implementation, version checking system functional, professional release infrastructure

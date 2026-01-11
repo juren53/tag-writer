@@ -153,8 +153,8 @@ class SingleInstanceChecker:
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.6a"
-        self.app_timestamp = "2026-01-05 11:08"
+        self.app_version = "0.1.7"
+        self.app_timestamp = "2026-01-11 08:21"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -4245,15 +4245,101 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Rotation Error", f"Error rotating image: {str(e)}")
     
     def on_about(self):
-        """Show About dialog."""
-        QMessageBox.about(self,
-            "About Tag Writer",
-            f"Tag Writer version {config.app_version}\n\n"
-            "A tool for editing image metadata\n\n"
-            "© 2023-2025\n\n"
-            "Licensed under MIT License\n"
-            "Click 'User Guide' in the Help menu for more information."
+        """Show About dialog with Credits button."""
+        # Create a custom dialog instead of using QMessageBox.about
+        dialog = QDialog(self)
+        dialog.setWindowTitle("About Tag Writer")
+        dialog.resize(400, 250)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(15)
+
+        # About text
+        about_text = QLabel(
+            f"<h2>Tag Writer</h2>"
+            f"<p><b>Version {config.app_version}</b></p>"
+            f"<p>A tool for editing image metadata</p>"
+            f"<p>© 2023-2025</p>"
+            f"<p>Licensed under MIT License</p>"
+            f"<p style='font-size: 10pt;'>Click 'User Guide' in the Help menu for more information.</p>"
         )
+        about_text.setWordWrap(True)
+        about_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(about_text)
+
+        # Button layout
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+
+        # Credits button
+        credits_btn = QPushButton("Credits")
+        credits_btn.clicked.connect(lambda: self.on_credits(dialog))
+        button_layout.addWidget(credits_btn)
+
+        # Close button
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        close_btn.setDefault(True)
+        button_layout.addWidget(close_btn)
+
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
+
+        dialog.exec()
+
+    def on_credits(self, parent_dialog=None):
+        """Show Credits dialog."""
+        dialog = QDialog(parent_dialog if parent_dialog else self)
+        dialog.setWindowTitle("Credits")
+        dialog.resize(500, 350)
+
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(10)
+
+        # Credits text
+        credits_text = QLabel(
+            "<h2>Tag Writer Credits</h2>"
+            "<p>Tag Writer would not be possible without the incredible work of:</p>"
+            "<hr>"
+            "<h3>Phil Harvey</h3>"
+            "<p><b>Father of ExifTool</b></p>"
+            "<p>For creating and maintaining ExifTool, the comprehensive metadata toolkit "
+            "that powers Tag Writer's ability to read and write image metadata.</p>"
+            "<hr>"
+            "<h3>The PyQt Team</h3>"
+            "<p><b>GUI Framework</b></p>"
+            "<p>For providing the excellent PyQt libraries that enable Tag Writer's "
+            "user-friendly graphical interface.</p>"
+            "<hr>"
+            "<h3>Guido van Rossum</h3>"
+            "<p><b>Father of Python</b></p>"
+            "<p>For creating the Python programming language, which makes development "
+            "accessible, enjoyable, and productive.</p>"
+            "<hr>"
+            "<p style='text-align: center; margin-top: 20px;'>"
+            "<i>Thank you for your contributions to the open source community!</i></p>"
+        )
+        credits_text.setWordWrap(True)
+        credits_text.setTextFormat(Qt.TextFormat.RichText)
+
+        # Make text scrollable
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(credits_text)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        layout.addWidget(scroll)
+
+        # Close button
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.clicked.connect(dialog.accept)
+        close_btn.setDefault(True)
+        button_layout.addWidget(close_btn)
+        button_layout.addStretch()
+        layout.addLayout(button_layout)
+
+        dialog.exec()
     
     def on_help(self):
         """Show Help dialog."""
