@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.1.6a  2026-01-05 1108 CST
+        # Tag Writer - IPTC Metadata Editor v0.1.7a  2026-02-15 1405 CST
 #
 # A GUI application for entering and writing IPTC metadata tags
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -24,6 +24,7 @@ import exiftool
 import subprocess
 import tempfile
 from datetime import datetime
+import concurrent.futures
 
 # Platform-specific imports for file locking
 if sys.platform.startswith('win'):
@@ -154,7 +155,7 @@ class Config:
     """Global configuration and state management"""
     def __init__(self):
         self.app_version = "0.1.7a"
-        self.app_timestamp = "2026-01-11 14:32"
+        self.app_timestamp = "2026-02-15 14:05"
         self.selected_file = None
         self.last_directory = None
         self.recent_files = []
@@ -332,7 +333,7 @@ def check_exiftool_availability():
         test_instance = create_exiftool_instance()
         with test_instance as et:
             # Try to get version info
-            version_output = et.execute("-ver")
+            version_output = execute_with_timeout(et.execute, "-ver")
             version = version_output.strip() if version_output else "unknown"
             logger.info(f"ExifTool found - version: {version}")
             return True, version, None
@@ -454,12 +455,12 @@ def get_image_files(directory):
     image_files = []
     
     try:
-        for filename in os.listdir(directory):
-            file_path = os.path.join(directory, filename)
-            if os.path.isfile(file_path):
-                _, ext = os.path.splitext(filename)
-                if ext.lower() in image_extensions:
-                    image_files.append(file_path)
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                if entry.is_file(follow_symlinks=False):
+                    _, ext = os.path.splitext(entry.name)
+                    if ext.lower() in image_extensions:
+                        image_files.append(entry.path)
         
         # Sort alphabetically
         image_files.sort(key=lambda x: os.path.basename(x).lower())
@@ -467,6 +468,14 @@ def get_image_files(directory):
     except Exception as e:
         logger.error(f"Error getting image files from {directory}: {e}")
         return []
+
+EXIFTOOL_TIMEOUT = 30  # seconds
+
+def execute_with_timeout(func, *args, timeout=EXIFTOOL_TIMEOUT):
+    """Execute an ExifTool call with a timeout. Raises TimeoutError on timeout."""
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(func, *args)
+        return future.result(timeout=timeout)
 
 def backup_file(file_path):
     """Create a backup of the file with a unique name"""
@@ -601,7 +610,7 @@ def read_metadata(file_path):
         # Use hidden console window version for Windows
         et_instance = create_exiftool_instance()
         with et_instance as et:
-            metadata_json = et.execute_json("-j", file_path)
+            metadata_json = execute_with_timeout(et.execute_json, "-j", file_path)
             if metadata_json and len(metadata_json) > 0:
                 return metadata_json[0]
             return {}
@@ -641,9 +650,9 @@ class MetadataManager:
                 # Get metadata
                 file_ext = os.path.splitext(file_path)[1].lower()
                 if file_ext in ['.tif', '.tiff']:
-                    metadata_json = et.execute_json("-j", "-m", "-ignoreMinorErrors", file_path)
+                    metadata_json = execute_with_timeout(et.execute_json, "-j", "-m", "-ignoreMinorErrors", file_path)
                 else:
-                    metadata_json = et.execute_json("-j", file_path)
+                    metadata_json = execute_with_timeout(et.execute_json, "-j", file_path)
                 
                 if metadata_json and len(metadata_json) > 0:
                     raw_metadata = metadata_json[0]
@@ -714,7 +723,19 @@ class MetadataManager:
     def clear(self):
         """Clear all metadata"""
         self.metadata = {}
-    
+
+    @staticmethod
+    def _sanitize_value(value):
+        """Sanitize a metadata value before writing to ExifTool."""
+        if not isinstance(value, str):
+            return value
+        value = value.replace('\x00', '')  # Strip null bytes
+        value = value.replace('\r\n', '\n').replace('\r', '\n')  # Normalize line endings
+        value = value.strip()
+        if len(value) > 2000:
+            value = value[:2000]
+        return value
+
     def save_to_file(self, file_path):
         """Save metadata to an image file"""
         if not os.path.exists(file_path):
@@ -729,6 +750,9 @@ class MetadataManager:
                 # Add each metadata field using correct ExifTool tags
                 for field_name, value in self.metadata.items():
                     if value:  # Only write non-empty values
+                        value = self._sanitize_value(value)
+                        if not value:
+                            continue
                         # Get the primary ExifTool tag for this field
                         if field_name in self.field_mappings:
                             # Use the first (primary) tag from the mapping
@@ -746,7 +770,7 @@ class MetadataManager:
                 args.append(file_path)
                 
                 # Execute the command
-                result = et.execute(*args)
+                result = execute_with_timeout(et.execute, *args)
                 
                 # Check if successful - look for the success message with flexible whitespace
                 # and handle potential warning messages for PNG files
@@ -2965,7 +2989,7 @@ class MainWindow(QMainWindow):
         # Initialize state
         self.dark_mode = config.dark_mode
         self.ui_scale_factor = config.ui_zoom_factor
-        print(f"DEBUG: Loaded ui_scale_factor = {self.ui_scale_factor} from config")
+        logger.debug(f"Loaded ui_scale_factor = {self.ui_scale_factor} from config")
         self.current_theme = getattr(config, 'current_theme', 'Default Light')
         self.theme_manager.current_theme = self.current_theme
         
@@ -3374,7 +3398,7 @@ class MainWindow(QMainWindow):
         # Round to avoid floating point precision issues
         new_zoom = round(new_zoom, 1)
         
-        print(f"DEBUG: zoom_ui called - current={self.ui_scale_factor}, delta={zoom_delta}, new={new_zoom}")
+        logger.debug(f"zoom_ui called - current={self.ui_scale_factor}, delta={zoom_delta}, new={new_zoom}")
         
         # Ensure zoom level is within bounds (50% to 150%)
         if 0.5 <= new_zoom <= 1.5:
@@ -3826,7 +3850,13 @@ class MainWindow(QMainWindow):
         
         if not ok or not new_filename or new_filename == current_filename:
             return
-        
+
+        # Sanitize filename to prevent path traversal
+        new_filename = os.path.basename(new_filename)
+        if not new_filename or new_filename in ('.', '..') or '\x00' in new_filename:
+            QMessageBox.warning(self, "Invalid Filename", "The filename is invalid. Please enter a valid filename.")
+            return
+
         # Create full path for new file
         new_file_path = os.path.join(current_directory, new_filename)
         
@@ -4265,38 +4295,62 @@ class MainWindow(QMainWindow):
             progress_dialog.setValue(60)
             QApplication.processEvents()
             
-            # Save the rotated image
-            rotated_image.save(config.selected_file)
+            # Save the rotated image with format-appropriate quality settings
+            file_ext = os.path.splitext(config.selected_file)[1].lower()
+            if file_ext in ('.jpg', '.jpeg'):
+                rotated_image.save(config.selected_file, quality=95, subsampling=0)
+            elif file_ext in ('.tif', '.tiff'):
+                rotated_image.save(config.selected_file, compression='tiff_lzw')
+            else:
+                rotated_image.save(config.selected_file)
             
             progress_dialog.setValue(70)
             QApplication.processEvents()
             
             # Re-apply metadata to the rotated image
-            # Apply each field individually
-            success = True
             for field_name, value in metadata_dict.items():
                 self.metadata_manager.set_field(field_name, value)
-            
+
             # Save metadata to the rotated image
-            if not self.metadata_manager.save_to_file(config.selected_file):
-                raise Exception("Failed to save metadata to rotated image")
-            
+            metadata_saved = self.metadata_manager.save_to_file(config.selected_file)
+
             progress_dialog.setValue(90)
             QApplication.processEvents()
-            
+
             # Reload the file to update the UI
             self.load_file(config.selected_file)
-            
+
             progress_dialog.setValue(100)
             QApplication.processEvents()
-            
-            # Show success message
-            QMessageBox.information(
-                self,
-                "Rotation Complete",
-                f"Image rotated {abs(degrees)}° {'clockwise' if degrees > 0 else 'counter-clockwise'} successfully.\n"
-                f"Metadata preserved and backup saved to: {os.path.basename(backup_path)}"
-            )
+
+            if metadata_saved:
+                QMessageBox.information(
+                    self,
+                    "Rotation Complete",
+                    f"Image rotated {abs(degrees)}° {'clockwise' if degrees > 0 else 'counter-clockwise'} successfully.\n"
+                    f"Metadata preserved and backup saved to: {os.path.basename(backup_path)}"
+                )
+            else:
+                # Rotation succeeded but metadata save failed — offer to restore backup
+                result = QMessageBox.warning(
+                    self,
+                    "Metadata Warning",
+                    f"Image was rotated successfully, but metadata could not be re-applied.\n\n"
+                    f"Would you like to restore from backup to preserve your metadata?\n"
+                    f"Backup: {os.path.basename(backup_path)}",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                if result == QMessageBox.StandardButton.Yes:
+                    try:
+                        import shutil
+                        shutil.copy2(backup_path, config.selected_file)
+                        self.load_file(config.selected_file)
+                        QMessageBox.information(self, "Restored", "File restored from backup successfully.")
+                    except Exception as restore_err:
+                        logger.error(f"Error restoring backup: {restore_err}")
+                        QMessageBox.critical(self, "Restore Error",
+                            f"Failed to restore from backup: {restore_err}\n"
+                            f"Backup file is still available at:\n{backup_path}")
         except Exception as e:
             progress_dialog.cancel()
             logger.error(f"Error rotating image: {e}")

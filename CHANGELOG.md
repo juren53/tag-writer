@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.7a] - Sun 11 Jan 2026 02:32:33 PM CST
+## [0.1.7a] - Sun 15 Feb 2026 02:05:00 PM CST
 
 ### Added
 - **Preferences Dialog** - New application preferences system
@@ -23,12 +23,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Manual update checking still available via Help menu
   - Provides cleaner startup experience for users who prefer manual control
 
+### Improved
+- **Debug prints replaced with logger** - Converted remaining `print(DEBUG:...)` calls to `logger.debug()` for proper log-level control
+- **Directory scanning performance** - Replaced `os.listdir()` + `os.path.isfile()` with `os.scandir()` in `get_image_files()`, avoiding extra stat calls per file
+- **Path traversal protection** - File rename dialog now sanitizes input with `os.path.basename()` and rejects `.`, `..`, empty names, and null bytes
+- **JPEG quality preservation on rotation** - Rotated JPEGs now save with `quality=95, subsampling=0` to prevent degradation; TIFF uses LZW compression
+- **Metadata value sanitization** - New `_sanitize_value()` method strips null bytes, normalizes line endings, trims whitespace, and truncates values >2000 chars before writing to ExifTool
+- **Rotation error recovery** - Metadata save failure after rotation now offers to restore from backup instead of silently failing or raising an error
+- **ExifTool timeout protection** - All ExifTool calls wrapped with 30-second timeout via `concurrent.futures` to prevent application hangs on unresponsive ExifTool processes
+
 ### Technical
 - Added PreferencesDialog class with Updates section
 - Added QGroupBox and QCheckBox to PyQt6 imports
 - Added Preferences menu item to Edit menu
 - Changed auto_check_updates default from True to False
 - Preferences persist to config file via save_config()
+- Added `import concurrent.futures` and `EXIFTOOL_TIMEOUT = 30` constant
+- Added `execute_with_timeout()` helper function
+- Added `MetadataManager._sanitize_value()` static method
 
 ## [0.1.7] - Sun 11 Jan 2026 08:21:25 AM CST
 
