@@ -7,7 +7,7 @@ that integrates the core metadata handling and image processing functionality
 from the existing codebase.
 """
 #-----------------------------------------------------------
-        # Tag Writer - IPTC Metadata Editor v0.1.7a  2026-02-15 1405 CST
+        # Tag Writer - IPTC Metadata Editor v0.1.7b  2026-02-15 1405 CST
 #
 # A GUI application for entering and writing IPTC metadata tags
 # to TIF and JPG images. Designed for free-form metadata tagging
@@ -154,7 +154,7 @@ class SingleInstanceChecker:
 class Config:
     """Global configuration and state management"""
     def __init__(self):
-        self.app_version = "0.1.7a"
+        self.app_version = "0.1.7b"
         self.app_timestamp = "2026-02-15 14:05"
         self.selected_file = None
         self.last_directory = None
