@@ -13,6 +13,7 @@ notes/TW_scratchpad.txt
 
 # Ignore backups
 *.backup
+*.bak
 
 # Ignore specific temp directories
 temp_backup/
