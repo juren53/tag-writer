@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **PowerShell Wrapper Script** - Added convenient command-line launcher for tag-writer
+  - New `tw.ps1` script for quick application launch
+  - Installed to `~\bin` directory for easy access from anywhere
+  - Automatically runs `tag-writer.py` from project directory
+  - Passes through all command-line arguments
+  - Enables simplified command-line usage: `tw.ps1 [args]`
+  - Improved workflow for command-line users
+
 ## [0.2.0] - Sat 15 Feb 2026 10:15:00 PM CST
 
 ### Changed
