@@ -1,18 +1,24 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 # Tag Writer - PyInstaller spec file for Windows executable
-# Version: 0.1.6a
-# Updated: 2026-01-05
+# Version: 0.2.0
+# Updated: 2026-02-15
+
+import os
 
 a = Analysis(
     ['tag-writer.py'],
-    pathex=[],
+    pathex=['src'],
     binaries=[],
     datas=[
         ('ICON_tw.ico', '.'),  # Include icon file in the bundle
         ('ICON_tw.png', '.'),  # Include PNG fallback
+        ('tools/exiftool.exe', 'tools'),  # Bundle ExifTool
+        ('Docs', 'Docs'),  # Include documentation
+        ('CHANGELOG.md', '.'),  # Include changelog
+        ('github_version_checker.py', '.'),  # Version checker module
     ],
-    hiddenimports=[],
+    hiddenimports=['tag_writer'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

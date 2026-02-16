@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - Sat 15 Feb 2026 10:15:00 PM CST
+
+### Changed
+- **Modular Architecture** - Refactored monolithic 5,237-line `tag-writer.py` into a clean package structure under `src/tag_writer/`
+  - 24 Python modules organized by responsibility (constants, config, platform, utilities, core classes, widgets, dialogs, mixins)
+  - MainWindow composed from 7 mixins: MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin, ThemeMixin, HelpMixin, UpdatesMixin
+  - Root `tag-writer.py` reduced to thin wrapper that imports and launches the package
+  - Strict dependency ordering prevents circular imports: constants → config → utilities → core classes → widgets/dialogs → mixins → main
+
+### Added
+- **Bundled ExifTool** - ExifTool binary now ships in `tools/` directory
+  - 3-tier path resolution: PyInstaller frozen → `tools/exiftool.exe` → system PATH
+  - Persistent ExifTool process singleton stays alive for app lifetime instead of spawning per operation
+  - Faster image paging when browsing directories
+- **Persistent ExifTool Process** - New `PersistentExifTool` class in `exiftool_utils.py`
+  - Singleton pattern keeps ExifTool running across metadata reads/writes
+  - Automatic cleanup on application shutdown via `cleanup_resources()`
+
+### Technical
+- New package structure: `src/tag_writer/` with `__init__.py` exporting all public API
+- Entry point: `src/main.py` with `MainWindow` mixin composition and `main()` function
+- `tag-writer.spec` updated with `pathex=['src']`, bundled ExifTool, Docs, and version checker
+- Original monolithic file preserved as `tag-writer.py.bak` for reference
+- Module breakdown:
+  - `constants.py` — version info, image extensions, timeouts
+  - `config.py` — Config class, SingleInstanceChecker, global singleton
+  - `platform.py` — Windows AppUserModelID and taskbar integration
+  - `exiftool_utils.py` — ExifTool path resolution, persistent process, timeout helper
+  - `image_utils.py` — PIL image loading, thumbnails, zoom, pil_to_pixmap
+  - `file_utils.py` — file scanning, backup, metadata reading
+  - `metadata.py` — MetadataManager with IPTC/XMP/EXIF field mappings
+  - `theme.py` — ThemeManager with 8 themes and stylesheet generation
+  - `dialogs/` — ThemeDialog, PreferencesDialog
+  - `widgets/` — MetadataPanel, ImageViewer, FullImageViewer
+  - `menu.py`, `window.py`, `navigation.py`, `file_ops.py`, `theme_mixin.py`, `help.py`, `updates.py` — MainWindow mixins
+
 ## [0.1.7a] - Sun 15 Feb 2026 02:05:00 PM CST
 
 ### Added
