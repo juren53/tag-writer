@@ -12,7 +12,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
+from pyqt_app_info import AppIdentity, ToolSpec, ToolRegistry, gather_info
+from pyqt_app_info.qt import AboutDialog
+
 from .config import config
+from .constants import APP_NAME, APP_VERSION, APP_TIMESTAMP
+from .exiftool_utils import get_exiftool_path
 
 logger = logging.getLogger(__name__)
 
@@ -27,42 +32,23 @@ class HelpMixin:
     """Mixin providing help, about, credits, user guide, glossary, shortcuts, changelog."""
 
     def on_about(self):
-        """Show About dialog with Credits button."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle("About Tag Writer")
-        dialog.resize(400, 250)
-
-        layout = QVBoxLayout(dialog)
-        layout.setSpacing(15)
-
-        about_text = QLabel(
-            f"<h2>Tag Writer</h2>"
-            f"<p><b>Version {config.app_version}</b></p>"
-            f"<p>A tool for editing image metadata</p>"
-            f"<p>\u00a9 2023-2025</p>"
-            f"<p>Licensed under MIT License</p>"
-            f"<p style='font-size: 10pt;'>Click 'User Guide' in the Help menu for more information.</p>"
+        """Show About dialog using pyqt_app_info."""
+        identity = AppIdentity(
+            name=APP_NAME,
+            version=APP_VERSION,
+            commit_date=APP_TIMESTAMP,
+            description="A tool for editing image metadata.",
         )
-        about_text.setWordWrap(True)
-        about_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(about_text)
 
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
+        registry = ToolRegistry()
+        registry.register(ToolSpec(
+            name="ExifTool",
+            command=get_exiftool_path(),
+            version_flag="-ver",
+        ))
 
-        credits_btn = QPushButton("Credits")
-        credits_btn.clicked.connect(lambda: self.on_credits(dialog))
-        button_layout.addWidget(credits_btn)
-
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(dialog.accept)
-        close_btn.setDefault(True)
-        button_layout.addWidget(close_btn)
-
-        button_layout.addStretch()
-        layout.addLayout(button_layout)
-
-        dialog.exec()
+        info = gather_info(identity, registry=registry, caller_file=__file__)
+        AboutDialog(info, parent=self).exec()
 
     def on_credits(self, parent_dialog=None):
         """Show Credits dialog."""

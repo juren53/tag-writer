@@ -18,7 +18,7 @@ a = Analysis(
         ('CHANGELOG.md', '.'),  # Include changelog
         ('github_version_checker.py', '.'),  # Version checker module
     ],
-    hiddenimports=['tag_writer'],
+    hiddenimports=['tag_writer', 'pyqt_app_info', 'pyqt_app_info.qt'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
