@@ -6,8 +6,8 @@ echo  TagWriter Release Script
 echo ============================================
 echo.
 
-REM --- Step 1: Read version from tag-writer.py ---
-for /f "tokens=2 delims==" %%a in ('findstr /C:"self.app_version" tag-writer.py') do (
+REM --- Step 1: Read version from constants.py ---
+for /f "tokens=2 delims==" %%a in ('findstr /C:"APP_VERSION" src\tag_writer\constants.py') do (
     set "RAW=%%a"
 )
 REM Trim quotes and spaces
