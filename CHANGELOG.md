@@ -16,7 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enables simplified command-line usage: `tw.ps1 [args]`
   - Improved workflow for command-line users
 
-## [0.2.0] - Sat 15 Feb 2026 10:15:00 PM CST
+### Fixed
+- **Linux Desktop Icon Display** - Resolved icon not appearing in taskbar and system menu
+  - Installed icons to hicolor theme directories at multiple sizes (48, 64, 128, 256px)
+  - Added `setDesktopFileName()` call for proper Qt/Linux icon integration
+  - Desktop file now uses absolute icon path for reliable Cinnamon/LMDE support
+
+## [0.2.0]
 
 ### Changed
 - **Modular Architecture** - Refactored monolithic 5,237-line `tag-writer.py` into a clean package structure under `src/tag_writer/`
