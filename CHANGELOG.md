@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **About Dialog** - Replaced hand-built About dialog with `pyqt_app_info` library
+  - Auto-detects ExifTool version and path
+  - Shows Python version, execution mode (source vs compiled), and OS platform
+  - Consistent About dialog style shared with HPM project
+
 ## [0.2.1] - 2026-02-17
 
 ### Fixed
