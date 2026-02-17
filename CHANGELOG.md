@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-02-17
+
+### Fixed
+- **Windows Console Window Flash** - Eliminated phantom console window appearing when browsing photos
+  - `ImageViewer._get_image_resolution()` was spawning a new `exiftool` subprocess per image without `CREATE_NO_WINDOW` flag
+  - Replaced raw `subprocess.run()` call with the persistent ExifTool instance (`PersistentExifTool` singleton)
+  - Resolution detection now reuses the already-running ExifTool process, which is faster and console-hidden
+
 ### Added
 - **PowerShell Wrapper Script** - Added convenient command-line launcher for tag-writer
   - New `tw.ps1` script for quick application launch

@@ -4,7 +4,6 @@ Tag Writer - ImageViewer widget for displaying images and metadata.
 
 import os
 import json
-import subprocess
 import logging
 
 from PyQt6.QtWidgets import (
@@ -14,6 +13,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 
 from ..config import config
+from ..exiftool_utils import get_persistent_exiftool
 from ..image_utils import load_image, create_thumbnail, pil_to_pixmap
 from ..file_utils import read_metadata
 
@@ -33,36 +33,35 @@ class ImageViewer(QWidget):
     def _get_image_resolution(self, image_path):
         """Get image resolution from multiple sources with fallback."""
         try:
-            # Method 1: Try exiftool
+            # Method 1: Try persistent ExifTool instance (no console window)
             try:
-                cmd = ["exiftool", "-j", "-XResolution", "-YResolution", "-ResolutionUnit", image_path]
-                result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=10)
+                pet = get_persistent_exiftool()
+                metadata_list = pet.execute_json(
+                    "-XResolution", "-YResolution", "-ResolutionUnit", image_path
+                )
+                if metadata_list and isinstance(metadata_list, list) and len(metadata_list) > 0:
+                    metadata = metadata_list[0]
 
-                if result.returncode == 0 and result.stdout.strip():
-                    metadata_list = json.loads(result.stdout)
-                    if metadata_list and isinstance(metadata_list, list) and len(metadata_list) > 0:
-                        metadata = metadata_list[0]
+                    x_res = metadata.get('XResolution')
+                    y_res = metadata.get('YResolution')
+                    res_unit = metadata.get('ResolutionUnit', '').lower()
 
-                        x_res = metadata.get('XResolution')
-                        y_res = metadata.get('YResolution')
-                        res_unit = metadata.get('ResolutionUnit', '').lower()
+                    if x_res and y_res:
+                        unit_suffix = "DPI"
+                        if 'cm' in res_unit or 'centimeter' in res_unit:
+                            unit_suffix = "DPC"
 
-                        if x_res and y_res:
-                            unit_suffix = "DPI"
-                            if 'cm' in res_unit or 'centimeter' in res_unit:
-                                unit_suffix = "DPC"
+                        try:
+                            x_val = float(x_res)
+                            y_val = float(y_res)
 
-                            try:
-                                x_val = float(x_res)
-                                y_val = float(y_res)
-
-                                if x_val == y_val:
-                                    return f"Resolution: {x_val:.0f} {unit_suffix}"
-                                else:
-                                    return f"Resolution: {x_val:.0f} x {y_val:.0f} {unit_suffix}"
-                            except (ValueError, TypeError):
-                                pass
-            except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError) as e:
+                            if x_val == y_val:
+                                return f"Resolution: {x_val:.0f} {unit_suffix}"
+                            else:
+                                return f"Resolution: {x_val:.0f} x {y_val:.0f} {unit_suffix}"
+                        except (ValueError, TypeError):
+                            pass
+            except Exception as e:
                 logger.debug(f"Exiftool resolution detection failed: {e}")
 
             # Method 2: Try PIL's DPI info
