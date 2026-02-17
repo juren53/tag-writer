@@ -1,8 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 # Tag Writer - PyInstaller spec file for Windows executable
-# Version: 0.2.0
-# Updated: 2026-02-15
+# Version: 0.2.1
+# Updated: 2026-02-17
 
 import os
 
