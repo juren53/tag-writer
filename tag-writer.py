@@ -6,7 +6,7 @@ Thin wrapper that launches the modular Tag Writer application.
 The actual implementation lives in src/tag_writer/ package.
 """
 #-----------------------------------------------------------
-# Tag Writer - IPTC Metadata Editor v0.2.0  2026-02-15 2215 CST
+# Tag Writer - IPTC Metadata Editor v0.2.2  2026-03-08 1000 CST
 #
 # A GUI application for entering and writing IPTC metadata tags
 # to TIF and JPG images. Designed for free-form metadata tagging

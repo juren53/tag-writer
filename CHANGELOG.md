@@ -5,6 +5,20 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-03-08
+
+### Added
+- **Full Image Window — Persistent Position & Size** - The Full Image popup now remembers its window position and size between sessions
+  - Geometry saved to `~/.tag_writer_config.json` on close
+  - Restored on next open; maximized state also preserved
+  - Falls back to fit-to-window on first-ever launch
+
+### Fixed
+- **Full Image Window — Controls Panel Clipping** - Right-side controls (Previous, Next, Zoom, Reset, Fit, Close) were partially hidden off-screen
+  - Controls panel width increased to 140px to contain all buttons
+  - Removed hardcoded button widths so buttons stretch to fill the panel correctly
+- **Full Image Window — Opens Behind Main Window** - Full Image window now opens in front of the main UI and receives focus automatically
+
 ## [Unreleased]
 
 ### Changed

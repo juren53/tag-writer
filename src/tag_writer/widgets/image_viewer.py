@@ -531,3 +531,5 @@ class ImageViewer(QWidget):
 
         viewer = FullImageViewer(main_window, self.current_image_path, self.pil_image)
         viewer.show()
+        viewer.raise_()
+        viewer.activateWindow()
