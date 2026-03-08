@@ -44,9 +44,36 @@ class FullImageViewer(QMainWindow):
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
-        QTimer.singleShot(100, self.fit_to_window)
+        self._restore_geometry()
 
         self.update_navigation_buttons()
+
+    def _restore_geometry(self):
+        """Restore window geometry from config, or fit-to-window as fallback."""
+        if config.full_image_maximized:
+            self.showMaximized()
+        elif config.full_image_geometry:
+            g = config.full_image_geometry
+            self.setGeometry(g['x'], g['y'], g['width'], g['height'])
+            QTimer.singleShot(100, self.fit_to_window)
+        else:
+            QTimer.singleShot(100, self.fit_to_window)
+
+    def _save_geometry(self):
+        """Save current window geometry to config."""
+        config.full_image_maximized = self.isMaximized()
+        if not self.isMaximized():
+            geo = self.geometry()
+            config.full_image_geometry = {
+                'x': geo.x(), 'y': geo.y(),
+                'width': geo.width(), 'height': geo.height()
+            }
+        config.save_config()
+
+    def closeEvent(self, event):
+        """Save geometry before closing."""
+        self._save_geometry()
+        super().closeEvent(event)
 
     def setup_ui(self):
         """Set up the user interface."""
@@ -83,7 +110,7 @@ class FullImageViewer(QMainWindow):
 
         # Controls panel
         controls_widget = QWidget()
-        controls_widget.setFixedWidth(100)
+        controls_widget.setFixedWidth(140)
         controls_layout = QVBoxLayout(controls_widget)
         controls_layout.setSpacing(5)
         controls_layout.setContentsMargins(5, 5, 5, 5)
@@ -114,14 +141,12 @@ class FullImageViewer(QMainWindow):
         )
 
         self.nav_prev_btn = QPushButton("\u25b2  Previous")
-        self.nav_prev_btn.setFixedWidth(120)
         self.nav_prev_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         self.nav_prev_btn.setStyleSheet(button_style)
         self.nav_prev_btn.clicked.connect(self.navigate_previous)
         nav_layout.addWidget(self.nav_prev_btn)
 
         self.nav_next_btn = QPushButton("Next  \u25bc")
-        self.nav_next_btn.setFixedWidth(120)
         self.nav_next_btn.setFont(QFont("Arial", 11, QFont.Weight.Bold))
         self.nav_next_btn.setStyleSheet(button_style)
         self.nav_next_btn.clicked.connect(self.navigate_next)
@@ -141,7 +166,6 @@ class FullImageViewer(QMainWindow):
         zoom_layout.setContentsMargins(0, 0, 0, 0)
 
         zoom_in_btn = QPushButton("+")
-        zoom_in_btn.setFixedWidth(80)
         zoom_in_btn.clicked.connect(lambda: self.zoom(self.zoom_step))
         zoom_layout.addWidget(zoom_in_btn)
 
@@ -150,7 +174,6 @@ class FullImageViewer(QMainWindow):
         zoom_layout.addWidget(self.zoom_label)
 
         zoom_out_btn = QPushButton("-")
-        zoom_out_btn.setFixedWidth(80)
         zoom_out_btn.clicked.connect(lambda: self.zoom(-self.zoom_step))
         zoom_layout.addWidget(zoom_out_btn)
 
@@ -163,12 +186,10 @@ class FullImageViewer(QMainWindow):
         buttons_layout.setContentsMargins(0, 0, 0, 0)
 
         reset_zoom_btn = QPushButton("Reset")
-        reset_zoom_btn.setFixedWidth(80)
         reset_zoom_btn.clicked.connect(self.reset_zoom)
         buttons_layout.addWidget(reset_zoom_btn)
 
         fit_btn = QPushButton("Fit")
-        fit_btn.setFixedWidth(80)
         fit_btn.clicked.connect(self.fit_to_window)
         buttons_layout.addWidget(fit_btn)
 
@@ -190,7 +211,6 @@ class FullImageViewer(QMainWindow):
         controls_layout.addWidget(separator3)
 
         close_btn = QPushButton("Close")
-        close_btn.setFixedWidth(80)
         close_btn.clicked.connect(self.close)
         controls_layout.addWidget(close_btn)
 

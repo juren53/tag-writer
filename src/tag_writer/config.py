@@ -104,6 +104,8 @@ class Config:
         self.current_theme = 'Dark'
         self.window_geometry = None
         self.window_maximized = False
+        self.full_image_geometry = None
+        self.full_image_maximized = False
 
         # Version checking settings
         self.auto_check_updates = False
@@ -147,6 +149,8 @@ class Config:
                 'selected_file': self.selected_file,
                 'window_geometry': self.window_geometry,
                 'window_maximized': self.window_maximized,
+                'full_image_geometry': self.full_image_geometry,
+                'full_image_maximized': self.full_image_maximized,
                 'auto_check_updates': self.auto_check_updates,
                 'last_update_check': self.last_update_check,
                 'skipped_versions': self.skipped_versions,
@@ -174,6 +178,8 @@ class Config:
                 self.selected_file = config_data.get('selected_file', None)
                 self.window_geometry = config_data.get('window_geometry', None)
                 self.window_maximized = config_data.get('window_maximized', False)
+                self.full_image_geometry = config_data.get('full_image_geometry', None)
+                self.full_image_maximized = config_data.get('full_image_maximized', False)
 
                 self.auto_check_updates = config_data.get('auto_check_updates', False)
                 self.last_update_check = config_data.get('last_update_check', None)
