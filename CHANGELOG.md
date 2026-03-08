@@ -5,7 +5,7 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.2] - 2026-03-08
+## [0.2.2] - Sun 08 Mar 2026 10:00:00 AM CDT
 
 ### Added
 - **Full Image Window — Persistent Position & Size** - The Full Image popup now remembers its window position and size between sessions
@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Shows Python version, execution mode (source vs compiled), and OS platform
   - Consistent About dialog style shared with HPM project
 
-## [0.2.1] - 2026-02-17
+## [0.2.1] - Tue 17 Feb 2026 09:20:00 AM CST
 
 ### Fixed
 - **Windows Console Window Flash** - Eliminated phantom console window appearing when browsing photos
@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `setDesktopFileName()` call for proper Qt/Linux icon integration
   - Desktop file now uses absolute icon path for reliable Cinnamon/LMDE support
 
-## [0.2.0]
+## [0.2.0] - Sun 15 Feb 2026 10:14:45 PM CST
 
 ### Changed
 - **Modular Architecture** - Refactored monolithic 5,237-line `tag-writer.py` into a clean package structure under `src/tag_writer/`
@@ -432,7 +432,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced form layout organization while maintaining all existing field functionality
 - Improved metadata panel layout efficiency and user experience
 
-## [0.07x] - 2025-07-11 19:16:02
+## [0.07x] - Fri 11 Jul 2025 07:16:02 PM CDT
 
 ### Enhanced
 - **View All Tags Dialog Improvements** - Enhanced user experience and keyboard accessibility
@@ -504,7 +504,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced error handling with edge case protection (zero pixel value range)
 - Maintained backward compatibility with existing image processing pipeline
 
-## [0.07u] - 2025-07-02 18:14:36
+## [0.07u] - Wed 02 Jul 2025 06:14:36 PM CDT
 
 ### Enhanced
 - **Image Information Table** - Added professionally formatted metadata table with Color Space Data and Bits Per Sample fields
@@ -538,7 +538,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added tooltip functionality to all major metadata input fields
 - Improved UI responsiveness with optimized tooltip timing
 
-## [0.07t] - 2025-06-28 15:16:16
+## [0.07t] - Sat 28 Jun 2025 03:16:16 PM CDT
 
 ### Enhanced
 - **DateModified Field Enhancement** - Improved date handling fallback system
@@ -555,7 +555,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved date field logging for better debugging
 - Updated field mappings to include ICC_Profile:ProfileDateTime
 
-## [0.07s] - 2025-06-28 12:19:27
+## [0.07s] - Sat 28 Jun 2025 12:19:27 PM CDT
 
 ### Enhanced
 - **Navigation Button Improvements** - Enhanced visibility and usability
@@ -570,7 +570,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardized navigation button appearance across application
 - Optimized button dimensions and spacing
 
-## [0.07r] - 2025-06-28 07:41:24
+## [0.07r] - Sat 28 Jun 2025 07:41:24 AM CDT
 
 ### Enhanced
 - **Status Bar Improvements** - Optimized status bar layout and information display
@@ -593,7 +593,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented keyboard shortcuts documentation fallback system
 - Improved help menu documentation access consistency
 
-## [0.07q] - 2025-06-26 20:55:49
+## [0.07q] - Thu 26 Jun 2025 08:55:49 PM CDT
 
 ### Enhanced
 - **Status Bar Improvements** - Optimized status bar layout and information display
@@ -623,7 +623,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented keyboard shortcuts documentation fallback system
 - Improved help menu documentation access consistency
 
-## [0.07p] - 2025-06-24 02:01:44
+## [0.07p] - Tue 24 Jun 2025 02:01:44 AM CDT
 
 ### Added
 - **Window Position and Size Memory** - Application now remembers window geometry between sessions
@@ -669,7 +669,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated Full Image Viewer button sizing with `setMaximumWidth()` and `setFixedSize()` constraints
 - Enhanced scroll bar CSS with hover states, arrow indicators, and theme-consistent colors
 
-## [0.07o] - 2025-06-23 00:00:00
+## [0.07o] - Mon 23 Jun 2025 12:00:00 AM CDT
 
 ### Enhanced
 - **Set Today's Date Menu Function** - Improved functionality for date management
@@ -692,7 +692,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Maintained backward compatibility with existing date formatting
 - Enhanced user feedback through status bar updates
 
-## [0.07n] - 2025-06-22/23
+## [0.07n] - Sun 22 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Additional Info Field** - New metadata field for contact information and URLs
@@ -734,7 +734,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error handling for documentation access with graceful degradation
 - Enhanced form layout with QHBoxLayout for space-efficient field pairing
 
-## [0.07m] - 2025-06-19
+## [0.07m] - Thu 19 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Glossary in Help Menu** - Added quick access to terminology reference
@@ -750,7 +750,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added License information to About dialog
   - Improved User Guide display with proper markdown rendering
 
-## [0.07l] - 2025-06-19
+## [0.07l] - Thu 19 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Keyboard Shortcuts Documentation** - Added comprehensive keyboard shortcuts reference
@@ -778,7 +778,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Consistent behavior across all text fields and dialogs
   - Enhanced user experience when editing metadata
 
-## [0.07k] - 2025-06-17
+## [0.07k] - Tue 17 Jun 2025 12:00:00 PM CDT
 
 ### Fixed
 - **Metadata Text Field Focus** - Fixed keyboard focus issues in metadata text fields
@@ -792,7 +792,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Better Text Editing Experience** - More natural keyboard navigation within text fields
 - **Improved Usability** - Text fields properly maintain input focus during editing
 
-## [0.07j] - 2025-06-17
+## [0.07j] - Tue 17 Jun 2025 12:00:00 PM CDT
 
 ### Fixed
 - **Rename File Dialog Focus** - Fixed keyboard focus issues in the Rename File dialog
@@ -806,7 +806,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved Text Editing** - Better keyboard interaction when renaming files
 - **More Intuitive Dialog Behavior** - Dialog properly captures keyboard focus
 
-## [0.07i] - 2025-06-17
+## [0.07i] - Tue 17 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Refresh Feature** - Added ability to refresh current image and metadata
@@ -822,7 +822,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Better Integration** with external editing workflows
 - **Keyboard Accessibility** through standard F5 refresh shortcut
 
-## [0.07h] - 2025-06-16
+## [0.07h] - Mon 16 Jun 2025 12:00:00 PM CDT
 
 ### Fixed
 - **Windows Console Window Flashing** - Eliminated brief console window flashes during image loading on Windows
@@ -846,7 +846,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added Windows subprocess creation flags: `CREATE_NO_WINDOW = 0x08000000` and `SW_HIDE = 0`
 - Enhanced subprocess startup configuration with `STARTF_USESHOWWINDOW` flag
 
-## [0.07g] - 2025-06-16
+## [0.07g] - Mon 16 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Recent Directories Feature** - Track and quickly access last 5 directories where files were opened
@@ -880,7 +880,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `open_directory()` and `update_recent_directories_menu()` methods
 - Modified theme defaults in Config and ThemeManager classes
 
-## [0.07f] - 2025-06-15
+## [0.07f] - Sun 15 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Arrow Key Navigation** in main window for convenient image browsing
@@ -900,7 +900,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented `QApplication.installEventFilter()` for global keyboard event handling
 - Enhanced Config class to force zoom reset during initialization
 
-## [0.07e] - 2025-06-12
+## [0.07e] - Thu 12 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Comprehensive Theme System** with 7 professional themes:
@@ -927,7 +927,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced configuration system to include theme preferences
 - Added theme application to all PyQt6 widgets
 
-## [0.07d] - 2025-06-09
+## [0.07d] - Mon 09 Jun 2025 12:00:00 PM CDT
 
 ### Added
 - **Image Navigation in Full Image Window** with keyboard shortcuts
@@ -941,7 +941,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Keyboard shortcuts** for efficient image browsing
 - **Synchronized navigation** between main window and full image viewer
 
-## [0.07c] - 2025-06-09
+## [0.07c] - Mon 09 Jun 2025 12:00:00 PM CDT
 
 ### Fixed
 - **Full Image Window improvements**:
@@ -954,7 +954,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Better scroll bar behavior** for large images
 - **Enhanced window controls** with standard minimize/maximize functionality
 
-## [0.07b] - 2025-06-09
+## [0.07b] - Mon 09 Jun 2025 12:00:00 PM CDT
 
 ### Fixed
 - **Resolution Detection** using EXIF metadata
@@ -967,7 +967,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved EXIF metadata processing**
 - **Better image format compatibility**
 
-## [0.07a] - 2025-05-31
+## [0.07a] - Sat 31 May 2025 12:00:00 PM CDT
 
 ### Changed
 - **Complete Framework Migration**: Converted from wxPython to PyQt6
@@ -982,7 +982,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved image processing** with PyQt6 image handling
 - **Enhanced cross-platform compatibility**
 
-## [0.06b] - 2025-05-30
+## [0.06b] - Fri 30 May 2025 12:00:00 PM CDT
 
 ### Fixed
 - **Caption Abstract Text Box Editor** bug fixes
@@ -990,7 +990,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better handling of large text content
   - Enhanced user input validation
 
-## [0.06a] - 2025-05-30
+## [0.06a] - Fri 30 May 2025 12:00:00 PM CDT
 
 ### Added
 - **View/List All Tags Menu Item**
@@ -1002,26 +1002,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Better metadata visibility** and inspection tools
 - **Comprehensive tag listing** functionality
 
-## [0.05d] - 2025-05-28
+## [0.05d] - Wed 28 May 2025 12:00:00 PM CDT
 
 ### Enhanced
 - **Caption Abstract Field** expanded to 1000 characters
   - Increased capacity for detailed descriptions
   - Better support for comprehensive metadata
 
-## [0.05c] - 2025-05-27
+## [0.05c] - Tue 27 May 2025 12:00:00 PM CDT
 
 ### Enhanced
 - **General improvements** and bug fixes
 - **Code optimization** and stability improvements
 
-## [0.05b] - 2025-05-27
+## [0.05b] - Tue 27 May 2025 12:00:00 PM CDT
 
 ### Enhanced
 - **Performance improvements**
 - **UI refinements**
 
-## [0.05a] - 2025-05-25
+## [0.05a] - Sun 25 May 2025 12:00:00 PM CDT
 
 ### Added
 - **Keyboard Arrow Key Navigation** through current working directory
@@ -1029,14 +1029,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Seamless browsing through image files
   - Enhanced user experience with keyboard shortcuts
 
-## [0.04d] - 2025-04-13
+## [0.04d] - Sun 13 Apr 2025 12:00:00 PM CDT
 
 ### Added
 - **Keyboard Arrow Key Scrolling** functionality
   - Initial implementation of keyboard navigation
   - Improved user interaction capabilities
 
-## [0.04c] - 2025-04-13
+## [0.04c] - Sun 13 Apr 2025 12:00:00 PM CDT
 
 ### Added
 - **Load Last Image on Startup** feature
@@ -1044,7 +1044,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved user workflow continuity
   - Persistent image selection memory
 
-## [0.04] - 2025-04-05
+## [0.04] - Sat 05 Apr 2025 12:00:00 PM CDT
 
 ### Changed
 - **Converted from tkinter to wxPython**
@@ -1052,7 +1052,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better cross-platform support
   - Enhanced user interface capabilities
 
-## [0.10] - 2025-04-02
+## [0.10] - Wed 02 Apr 2025 12:00:00 PM CDT
 
 ### Added
 - **Full Image Viewer from Thumbnail**
@@ -1063,7 +1063,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Application licensing information
   - Legal compliance and transparency
 
-## [0.09] - 2025-04-01
+## [0.09] - Tue 01 Apr 2025 12:00:00 PM CDT
 
 ### Added
 - **Export to JSON Feature**
@@ -1075,7 +1075,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved workflow efficiency
   - User convenience features
 
-## [0.08] - 2025-03-30
+## [0.08] - Sun 30 Mar 2025 12:00:00 PM CDT
 
 ### Added
 - **Command-line Argument Support**
@@ -1087,7 +1087,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clear indication of metadata save status
   - Enhanced user experience
 
-## [0.07] - 2025-03-29
+## [0.07] - Sat 29 Mar 2025 12:00:00 PM CDT
 
 ### Added
 - **Read Existing Metadata from File for Editing**
@@ -1100,7 +1100,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved metadata handling** with existing data preservation
 - **Better user workflow** for editing existing metadata
 
-## [0.02] - 2023-07-02
+## [0.02] - Sun 02 Jul 2023 12:00:00 PM CDT
 
 ### Added
 - **No-backup Option**
@@ -1108,7 +1108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Streamlined writing process
   - User control over backup behavior
 
-## [0.01] - 2023-07-01
+## [0.01] - Sat 01 Jul 2023 12:00:00 PM CDT
 
 ### Added
 - **Initial Release** of Tag Writer
