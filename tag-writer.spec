@@ -3,8 +3,31 @@
 # Tag Writer - PyInstaller spec file for Windows executable
 # Version: 0.2.2
 # Updated: 2026-03-08
+#
+# Product name and version are pulled dynamically from src/tag_writer/constants.py
+# via the shared helper at C:\Users\juren\Projects\_build_tools\version_info_helper.py
 
 import os
+import sys
+
+# --- Dynamic version info ---------------------------------------------------
+# Pull APP_NAME, APP_VERSION, APP_ORGANIZATION from constants.py
+sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
+from tag_writer.constants import APP_NAME, APP_VERSION, APP_ORGANIZATION
+
+# Use shared helper to generate the Windows version resource file
+sys.path.insert(0, r'C:\Users\juren\Projects\_build_tools')
+from version_info_helper import make_version_info
+
+version_file = make_version_info(
+    app_name=APP_NAME,
+    version_str=APP_VERSION,
+    company=APP_ORGANIZATION,
+    exe_name='tag-writer',
+    copyright_years='2024-2026',
+    output_path='_version_info.txt',
+)
+# ----------------------------------------------------------------------------
 
 a = Analysis(
     ['tag-writer.py'],
@@ -48,4 +71,5 @@ exe = EXE(
     codesign_identity=None,
     entitlements_file=None,
     icon='ICON_tw.ico',  # Use ICO file for Windows taskbar icon
+    version=version_file,  # Windows Properties/Details panel metadata
 )
