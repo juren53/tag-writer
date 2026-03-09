@@ -220,7 +220,7 @@ def main():
     app.setStyle("Fusion")
 
     # Set desktop filename for Linux icon integration
-    app.setDesktopFileName("tag-writer.desktop")
+    app.setDesktopFileName("tag-writer")
 
     # Set application to quit when last window is closed
     app.setQuitOnLastWindowClosed(True)

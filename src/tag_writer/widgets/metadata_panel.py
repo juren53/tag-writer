@@ -215,7 +215,6 @@ class MetadataPanel(QWidget):
             copyright_value = self.metadata_manager.get_field("Copyright", "")
 
         self.copyright.setText(copyright_value)
-        print(f"Setting Copyright Notice field to: {copyright_value}")
 
         for field_name, control in field_mappings.items():
             if field_name != "Copyright Notice":
