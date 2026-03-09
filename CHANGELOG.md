@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.2] - Sun 08 Mar 2026 10:00:00 AM CDT
 
 ### Added
+- **Windows EXE Properties/Details Metadata** - The compiled executable now populates the Windows Properties → Details panel
+  - `Product name`, `Product version`, `File version`, `Company`, `File description`, and `Copyright` fields are all set
+  - Values are pulled dynamically from `src/tag_writer/constants.py` (`APP_NAME`, `APP_VERSION`, `APP_ORGANIZATION`) at build time — no manual updates needed
+  - Implemented via a new shared helper `C:\Users\juren\Projects\_build_tools\version_info_helper.py`, reusable across all PyInstaller projects
+  - `tag-writer.spec` updated to import constants and generate `_version_info.txt` automatically before each build
+
 - **Full Image Window — Persistent Position & Size** - The Full Image popup now remembers its window position and size between sessions
   - Geometry saved to `~/.tag_writer_config.json` on close
   - Restored on next open; maximized state also preserved

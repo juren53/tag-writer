@@ -42,6 +42,9 @@ ENV/
 # Ignore temporary files
 temp.txt
 
+# Ignore generated PyInstaller version resource (rebuilt at each build)
+_version_info.txt
+
 # Ignore local directories not for version control
 Issues/
 dev/
