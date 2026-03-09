@@ -1,1 +1,1 @@
-python3 tag-writer.py
+python tag-writer.py
