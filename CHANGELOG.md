@@ -5,6 +5,11 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - Tue 11 Mar 2026 12:00:00 PM CDT
+
+### Fixed
+- **View All Tags — NameError crash** - `QWidget` was missing from the PyQt6 imports in `file_ops.py`, causing a `NameError` whenever the View All Tags dialog was opened (affected both source and EXE builds)
+
 ## [0.2.2] - Sun 08 Mar 2026 10:00:00 AM CDT
 
 ### Added
