@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QFileDialog, QMessageBox, QApplication, QDialog, QVBoxLayout,
     QHBoxLayout, QLabel, QPushButton, QLineEdit, QDialogButtonBox,
     QProgressDialog, QMenu, QTextEdit, QTableWidget, QTableWidgetItem,
-    QHeaderView
+    QHeaderView, QWidget
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QTextCursor, QGuiApplication
