@@ -5,6 +5,21 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - Thu 12 Mar 2026 04:44:00 PM CDT
+
+### Added
+- **Pytest Test Suite** - Comprehensive unit and regression test suite added under `tests/`
+  - 156 tests across 7 test files; runs in under 1 second with no ExifTool or Qt process required
+  - `test_constants.py` — verifies all values and formats in `constants.py`
+  - `test_config.py` — Config save/load roundtrip, recent files/dirs deduplication and cap logic
+  - `test_metadata.py` — MetadataManager field ops, `_sanitize_value`, `_process_metadata` field-priority mapping, JSON export/import roundtrip
+  - `test_file_utils.py` — `get_image_files` filtering/sorting and `backup_file` uniqueness
+  - `test_image_utils.py` — `create_thumbnail` aspect-ratio and size-cap, `adjust_zoom` dimensions
+  - `test_version_checker.py` — `compare_versions` (numeric, prerelease, v-prefix) and `_normalize_repo_url`
+  - `test_regressions.py` — named regression tests tied to past changelog fixes (path traversal, metadata sanitization, DateModified fallback chain, symlink exclusion, 16-bit TIFF normalisation)
+  - `tests/README.md` — full documentation of the test suite, coverage, dependencies, and what is intentionally excluded
+  - `pytest.ini` — test runner configuration at project root
+
 ## [0.2.3] - Tue 11 Mar 2026 12:00:00 PM CDT
 
 ### Fixed
