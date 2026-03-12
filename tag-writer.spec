@@ -1,8 +1,8 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 # Tag Writer - PyInstaller spec file for Windows executable
-# Version: 0.2.3
-# Updated: 2026-03-11
+# Version: 0.2.4
+# Updated: 2026-03-12
 #
 # Product name and version are pulled dynamically from src/tag_writer/constants.py
 # via the shared helper at C:\Users\juren\Projects\_build_tools\version_info_helper.py

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Tag Writer is a PyQt6 desktop application for viewing and editing IPTC/XMP/EXIF metadata in image files (JPG, TIFF, PNG). It uses ExifTool for metadata operations and Pillow for image handling. Current version: v0.2.1.
+Tag Writer is a PyQt6 desktop application for viewing and editing IPTC/XMP/EXIF metadata in image files (JPG, TIFF, PNG). It uses ExifTool for metadata operations and Pillow for image handling. Current version: v0.2.4.
 
 ## Development Commands
 
