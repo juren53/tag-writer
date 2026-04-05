@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #-----------------------------------------------------------
-# ############   tag-writer-wx.py  Ver 0.13 ################
+# ############   tag-writer-wx.py  Ver 0.04d ################
 # This program creates a GUI interface for entering and    
 # writing IPTC metadata tags to TIF and JPG images selected   
 # from a directory pick list using wxPython libraries.
@@ -8,6 +8,8 @@
 # when metada can not be pulled from an online database. 
 #  Created Sat 01 Jul 2023 07:37:56 AM CDT   [IPTC]
 #  Updated Sat 05 Apr 2025 11:24:00 PM CDT Converted from tkinter to wxPython
+#  Updated Sun 13 Apr 2025 10:20:00 AM CDT v 0.04c Load last image on startup
+#  Updated Sun 13 Apr 2025 12:44:00 AM CDT v 0.04d Key board arrow keys scroll through CWD
 #-----------------------------------------------------------
 
 import wx
@@ -33,8 +35,49 @@ directory_image_files = []
 current_file_index = -1
 # Config file for storing persistent data
 CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".tag_writer_config.json")
+# Global flag to suppress LibTIFF warnings
+SUPPRESS_LIBTIFF_WARNINGS = True
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Custom context manager to suppress stderr output
+class SuppressStderr:
+    """Context manager to suppress stderr output"""
+    def __init__(self):
+        self.stderr = None
+        self.devnull = None
+
+    def __enter__(self):
+        if SUPPRESS_LIBTIFF_WARNINGS:
+            self.stderr = sys.stderr
+            self.devnull = open(os.devnull, 'w')
+            sys.stderr = self.devnull
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if SUPPRESS_LIBTIFF_WARNINGS and self.stderr:
+            sys.stderr = self.stderr
+            self.devnull.close()
+
+# Global helper functions
+def is_richtiffiptc_warning(warning_text):
+    """Check if a warning message is related to RichTIFFIPTC and should be suppressed from UI"""
+    if not warning_text:
+        return False
+    
+    # List of warning patterns to suppress
+    suppress_patterns = [
+        "RichTIFFIPTC",
+        "TIFFFetchNormalTag",
+        "Incorrect value"
+    ]
+    
+    # Check if any of the patterns are in the warning
+    for pattern in suppress_patterns:
+        if pattern in warning_text:
+            return True
+    
+    return False
 
 # Global variable for the selected file
 selected_file = None
@@ -138,62 +181,112 @@ def get_directory_image_files(directory=None):
 def get_metadata(file_path):
     """Retrieve metadata from the specified file using execute_json() method."""
     with exiftool.ExifTool() as et:
-        # Use execute_json to get metadata in JSON format with group names
+        # Use execute_json to get metadata in JSON format with a simpler approach
+        # that works better with TIFF files
         try:
-            metadata_json = et.execute_json("-j", "-G1", "-a", "-u", file_path)
+            # Check if the file is a TIFF file
+            file_ext = os.path.splitext(file_path)[1].lower()
+            if file_ext in ['.tif', '.tiff']:
+                # Add -m flag for TIFF files to ignore minor errors like RichTIFFIPTC issues
+                # Also add -ignoreMinorErrors flag for TIFF files to further suppress warnings
+                logging.debug(f"Processing TIFF file with -m flag: {file_path}")
+                metadata_json = et.execute_json("-j", "-m", "-ignoreMinorErrors", file_path)
+            else:
+                metadata_json = et.execute_json("-j", file_path)
             
             # metadata_json returns a list of dictionaries, with one dict per file
             # Since we're only processing one file, we take the first element
             if metadata_json and len(metadata_json) > 0:
                 raw_metadata = metadata_json[0]
-                
-                # Process metadata to handle field name variations
-                metadata = {}
-                
-                # Define mappings for IPTC field names to possible ExifTool field names
-                field_mappings = {
-                    'Headline': ['IPTC:Headline', 'XMP-photoshop:Headline', 'XMP:Headline', 'XMP:Title'],
-                    'Caption-Abstract': ['IPTC:Caption-Abstract', 'XMP:Description', 'EXIF:ImageDescription'],
-                    'Credit': ['IPTC:Credit', 'XMP:Credit', 'XMP-photoshop:Credit'],
-                    'Object Name': ['IPTC:ObjectName', 'IPTC:Object Name', 'XMP:Title'],
-                    'Writer-Editor': ['IPTC:Writer-Editor', 'XMP:CaptionWriter', 'XMP-photoshop:CaptionWriter'],
-                    'By-line': ['IPTC:By-line', 'XMP:Creator', 'EXIF:Artist'],
-                    'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
-                    'Date Created': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
-                    'Copyright Notice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright']
-                }
-                
-                # Log raw metadata field names for debugging
-                logging.debug(f"Raw metadata fields: {list(raw_metadata.keys())}")
-                
-                # Map the fields
-                for field, possible_names in field_mappings.items():
-                    for name in possible_names:
-                        if name in raw_metadata:
-                            metadata[field] = raw_metadata[name]
-                            logging.debug(f"Found '{field}' in '{name}': {raw_metadata[name]}")
-                            break
-                
-                # Add debugging log for metadata fields found
-                logging.debug(f"Standardized metadata fields found: {list(metadata.keys())}")
-                logging.debug(f"Metadata values: {metadata}")
-                
-                # For backward compatibility, add raw metadata fields as well
-                # to allow access to any fields not in our mapping
-                metadata.update(raw_metadata)
-                
-                return metadata
+                return process_metadata(raw_metadata)
             else:
                 logging.warning("No metadata found or empty metadata returned")
                 return {}
         except Exception as e:
-            logging.error(f"Error executing exiftool: {str(e)}")
+            # Enhanced error handling to provide more information for troubleshooting
+            file_ext = os.path.splitext(file_path)[1].lower()
+            if file_ext in ['.tif', '.tiff']:
+                logging.error(f"Error processing TIFF file with exiftool: {str(e)}")
+                # Log additional details that might help diagnose the issue
+                logging.debug(f"TIFF file path: {file_path}")
+                logging.debug(f"File exists: {os.path.exists(file_path)}")
+                logging.debug(f"File size: {os.path.getsize(file_path) if os.path.exists(file_path) else 'N/A'}")
+                
+                # Try again with additional options if first attempt failed
+                try:
+                    logging.warning(f"Retrying TIFF file with additional options: {file_path}")
+                    # Try with both -m and -fast flags as a last resort
+                    metadata_json = et.execute_json("-j", "-m", "-fast", file_path)
+                    if metadata_json and len(metadata_json) > 0:
+                        logging.info(f"Successfully retrieved metadata on second attempt for: {file_path}")
+                        return process_metadata(metadata_json[0])
+                except Exception as retry_error:
+                    logging.error(f"Second attempt failed for TIFF file: {str(retry_error)}")
+            else:
+                logging.error(f"Error executing exiftool: {str(e)}")
             return {}
+
+# Helper function to process metadata after extraction
+def process_metadata(raw_metadata):
+    """Process raw metadata to standardize field names."""
+    metadata = {}
+    
+    # Filter out RichTIFFIPTC warnings if present
+    if 'ExifTool:Warning' in raw_metadata:
+        warning = raw_metadata['ExifTool:Warning']
+        # Check if it's a list or a single string
+        if isinstance(warning, list):
+            # Filter out RichTIFFIPTC and related warnings from the list
+            filtered_warnings = [w for w in warning if not is_richtiffiptc_warning(w)]
+            if filtered_warnings:
+                raw_metadata['ExifTool:Warning'] = filtered_warnings
+            else:
+                # If all warnings were suppressed, remove the warning entirely
+                del raw_metadata['ExifTool:Warning']
+        elif isinstance(warning, str) and is_richtiffiptc_warning(warning):
+            # If the only warning is about RichTIFFIPTC or related issues, remove it
+            del raw_metadata['ExifTool:Warning']
+    
+    # Define mappings for IPTC field names to possible ExifTool field names
+    field_mappings = {
+        'Headline': ['IPTC:Headline', 'XMP-photoshop:Headline', 'XMP:Headline', 'XMP:Title'],
+        'Caption-Abstract': ['IPTC:Caption-Abstract', 'XMP:Description', 'EXIF:ImageDescription'],
+        'Credit': ['IPTC:Credit', 'XMP:Credit', 'XMP-photoshop:Credit'],
+        'Object Name': ['IPTC:ObjectName', 'IPTC:Object Name', 'XMP:Title'],
+        'Writer-Editor': ['IPTC:Writer-Editor', 'XMP:CaptionWriter', 'XMP-photoshop:CaptionWriter'],
+        'By-line': ['IPTC:By-line', 'XMP:Creator', 'EXIF:Artist'],
+        'Source': ['IPTC:Source', 'XMP:Source', 'XMP-photoshop:Source'],
+        'Date Created': ['IPTC:DateCreated', 'XMP:DateCreated', 'XMP-photoshop:DateCreated'],
+        'Copyright Notice': ['IPTC:CopyrightNotice', 'XMP:Rights', 'EXIF:Copyright']
+    }
+    
+    # Log raw metadata field names for debugging
+    logging.debug(f"Raw metadata fields: {list(raw_metadata.keys())}")
+    
+    # Map the fields
+    for field, possible_names in field_mappings.items():
+        for name in possible_names:
+            if name in raw_metadata:
+                metadata[field] = raw_metadata[name]
+                logging.debug(f"Found '{field}' in '{name}': {raw_metadata[name]}")
+                break
+    
+    # Add debugging log for metadata fields found
+    logging.debug(f"Standardized metadata fields found: {list(metadata.keys())}")
+    logging.debug(f"Metadata values: {metadata}")
+    
+    # For backward compatibility, add raw metadata fields as well
+    # to allow access to any fields not in our mapping
+    metadata.update(raw_metadata)
+    
+    return metadata
 
 class TagWriterApp(wx.App):
     """Main application class for Tag Writer"""
     def OnInit(self):
         """Initialize the application"""
+        # Load preferences if needed
+        # self.load_preferences()  # Uncomment if you implement this method
         self.frame = TagWriterFrame(None, title="Metadata Tag Writer")
         self.frame.Show()
         self.SetTopWindow(self.frame)
@@ -203,7 +296,7 @@ class TagWriterApp(wx.App):
         
         # Handle version flag
         if args.version:
-            version_text = "tag-writer-wx.py  version .13  (2025-04-05)"
+            version_text = "tag-writer-wx.py  version .04c  (2025-04-13)"
             # Add PIL status to version output
             if not PIL_AVAILABLE:
                 version_text += " [PIL/Pillow not available]"
@@ -214,29 +307,62 @@ class TagWriterApp(wx.App):
             wx.GetApp().ExitMainLoop()
             return False  # Exit the application
         
-        # Handle file path argument
+        # Handle file path argument (command line takes precedence)
         if args.file_path:
             self.frame.select_file(args.file_path)
+        # Otherwise, load the most recent file if available
+        elif recent_files and len(recent_files) > 0:
+            most_recent_file = recent_files[0]
+            if os.path.exists(most_recent_file):
+                logging.info(f"Loading most recent file: {most_recent_file}")
+                self.frame.select_file(most_recent_file)
+            else:
+                logging.warning(f"Most recent file no longer exists: {most_recent_file}")
         
         return True
 
+# Save application preferences to config
+def save_preferences():
+    """Save application preferences to config file"""
+    global SUPPRESS_LIBTIFF_WARNINGS
+    try:
+        if os.path.exists(CONFIG_FILE):
+            with open(CONFIG_FILE, 'r') as f:
+                config_data = json.load(f)
+        else:
+            config_data = {}
+            
+        # Add preferences to config data
+        if 'preferences' not in config_data:
+            config_data['preferences'] = {}
+            
+        config_data['preferences']['suppress_libtiff_warnings'] = SUPPRESS_LIBTIFF_WARNINGS
+        
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump(config_data, f)
+        logging.debug(f"Preferences saved to {CONFIG_FILE}")
+    except Exception as e:
+        logging.error(f"Error saving preferences: {str(e)}")
+        return False
+    return True
+
 class TagWriterFrame(wx.Frame):
-    """Main frame for the Tag Writer application"""
+    """Main application frame."""
     def __init__(self, parent, title):
-        """Initialize the main frame"""
-        # Create the main frame
         wx.Frame.__init__(self, parent, title=title, size=(1000, 600))
         
         # Set up class variables
         self.selected_file = None
+        self.selected_file = None
         self.filename_label = None
         self.status_label = None
-        self.nav_prev_button = None
         self.nav_next_button = None
         self.thumbnail_image = None
         self.thumbnail_panel = None
         self.zoom_info_label = None
         self.recent_files_menu = None
+        self.metadata = {}
+        self.preview_dialog = None
         
         # Entry fields
         self.entry_headline = None
@@ -264,6 +390,10 @@ class TagWriterFrame(wx.Frame):
         
         # Set up events
         self.Bind(wx.EVT_CLOSE, self.on_close)
+        
+        # Set focus to the panel to enable keyboard navigation
+        # Use CallAfter to ensure focus is set after all initialization is complete
+        wx.CallAfter(self.panel.SetFocusIgnoringChildren)
     
     def setup_icons(self):
         """Set up application icons"""
@@ -290,9 +420,36 @@ class TagWriterFrame(wx.Frame):
         # Create the status bar
         self.create_status_bar()
         
+        
         # Create the main layout
         self.create_layout()
+        
+        # Bind key events to all input controls for better keyboard navigation
+        self.entry_headline.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.text_caption_abstract.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_credit.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_object_name.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_writer_editor.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_by_line.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_date.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        self.entry_copyright_notice.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        
+        # Set focus handling for keyboard navigation
+        self.panel.SetFocus()
+        self.panel.Bind(wx.EVT_SET_FOCUS, self.on_panel_focus)
+        self.Bind(wx.EVT_ACTIVATE, self.on_window_activate)
     
+    def on_panel_focus(self, event):
+        """Handle panel focus events"""
+        event.Skip()  # Allow focus to propagate
+
+    def on_window_activate(self, event):
+        """Handle window activation"""
+        if event.GetActive():
+            # When window becomes active, set focus to panel for keyboard navigation
+            wx.CallAfter(self.panel.SetFocus)
+        event.Skip()
+        
     def create_menu_bar(self):
         """Create the application menu bar"""
         # Create menubar
@@ -339,10 +496,11 @@ class TagWriterFrame(wx.Frame):
     
     def create_status_bar(self):
         """Create the status bar"""
-        self.statusbar = self.CreateStatusBar(2)
-        self.statusbar.SetStatusWidths([-1, 200])
+        self.statusbar = self.CreateStatusBar(3)
+        self.statusbar.SetStatusWidths([200, -1, 200])
         self.SetStatusText("Ready", 0)
-        self.SetStatusText("Ver 0.13 (2025-04-05)", 1)
+        self.SetStatusText("", 1)  # Middle section for file path
+        self.SetStatusText("Ver 0.04d (2025-04-13)", 2)
     
     def create_layout(self):
         """Create the main application layout"""
@@ -375,9 +533,16 @@ class TagWriterFrame(wx.Frame):
         top_sizer.Add(self.btn_write, 0, wx.ALL, 5)
         
         # Filename display
-        self.filename_label = wx.StaticText(top_panel, label="No file selected")
+        filename_panel = wx.Panel(top_panel)
+        filename_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        
+        # Main filename label (bold)
+        self.filename_label = wx.StaticText(filename_panel, label="No file selected")
         self.filename_label.SetFont(wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD))
-        top_sizer.Add(self.filename_label, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        filename_sizer.Add(self.filename_label, 1, wx.ALIGN_CENTER_VERTICAL)
+        
+        filename_panel.SetSizer(filename_sizer)
+        top_sizer.Add(filename_panel, 1, wx.ALL | wx.EXPAND, 10)
         
         top_panel.SetSizer(top_sizer)
         main_sizer.Add(top_panel, 0, wx.EXPAND | wx.ALL, 5)
@@ -433,7 +598,7 @@ class TagWriterFrame(wx.Frame):
         
         # Object Name
         row += 1
-        fields_sizer.Add(wx.StaticText(metadata_panel, label="Unique ID [Object Name]:"), 
+        fields_sizer.Add(wx.StaticText(metadata_panel, label="Object Name:"), 
                          pos=(row, 0), flag=wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL)
         self.entry_object_name = wx.TextCtrl(metadata_panel, size=(400, -1))
         fields_sizer.Add(self.entry_object_name, pos=(row, 1), flag=wx.EXPAND)
@@ -526,16 +691,54 @@ class TagWriterFrame(wx.Frame):
     
     def setup_accelerators(self):
         """Set up keyboard shortcuts"""
-        # Create an accelerator table
-        accel_tbl = wx.AcceleratorTable([
-            (wx.ACCEL_CTRL, ord('Q'), wx.ID_EXIT),  # Ctrl+Q to quit
-            (wx.ACCEL_ALT, ord('R'), wx.ID_ANY)  # Alt+R for recent files
-        ])
+        # Update display to show warnings if present (but don't block operation)
+        if 'ExifTool:Warning' in self.metadata:
+            warning = self.metadata['ExifTool:Warning']
+            # Handle different warning formats
+            if isinstance(warning, str):
+                # Check if this is a warning we should suppress
+                if is_richtiffiptc_warning(warning):
+                    # Just log it but don't show popup
+                    logging.info(f"Suppressed warning: {warning}")
+                else:
+                    # Show other warnings
+                    logging.warning(f"ExifTool Warning: {warning}")
+                    wx.MessageBox(warning, "ExifTool Warning", wx.OK | wx.ICON_WARNING)
+            elif isinstance(warning, list):
+                # Filter warnings to show (exclude suppressed warning types)
+                warnings_to_show = [w for w in warning if not is_richtiffiptc_warning(w)]
+                
+                # Log the suppressed warnings
+                suppressed_warnings = [w for w in warning if is_richtiffiptc_warning(w)]
+                if suppressed_warnings:
+                    logging.info(f"Suppressed warnings: {suppressed_warnings}")
+                
+                # Show only non-suppressed warnings
+                if warnings_to_show:
+                    combined_warning = "\n".join(warnings_to_show)
+                    logging.warning(f"ExifTool Warning: {combined_warning}")
+                    wx.MessageBox(combined_warning, "ExifTool Warning", wx.OK | wx.ICON_WARNING)
+        
+        # Create an accelerator table for keyboard shortcuts
+        accel_entries = [
+            # File menu
+            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('O'), wx.ID_OPEN),  # Ctrl+O for Open
+            # Edit menu
+            wx.AcceleratorEntry(wx.ACCEL_CTRL, ord('L'), wx.ID_CLEAR),  # Ctrl+L for Clear fields
+            # We don't add LEFT/RIGHT here because accelerator tables don't work well with them
+        ]
+        
+        accel_tbl = wx.AcceleratorTable(accel_entries)
         self.SetAcceleratorTable(accel_tbl)
         
         # Bind key events for navigation (left/right arrows)
         self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
-    
+        
+        # Also bind to the panel to ensure it catches key events when focused
+        self.panel.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
+        
+        # Ensure the panel can receive keyboard focus
+        self.panel.SetFocusIgnoringChildren()
     def build_recent_files_menu(self):
         """Build the recent files menu"""
         global recent_files
@@ -602,12 +805,28 @@ class TagWriterFrame(wx.Frame):
                 selected_file = file_path
                 self.selected_file = file_path
                 
-                # Update the filename label
-                self.filename_label.SetLabel(f"File: {os.path.basename(selected_file)}")
-                
+                # Update the filename label and path in status bar
+                basename = os.path.basename(selected_file)
+                self.filename_label.SetLabel(f"File: {basename}")
+                self.SetStatusText(selected_file, 1)  # Show path in middle status section
                 # Read metadata and update UI
                 self.read_metadata()
                 self.update_thumbnail()
+                
+                # Update preview dialog if it's open
+                if self.preview_dialog and self.preview_dialog.IsShown():
+                    # Create a copy of the original image to prevent any references being lost
+                    if original_image and original_image.IsOk():
+                        new_image = original_image.Copy()
+                    else:
+                        new_image = None
+                        
+                    self.preview_dialog.image_path = file_path
+                    self.preview_dialog.original_image = new_image
+                    # Force title update and image refresh
+                    self.preview_dialog.SetTitle(f"Full Image: {os.path.basename(file_path)}")
+                    wx.CallAfter(self.preview_dialog.update_image)  # Use CallAfter to ensure UI updates properly
+                
                 update_recent_files(file_path)
                 self.build_recent_files_menu()
                 
@@ -642,11 +861,14 @@ class TagWriterFrame(wx.Frame):
                 self.SetStatusText("Reading metadata...", 0)
                 
                 # Get metadata using exiftool
+                # Get metadata using exiftool
                 metadata = get_metadata(selected_file)
+                
+                # Store metadata for other methods to access
+                self.metadata = metadata
                 
                 # Populate entry fields with metadata values
                 if metadata:
-                    # Try to get metadata values, using empty string as fallback
                     fields_found = 0
                     
                     # Headline
@@ -701,6 +923,10 @@ class TagWriterFrame(wx.Frame):
                     # Clear fields if no metadata
                     self.clear_fields()
                     self.SetStatusText(f"No metadata found in {os.path.basename(selected_file)}", 0)
+                
+                # Make sure path is still displayed (status text might have been updated)
+                if selected_file:
+                    self.SetStatusText(selected_file, 1)
             
             except Exception as e:
                 logging.error(f"Error reading metadata: {str(e)}")
@@ -727,8 +953,36 @@ class TagWriterFrame(wx.Frame):
         
         if selected_file and os.path.isfile(selected_file):
             try:
-                # Load the image using wx.Image
-                img = wx.Image(selected_file, wx.BITMAP_TYPE_ANY)
+                file_ext = os.path.splitext(selected_file)[1].lower()
+                is_tiff = file_ext in ['.tif', '.tiff']
+                
+                # For TIFF files, try to use PIL if available to avoid LibTIFF warnings
+                if is_tiff and PIL_AVAILABLE:
+                    try:
+                        # Use PIL to load and convert the image
+                        logging.debug("Loading TIFF image using PIL to avoid LibTIFF warnings")
+                        pil_img = Image.open(selected_file)
+                        
+                        # Convert to a format wxPython can handle without warnings
+                        with io.BytesIO() as temp_buffer:
+                            pil_img.save(temp_buffer, format="PNG")
+                            temp_buffer.seek(0)
+                            
+                            # Load the PNG data
+                            img = wx.Image(temp_buffer, wx.BITMAP_TYPE_PNG)
+                    except Exception as pil_error:
+                        logging.warning(f"Failed to load image with PIL, falling back to wx.Image: {str(pil_error)}")
+                        # Fall back to regular loading but suppress warnings
+                        with SuppressStderr():
+                            img = wx.Image(selected_file, wx.BITMAP_TYPE_ANY)
+                else:
+                    # For non-TIFF files or if PIL isn't available, use standard loading
+                    # but suppress stderr for TIFF files to prevent warning popups
+                    if is_tiff:
+                        with SuppressStderr():
+                            img = wx.Image(selected_file, wx.BITMAP_TYPE_ANY)
+                    else:
+                        img = wx.Image(selected_file, wx.BITMAP_TYPE_ANY)
                 
                 if img.IsOk():
                     # Save original image for potential future use
@@ -800,6 +1054,10 @@ class TagWriterFrame(wx.Frame):
             total_files = len(directory_image_files)
             if total_files > 1:
                 self.SetStatusText(f"Image {current_file_index + 1} of {total_files}", 0)
+                
+                # Make sure path is still displayed
+                if selected_file:
+                    self.SetStatusText(selected_file, 1)
         else:
             # Disable both buttons if no valid index
             self.nav_prev_button.Disable()
@@ -812,10 +1070,22 @@ class TagWriterFrame(wx.Frame):
         # Calculate new index
         new_index = current_file_index + direction
         
-        # Validate index
+        # Check if the new index is valid
         if 0 <= new_index < len(directory_image_files):
-            # Select the file at the new index
-            self.select_file(directory_image_files[new_index])
+            next_file = directory_image_files[new_index]
+            if os.path.exists(next_file):
+                # Select the next file
+                self.select_file(next_file)
+                
+                # Update status bar with navigation info
+                total_files = len(directory_image_files)
+                self.SetStatusText(f"Image {new_index + 1} of {total_files}", 0)
+        else:
+            # We've reached the end of the list
+            if new_index < 0:
+                self.SetStatusText("Already at first image", 0)
+            else:
+                self.SetStatusText("Already at last image", 0)
     
     def on_key_down(self, event):
         """Handle keyboard navigation"""
@@ -825,12 +1095,14 @@ class TagWriterFrame(wx.Frame):
         if key_code == wx.WXK_LEFT:
             if self.nav_prev_button.IsEnabled():
                 self.navigate_to_file(-1)
+                return  # Don't skip event after handling it
         elif key_code == wx.WXK_RIGHT:
             if self.nav_next_button.IsEnabled():
                 self.navigate_to_file(1)
-        else:
-            event.Skip()  # Process other keys normally
-    
+                return  # Don't skip event after handling it
+        
+        # Pass event up the chain for other keys
+        event.Skip()
     def clear_fields(self):
         """Clear all entry fields"""
         self.entry_headline.Clear()
@@ -844,10 +1116,15 @@ class TagWriterFrame(wx.Frame):
         self.entry_copyright_notice.Clear()
         
         # Update character count
+        # Update character count
         self.update_char_count(None)
     
+    def on_clear_fields(self, event):
+        """Clear all input fields when requested via menu item"""
+        self.clear_fields()
+        self.SetStatusText("All fields have been cleared", 0)
+    
     def on_open(self, event=None):
-        """Open a file dialog to select an image file"""
         # Create file dialog
         wildcard = "Image files (*.jpg;*.jpeg;*.tif;*.tiff;*.png;*.gif;*.bmp)|*.jpg;*.jpeg;*.tif;*.tiff;*.png;*.gif;*.bmp|All files (*.*)|*.*"
         dlg = wx.FileDialog(
@@ -937,18 +1214,8 @@ class TagWriterFrame(wx.Frame):
             wx.MessageBox(f"Error writing metadata: {str(e)}",
                          "Write Error", wx.OK | wx.ICON_ERROR)
     
-    def on_clear_fields(self, event):
-        """Clear all entry fields"""
-        dlg = wx.MessageDialog(self, 
-                              "Clear all metadata fields?",
-                              "Confirm Clear", wx.YES_NO | wx.ICON_QUESTION)
-        
-        if dlg.ShowModal() == wx.ID_YES:
-            self.clear_fields()
-            self.SetStatusText("All fields cleared", 0)
-        
-        dlg.Destroy()
-    
+    # This is a duplicate method - removing it to avoid confusion
+    # The correct implementation is at line ~1206
     def on_export_data(self, event):
         """Export metadata to JSON file"""
         global selected_file
@@ -1016,10 +1283,22 @@ class TagWriterFrame(wx.Frame):
         
         if selected_file and os.path.isfile(selected_file) and original_image:
             try:
-                # Create and show the full image dialog
-                dialog = FullImageDialog(self, selected_file, original_image)
-                dialog.ShowModal()
-                dialog.Destroy()
+                # Check if we already have a preview dialog open
+                if self.preview_dialog is not None and self.preview_dialog:
+                    # If it exists but is hidden, show it
+                    if not self.preview_dialog.IsShown():
+                        self.preview_dialog.Show()
+                    # Bring it to the foreground
+                    self.preview_dialog.Raise()
+                    # Update the image if it changed
+                    if self.preview_dialog.image_path != selected_file:
+                        self.preview_dialog.image_path = selected_file
+                        self.preview_dialog.original_image = original_image
+                        self.preview_dialog.update_image()
+                else:
+                    # Create a new dialog and show it non-modally
+                    self.preview_dialog = FullImageDialog(self, selected_file, original_image)
+                    self.preview_dialog.Show()
             except Exception as e:
                 logging.error(f"Error displaying full image: {str(e)}")
                 wx.MessageBox(f"Error displaying full image: {str(e)}",
@@ -1028,12 +1307,12 @@ class TagWriterFrame(wx.Frame):
     def on_about(self, event):
         """Display about dialog"""
         info = wx.adv.AboutDialogInfo()
-        info.SetName("Metadata Tag Writer")
-        info.SetVersion("0.13")
+        info.SetName("Metadata Tag Writer WX")
+        info.SetVersion("0.04d")
         info.SetDescription("A tool for editing IPTC metadata in image files")
         info.SetCopyright("(C) 2023-2025")
-        info.SetWebSite("https://github.com/user/tag-writer")
-        info.AddDeveloper("Developer Name")
+        info.SetWebSite("https://github.com/juren53/tag-writer")
+        info.AddDeveloper("Jim U'Ren")
         
         wx.adv.AboutBox(info)
     
@@ -1080,7 +1359,9 @@ SOFTWARE.
     
     def on_usage_guide(self, event):
         """Open usage guide in web browser"""
-        guide_url = "https://github.com/user/tag-writer/wiki/Usage-Guide"
+        guide_url = "https://github.com/juren53/tag-writer/blob/main/Docs/tag-writer-help.md"
+
+        # https://github.com/juren53/tag-writer/blob/main/Docs/tag-writer-help.md
         
         try:
             webbrowser.open(guide_url)
@@ -1089,24 +1370,28 @@ SOFTWARE.
             logging.error(f"Error opening usage guide: {str(e)}")
             wx.MessageBox(f"Error opening usage guide: {str(e)}",
                          "Browser Error", wx.OK | wx.ICON_ERROR)
-    
     def on_close(self, event):
         """Handle window close event"""
         # Save recent files to config
         save_recent_files()
         
+        # Clean up preview dialog if it exists
+        if self.preview_dialog is not None:
+            self.preview_dialog.Destroy()
+            self.preview_dialog = None
+        
+        # Continue with close
         # Continue with close
         self.Destroy()
     
     def on_exit(self, event):
         """Exit the application"""
         self.Close()
-
 class FullImageDialog(wx.Dialog):
     """Dialog for displaying full-sized images with zoom functionality"""
     def __init__(self, parent, image_path, original_image):
         """Initialize the dialog"""
-        wx.Dialog.__init__(self, parent, title=f"Full Image: {os.path.basename(image_path)}", 
+        wx.Dialog.__init__(self, parent, title="", 
                           size=(800, 600), style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         
         self.image_path = image_path
@@ -1122,7 +1407,8 @@ class FullImageDialog(wx.Dialog):
         # Bind events
         self.Bind(wx.EVT_SIZE, self.on_resize)
         
-        # Initial display
+        # Update title and initial display
+        self.update_title()
         self.update_image()
     
     def create_ui(self):
@@ -1147,6 +1433,13 @@ class FullImageDialog(wx.Dialog):
         scroll_sizer = wx.BoxSizer(wx.VERTICAL)
         scroll_sizer.Add(self.image_panel, 1, wx.EXPAND)
         self.scroll_panel.SetSizer(scroll_sizer)
+        
+        # Add checkbox to control LibTIFF warnings (only if using TIFF files)
+        global SUPPRESS_LIBTIFF_WARNINGS
+        self.warnings_checkbox = wx.CheckBox(self, label="Suppress LibTIFF warnings")
+        self.warnings_checkbox.SetValue(SUPPRESS_LIBTIFF_WARNINGS)
+        self.warnings_checkbox.Bind(wx.EVT_CHECKBOX, self.on_toggle_warnings)
+        main_sizer.Add(self.warnings_checkbox, 0, wx.ALL, 5)
         
         # Add scroll panel to main sizer
         main_sizer.Add(self.scroll_panel, 1, wx.EXPAND | wx.ALL, 5)
@@ -1183,7 +1476,7 @@ class FullImageDialog(wx.Dialog):
         
         # Close button
         close_btn = wx.Button(controls_panel, wx.ID_CLOSE, "Close")
-        close_btn.Bind(wx.EVT_BUTTON, lambda evt: self.EndModal(wx.ID_CLOSE))
+        close_btn.Bind(wx.EVT_BUTTON, lambda evt: self.Hide())
         controls_sizer.Add(close_btn, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
         
         controls_panel.SetSizer(controls_sizer)
@@ -1195,8 +1488,24 @@ class FullImageDialog(wx.Dialog):
         # Bind mouse wheel for zooming
         self.scroll_panel.Bind(wx.EVT_MOUSEWHEEL, self.on_mouse_wheel)
     
+    def on_toggle_warnings(self, event):
+        """Toggle LibTIFF warning suppression"""
+        global SUPPRESS_LIBTIFF_WARNINGS
+        SUPPRESS_LIBTIFF_WARNINGS = self.warnings_checkbox.GetValue()
+        logging.debug(f"LibTIFF warning suppression set to: {SUPPRESS_LIBTIFF_WARNINGS}")
+    
+    def update_title(self):
+        """Update the dialog title with the current image filename"""
+        if self.image_path:
+            new_title = f"Full Image: {os.path.basename(self.image_path)}"
+            if self.GetTitle() != new_title:
+                self.SetTitle(new_title)
+    
     def update_image(self):
         """Update the displayed image with current zoom level"""
+        # Update title first
+        self.update_title()
+        
         if self.original_image and self.original_image.IsOk():
             # Get original dimensions
             orig_width = self.original_image.GetWidth()
