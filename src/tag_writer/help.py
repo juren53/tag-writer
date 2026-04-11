@@ -223,6 +223,16 @@ class HelpMixin:
                 logger.error(f"Error opening keyboard shortcuts URL: {e}")
                 QMessageBox.warning(self, "Error", f"Error opening keyboard shortcuts: {str(e)}\n\nURL: {url}")
 
+    def on_issue_log(self):
+        """Open the Tag Writer issue log on GitHub."""
+        import webbrowser
+        url = "https://github.com/juren53/tag-writer/issues"
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            logger.error(f"Error opening issue log URL: {e}")
+            QMessageBox.warning(self, "Error", f"Could not open Issue Log: {str(e)}\n\nURL: {url}")
+
     def on_changelog(self):
         """Open changelog from local file or GitHub URL if not found locally."""
         project_root = _get_project_root()

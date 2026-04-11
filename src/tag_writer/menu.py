@@ -149,6 +149,10 @@ class MenuMixin:
         changelog_action.triggered.connect(self.on_changelog)
         help_menu.addAction(changelog_action)
 
+        issue_log_action = QAction("&Issue Log", self)
+        issue_log_action.triggered.connect(self.on_issue_log)
+        help_menu.addAction(issue_log_action)
+
         help_menu.addSeparator()
 
         check_updates_action = QAction("Check for &Updates", self)
