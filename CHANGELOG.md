@@ -5,6 +5,11 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4a] - Sat 11 Apr 2026 10:50:00 AM CDT
+
+### Fixed
+- **Resolution display — group-prefixed tag keys** - Resolution field in the image info panel showed `--` for images where resolution metadata exists in multiple groups (e.g., EXIF + XMP + Photoshop). When ExifTool returns the same tag from multiple groups it uses group-prefixed key names (`EXIF:XResolution`, `XMP:XResolution`, etc.) instead of the bare tag name. The lookup now searches for any matching key regardless of group prefix. Also corrected the centimeter unit detection for cases where `ResolutionUnit` is returned as the numeric value `3` rather than the string `"cm"`.
+
 ## [0.2.4] - Thu 12 Mar 2026 04:44:00 PM CDT
 
 ### Added

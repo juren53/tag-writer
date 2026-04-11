@@ -37,18 +37,27 @@ class ImageViewer(QWidget):
             try:
                 pet = get_persistent_exiftool()
                 metadata_list = pet.execute_json(
-                    "-XResolution", "-YResolution", "-ResolutionUnit", image_path
+                    "-j", "-XResolution", "-YResolution", "-ResolutionUnit", image_path
                 )
                 if metadata_list and isinstance(metadata_list, list) and len(metadata_list) > 0:
                     metadata = metadata_list[0]
 
-                    x_res = metadata.get('XResolution')
-                    y_res = metadata.get('YResolution')
-                    res_unit = metadata.get('ResolutionUnit', '').lower()
+                    def _get_tag(d, name):
+                        """Return value for a tag by bare name or any group-prefixed variant."""
+                        if name in d:
+                            return d[name]
+                        for k, v in d.items():
+                            if k == name or k.endswith(':' + name):
+                                return v
+                        return None
+
+                    x_res = _get_tag(metadata, 'XResolution')
+                    y_res = _get_tag(metadata, 'YResolution')
+                    res_unit = str(_get_tag(metadata, 'ResolutionUnit') or '').lower()
 
                     if x_res and y_res:
                         unit_suffix = "DPI"
-                        if 'cm' in res_unit or 'centimeter' in res_unit:
+                        if 'cm' in res_unit or 'centimeter' in res_unit or res_unit == '3':
                             unit_suffix = "DPC"
 
                         try:
