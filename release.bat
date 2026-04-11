@@ -44,6 +44,12 @@ REM --- Step 4: Build the executable ---
 echo [4/7] Building executable with PyInstaller...
 if exist build rmdir /s /q build
 if exist dist\tag-writer.exe del /f dist\tag-writer.exe
+echo       Generating version_info.txt...
+python generate_version_info.py
+if errorlevel 1 (
+    echo ERROR: Failed to generate version_info.txt.
+    exit /b 1
+)
 pyinstaller --clean tag-writer.spec
 if not exist dist\tag-writer.exe (
     echo ERROR: Build failed! dist\tag-writer.exe not found.
