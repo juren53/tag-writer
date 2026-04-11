@@ -25,12 +25,20 @@ version_str = _get("APP_VERSION")
 app_name    = _get("APP_NAME")
 company     = _get("APP_ORGANIZATION")
 
-# Parse version into 4-tuple, stripping any trailing alpha suffix (e.g. "0.2.4a" -> (0,2,4,0))
+# Parse version into 4-tuple, encoding any trailing alpha suffix as the 4th component.
+# e.g. "0.2.4a" -> (0,2,4,1), "0.2.4b" -> (0,2,4,2), "0.2.4" -> (0,2,4,0)
+# This ensures Windows Details shows a distinct value (e.g. 0.2.4.1) for patch releases.
+suffix_match = re.search(r'([a-z]+)$', version_str, re.IGNORECASE)
+suffix_val = 0
+if suffix_match:
+    suffix_val = sum((ord(c) - ord('a') + 1) for c in suffix_match.group(1).lower())
+
 numeric = re.sub(r'[^\d.]', '', version_str)
 parts = [int(x) for x in numeric.split(".") if x]
-while len(parts) < 4:
+while len(parts) < 3:
     parts.append(0)
-v = tuple(parts[:4])
+parts = parts[:3] + [suffix_val]
+v = tuple(parts)
 
 copyright_str = f"Copyright (c) 2024-2026 {company}"
 
