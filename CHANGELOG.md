@@ -5,6 +5,13 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - Sat 11 Apr 2026 07:05:00 PM CDT
+
+### Added
+- **Issue Log in Help menu** - New "Issue Log" item added to the Help menu immediately below "Changelog". Opens the Tag Writer GitHub issue tracker (https://github.com/juren53/tag-writer/issues) in the default browser.
+- **HPM-style EXE build process** - Replaced inline spec-based version generation with a standalone `generate_version_info.py` script and `build_exe.ps1` PowerShell build script, matching the pattern used in HPM. The spec now references `version_info.txt` as a static file generated before each build.
+- **4-part numeric versioning** - Adopted all-numeric 4-part version scheme (`0.X.Y.Z`) for EXE Properties/Details compatibility. Windows Details strips non-numeric characters from version strings; patch releases now use the 4th component (e.g. `0.2.5.1`) instead of alpha suffixes (e.g. `0.2.5a`).
+
 ## [0.2.4.1] - Sat 11 Apr 2026 10:50:00 AM CDT
 
 ### Fixed
