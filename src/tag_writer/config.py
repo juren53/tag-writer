@@ -10,6 +10,18 @@ import tempfile
 
 from .constants import APP_VERSION, APP_TIMESTAMP
 
+# Map legacy display-name theme keys (pre-ThemeManager migration) to registry keys.
+_THEME_MIGRATION: dict[str, str] = {
+    "Default Light":   "light",
+    "Warm Light":      "warm_light",
+    "Dark":            "dark",
+    "Solarized Light": "solarized_light",
+    "Solarized Dark":  "solarized_dark",
+    "High Contrast":   "high_contrast",
+    "Monokai":         "monokai",
+    "GitHub Dark":     "github_dark",
+}
+
 logger = logging.getLogger(__name__)
 
 # Platform-specific imports for file locking
@@ -99,9 +111,9 @@ class Config:
         self.recent_directories = []
         self.directory_image_files = []
         self.current_file_index = -1
-        self.dark_mode = False
+        self.dark_mode = True
         self.ui_zoom_factor = 1.0
-        self.current_theme = 'Dark'
+        self.current_theme = 'dark'
         self.window_geometry = None
         self.window_maximized = False
         self.full_image_geometry = None
@@ -172,9 +184,10 @@ class Config:
                 self.recent_files = [f for f in config_data.get('recent_files', []) if os.path.exists(f)]
                 self.recent_directories = [d for d in config_data.get('recent_directories', []) if os.path.exists(d) and os.path.isdir(d)]
                 self.last_directory = config_data.get('last_directory', None)
-                self.dark_mode = config_data.get('dark_mode', False)
+                self.dark_mode = config_data.get('dark_mode', True)
                 self.ui_zoom_factor = config_data.get('ui_zoom_factor', 1.0)
-                self.current_theme = config_data.get('current_theme', 'Dark')
+                raw_theme = config_data.get('current_theme', 'dark')
+                self.current_theme = _THEME_MIGRATION.get(raw_theme, raw_theme)
                 self.selected_file = config_data.get('selected_file', None)
                 self.window_geometry = config_data.get('window_geometry', None)
                 self.window_maximized = config_data.get('window_maximized', False)

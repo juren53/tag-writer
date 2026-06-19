@@ -13,7 +13,7 @@ from .exiftool_utils import (
 from .image_utils import load_image, create_thumbnail, adjust_zoom, pil_to_pixmap
 from .file_utils import get_image_files, backup_file, read_metadata
 from .metadata import MetadataManager
-from .theme import ThemeManager, LIGHT_THEME, DARK_THEME
+from .theme import DEFAULT_THEME, is_dark_theme, get_fusion_palette, get_theme_registry
 
 from .menu import MenuMixin
 from .window import WindowMixin
@@ -35,7 +35,7 @@ __all__ = [
     'show_exiftool_error_dialog', 'show_exiftool_success_status',
     'load_image', 'create_thumbnail', 'adjust_zoom', 'pil_to_pixmap',
     'get_image_files', 'backup_file', 'read_metadata',
-    'MetadataManager', 'ThemeManager', 'LIGHT_THEME', 'DARK_THEME',
+    'MetadataManager', 'DEFAULT_THEME', 'is_dark_theme', 'get_fusion_palette', 'get_theme_registry',
     'MenuMixin', 'WindowMixin', 'NavigationMixin', 'FileOpsMixin',
     'ThemeMixin', 'HelpMixin', 'UpdatesMixin',
     'MetadataPanel', 'ImageViewer', 'FullImageViewer',

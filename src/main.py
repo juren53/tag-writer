@@ -20,7 +20,7 @@ from tag_writer.config import config, SingleInstanceChecker
 from tag_writer.platform import set_app_user_model_id, set_windows_taskbar_icon
 from tag_writer.exiftool_utils import check_exiftool_availability, show_exiftool_error_dialog, show_exiftool_success_status
 from tag_writer.metadata import MetadataManager
-from tag_writer.theme import ThemeManager
+from tag_writer.theme import DEFAULT_THEME, is_dark_theme
 from tag_writer.widgets import MetadataPanel, ImageViewer
 from tag_writer.menu import MenuMixin
 from tag_writer.window import WindowMixin
@@ -66,7 +66,6 @@ class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
 
         # Initialize managers
         self.metadata_manager = MetadataManager()
-        self.theme_manager = ThemeManager()
 
         # Initialize version checker
         self.version_checker = GitHubVersionChecker(
@@ -76,11 +75,10 @@ class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
         )
 
         # Initialize state
-        self.dark_mode = config.dark_mode
+        self.current_theme = config.current_theme
+        self.dark_mode = is_dark_theme(self.current_theme)
         self.ui_scale_factor = config.ui_zoom_factor
         logger.debug(f"Loaded ui_scale_factor = {self.ui_scale_factor} from config")
-        self.current_theme = getattr(config, 'current_theme', 'Default Light')
-        self.theme_manager.current_theme = self.current_theme
 
         # Track if we're closing to prevent recursive close events
         self._is_closing = False
@@ -100,7 +98,7 @@ class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
         QApplication.instance().installEventFilter(self)
 
         # Apply saved theme
-        self.apply_comprehensive_theme()
+        self.apply_theme()
 
         # Apply saved UI zoom factor
         self.apply_ui_zoom()
