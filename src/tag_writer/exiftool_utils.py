@@ -11,7 +11,9 @@ import concurrent.futures
 import exiftool
 
 from .constants import EXIFTOOL_TIMEOUT
-from .platform import CREATE_NO_WINDOW, SW_HIDE
+
+CREATE_NO_WINDOW = 0x08000000
+SW_HIDE = 0
 
 logger = logging.getLogger(__name__)
 
