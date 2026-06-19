@@ -3,8 +3,8 @@ Tag Writer - Constants and version information.
 """
 
 APP_NAME = "Tag Writer"
-APP_VERSION = "0.2.7"
-APP_TIMESTAMP = "2026-06-19 14:00"
+APP_VERSION = "0.2.8"
+APP_TIMESTAMP = "2026-06-19 15:00"
 APP_ORGANIZATION = "SynchroSoft"
 APP_USER_MODEL_ID = "SynchroSoft.TagWriter"
 GITHUB_REPO = "juren53/tag-writer"

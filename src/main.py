@@ -5,6 +5,7 @@ MainWindow class composed from mixins + main() function.
 """
 
 import os
+import pathlib
 import sys
 import logging
 
@@ -15,9 +16,22 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
 
-from tag_writer.constants import APP_NAME, APP_VERSION, APP_TIMESTAMP, APP_ORGANIZATION, IMAGE_EXTENSIONS
+# IMM setup at module level so _init_win32() fires before QApplication is created.
+_IMM_PATH = os.path.expanduser("~/Projects/Icon_Manager_Module")
+if os.path.isdir(_IMM_PATH) and _IMM_PATH not in sys.path:
+    sys.path.insert(0, _IMM_PATH)
+
+_app_icons = None
+try:
+    from icon_loader import IconLoader  # side-effect: _init_win32() on Windows
+    _app_icons = IconLoader(
+        base_path=pathlib.Path(__file__).resolve().parent.parent / "resources" / "icons"
+    )
+except Exception:
+    pass
+
+from tag_writer.constants import APP_NAME, APP_VERSION, APP_TIMESTAMP, APP_ORGANIZATION, APP_USER_MODEL_ID, IMAGE_EXTENSIONS
 from tag_writer.config import config, SingleInstanceChecker
-from tag_writer.platform import set_app_user_model_id, set_windows_taskbar_icon
 from tag_writer.exiftool_utils import check_exiftool_availability, show_exiftool_error_dialog, show_exiftool_success_status
 from tag_writer.metadata import MetadataManager
 from tag_writer.theme import DEFAULT_THEME, is_dark_theme
@@ -37,24 +51,10 @@ from github_version_checker import GitHubVersionChecker
 logger = logging.getLogger(__name__)
 
 
-def _get_icon_path():
-    """Get the application icon path, handling both dev and frozen modes."""
-    if getattr(sys, 'frozen', False):
-        # PyInstaller frozen
-        base = sys._MEIPASS
-    else:
-        # Development: project root is one level up from src/
-        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-    ico_path = os.path.join(base, "ICON_tw.ico")
-    if os.path.exists(ico_path):
-        return ico_path
-
-    png_path = os.path.join(base, "ICON_tw.png")
-    if os.path.exists(png_path):
-        return png_path
-
-    return None
+def get_app_icon() -> QIcon:
+    if _app_icons is not None:
+        return _app_icons.app_icon()
+    return QIcon()
 
 
 class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
@@ -117,10 +117,7 @@ class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
         self.setWindowTitle("Tag Writer")
         self.resize(1000, 600)
 
-        # Set window icon
-        icon_path = _get_icon_path()
-        if icon_path:
-            self.setWindowIcon(QIcon(icon_path))
+        self.setWindowIcon(get_app_icon())
 
         # Create central widget and main layout
         central_widget = QWidget()
@@ -185,9 +182,6 @@ class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
 
 def main():
     """Run the application."""
-    # Set Windows App User Model ID at the very start (before QApplication creation)
-    set_app_user_model_id()
-
     # Check for single instance before creating QApplication
     instance_checker = SingleInstanceChecker("tag-writer")
 
@@ -223,14 +217,7 @@ def main():
     # Set application to quit when last window is closed
     app.setQuitOnLastWindowClosed(True)
 
-    # Set application icon
-    icon_path = _get_icon_path()
-    if icon_path:
-        app_icon = QIcon(icon_path)
-        app.setWindowIcon(app_icon)
-        logger.info(f"Application icon set from: {icon_path}")
-    else:
-        logger.warning("No icon file found - taskbar may show default icon")
+    app.setWindowIcon(get_app_icon())
 
     # Handle command-line arguments for file paths
     file_to_open = None
@@ -242,9 +229,6 @@ def main():
                 file_to_open = os.path.abspath(potential_file)
                 logger.info(f"File to open from command line: {file_to_open}")
 
-    # Set Windows taskbar icon early (before window creation)
-    set_windows_taskbar_icon()
-
     # Check ExifTool availability before proceeding
     is_available, version, error_msg = check_exiftool_availability()
 
@@ -252,13 +236,8 @@ def main():
     window = MainWindow()
     window.show()
 
-    # Set taskbar icon with window handle after window is shown
-    if sys.platform.startswith('win'):
-        try:
-            window_handle = int(window.winId())
-            set_windows_taskbar_icon(window_handle)
-        except Exception as e:
-            logger.error(f"Error setting taskbar icon with window handle: {e}")
+    if _app_icons is not None:
+        _app_icons.set_taskbar_icon(window, APP_USER_MODEL_ID)
 
     # Show ExifTool status after window is visible
     if is_available:

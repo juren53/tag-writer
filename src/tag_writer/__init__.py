@@ -4,7 +4,6 @@ Tag Writer - Modular image metadata editor.
 
 from .constants import APP_NAME, APP_VERSION, APP_TIMESTAMP
 from .config import Config, SingleInstanceChecker, config
-from .platform import set_app_user_model_id, set_windows_taskbar_icon
 from .exiftool_utils import (
     get_exiftool_path, execute_with_timeout, create_exiftool_instance,
     PersistentExifTool, check_exiftool_availability,
@@ -29,7 +28,6 @@ from .dialogs import ThemeDialog, PreferencesDialog
 __all__ = [
     'APP_NAME', 'APP_VERSION', 'APP_TIMESTAMP',
     'Config', 'SingleInstanceChecker', 'config',
-    'set_app_user_model_id', 'set_windows_taskbar_icon',
     'get_exiftool_path', 'execute_with_timeout', 'create_exiftool_instance',
     'PersistentExifTool', 'check_exiftool_availability',
     'show_exiftool_error_dialog', 'show_exiftool_success_status',
