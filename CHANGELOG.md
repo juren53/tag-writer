@@ -5,6 +5,15 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.9] - Thu 19 Jun 2026 15:30 CDT
+
+### Fixed
+- **Broken import after platform.py retirement** — `exiftool_utils.py` imported `CREATE_NO_WINDOW`
+  and `SW_HIDE` from `platform.py`, which was gutted to a stub during the IMM migration (v0.2.8);
+  constants are now defined inline in `exiftool_utils.py` where they are used
+
+---
+
 ## [0.2.8] - Thu 19 Jun 2026 15:00 CDT
 
 ### Changed
