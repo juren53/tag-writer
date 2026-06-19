@@ -5,6 +5,19 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - Thu 19 Jun 2026 11:58:00 AM CDT
+
+### Changed
+- **ThemeManager module integration** — replaced the self-contained `theme.py` CSS stylesheet system with the shared ThemeManager module (v2.0), following the pattern established in QR Code Generator
+  - Ten themes now available: the six ThemeManager built-ins (Dark, Light, Solarized Light, Solarized Dark, Dracula, GitHub) plus four Tag Writer-specific themes registered at startup (Warm Light, High Contrast, Monokai, GitHub Dark)
+  - `apply_theme()` and `apply_comprehensive_theme()` collapsed into a single `QPalette`-based `apply_theme()` call using `get_fusion_palette()`; CSS stylesheet generation removed
+  - `ThemeDialog` rewritten to pull themes from the ThemeManager registry; no longer receives a `theme_manager` constructor argument; live preview uses palette swatches (background / text / button) instead of CSS color values
+  - `config.py` auto-migrates legacy display-name theme keys from existing `~/.tag_writer_config.json` files to registry internal keys on first load (e.g. `"Dark"` → `"dark"`, `"Solarized Light"` → `"solarized_light"`); default theme changed from `"Dark"` to `"dark"`
+  - `__init__.py` exports updated: `ThemeManager`, `LIGHT_THEME`, `DARK_THEME` removed; `DEFAULT_THEME`, `is_dark_theme`, `get_fusion_palette`, `get_theme_registry` exported in their place
+  - **Files Modified**: `src/tag_writer/theme.py`, `src/tag_writer/theme_mixin.py`, `src/tag_writer/dialogs/theme_dialog.py`, `src/tag_writer/config.py`, `src/tag_writer/__init__.py`, `src/main.py`
+
+---
+
 ## [0.2.5] - Sat 11 Apr 2026 07:05:00 PM CDT
 
 ### Added
