@@ -3,10 +3,10 @@ Tag Writer - Constants and version information.
 """
 
 APP_NAME = "Tag Writer"
-APP_VERSION = "0.2.6"
-APP_TIMESTAMP = "2026-06-19 11:58"
+APP_VERSION = "0.2.7"
+APP_TIMESTAMP = "2026-06-19 14:00"
 APP_ORGANIZATION = "SynchroSoft"
-APP_USER_MODEL_ID = "SynchroSoft.TagWriter.TW.0.2.6"
+APP_USER_MODEL_ID = "SynchroSoft.TagWriter"
 GITHUB_REPO = "juren53/tag-writer"
 
 IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.tif', '.tiff', '.bmp']

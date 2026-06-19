@@ -5,6 +5,15 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - Thu 19 Jun 2026 14:00 CDT
+
+### Fixed
+- **Windows App User Model ID is now version-free** — changed `APP_USER_MODEL_ID` from
+  `"SynchroSoft.TagWriter.TW.0.2.6"` to `"SynchroSoft.TagWriter"`; a versioned ID caused
+  Windows to treat each release as a different application, breaking taskbar pinning across updates
+
+---
+
 ## [0.2.6] - Thu 19 Jun 2026 11:58:00 AM CDT
 
 ### Changed
