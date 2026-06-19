@@ -330,8 +330,8 @@ as new standards and technologies emerge in digital photography
 and image metadata management.*
 
 **Related Documentation:**
-- [Tag Writer User Guide](user-guide.md)
-- [Tag Writer Help](tag-writer-help.md)
+- [Photo Tag Writer User Guide](user-guide.md)
+- [Photo Tag Writer Help](tag-writer-help.md)
 
 ---
 

@@ -1,6 +1,6 @@
-# Tag Writer Keyboard Shortcuts
+# Photo Tag Writer Keyboard Shortcuts
 
-This document provides a comprehensive list of keyboard shortcuts available in Tag Writer to help you work more efficiently.
+This document provides a comprehensive list of keyboard shortcuts available in Photo Tag Writer to help you work more efficiently.
 
 ## Navigation Shortcuts
 

@@ -1,4 +1,4 @@
-# Tag Writer User Guide
+# Photo Tag Writer User Guide
 
 ## Table of Contents
 - [Introduction](#introduction)
@@ -13,7 +13,7 @@
 
 ## Introduction
 
-Tag Writer is a specialized tool designed for photographers, archivists, and digital content managers who need to add or edit metadata in image files. It provides a user-friendly interface for managing IPTC and EXIF metadata in JPG, TIFF, and PNG images.
+Photo Tag Writer is a specialized tool designed for photographers, archivists, and digital content managers who need to add or edit metadata in image files. It provides a user-friendly interface for managing IPTC and EXIF metadata in JPG, TIFF, and PNG images.
 
 IPTC metadata allows you to embed important information directly into your image files, including:
 - Title and description information
@@ -31,13 +31,13 @@ This metadata stays with your files and can be read by most image management sof
 - ExifTool (must be installed separately)
 
 ### Installing ExifTool
-Tag Writer uses Phil Harvey's ExifTool for reading and writing metadata. You must install ExifTool before using Tag Writer:
+Photo Tag Writer uses Phil Harvey's ExifTool for reading and writing metadata. You must install ExifTool before using Photo Tag Writer:
 
 - **Windows**: Download from [exiftool.org](https://exiftool.org) and add to your PATH
 - **macOS**: Install via Homebrew with `brew install exiftool`
 - **Linux**: Install via your package manager, e.g., `sudo apt install exiftool`
 
-### Installing Tag Writer
+### Installing Photo Tag Writer
 
 #### From PyPI (Recommended)
 ```bash
@@ -66,9 +66,9 @@ pip install -e .
 
 ## User Interface
 
-Tag Writer features a clean, intuitive interface divided into several main components:
+Photo Tag Writer features a clean, intuitive interface divided into several main components:
 
-![Tag Writer Main Window](https://github.com/juren53/tag-writer/raw/main/Docs/images/main-window-1st-gen.png)
+![Photo Tag Writer Main Window](https://github.com/juren53/tag-writer/raw/main/Docs/images/main-window-1st-gen.png)
 
 ### Main Window
 - **Menu Bar**: Access to all application functions
@@ -77,7 +77,7 @@ Tag Writer features a clean, intuitive interface divided into several main compo
 - **Image Viewer**: Preview the current image (right side)
 - **Status Bar**: Displays current status and file information
 
-![Tag Writer Main Window](Images/main-window.png)
+![Photo Tag Writer Main Window](Images/main-window.png)
 
 ## Menu Options
 - **File**: Open images, access recent files and directories, save metadata, exit
@@ -96,7 +96,7 @@ Tag Writer features a clean, intuitive interface divided into several main compo
 
 ## Metadata Fields
 
-Tag Writer supports the following IPTC metadata fields:
+Photo Tag Writer supports the following IPTC metadata fields:
 
 ### Basic Information
 - **Headline**: A brief title or headline for the image (max 256 characters)
@@ -145,7 +145,7 @@ Tag Writer supports the following IPTC metadata fields:
 4. Click "Write Metadata" before moving to the next image
 
 ### Arrow Key Navigation
-Tag Writer provides convenient keyboard navigation:
+Photo Tag Writer provides convenient keyboard navigation:
 - **Left Arrow**: Navigate to the previous image in the directory
 - **Right Arrow**: Navigate to the next image in the directory
 - **Looping**: When you reach the last image and press Right, it loops to the first image
@@ -155,7 +155,7 @@ Tag Writer provides convenient keyboard navigation:
 ## Advanced Features
 
 ### Image Rotation
-Tag Writer can rotate images while preserving metadata:
+Photo Tag Writer can rotate images while preserving metadata:
 1. Open an image
 2. Go to Edit → Rotate Image
 3. Choose "Rotate Clockwise" or "Rotate Counter-clockwise"
@@ -178,7 +178,7 @@ If interface text is too small or large:
 5. All zoom changes include smooth 500ms animations by default
 
 ### Recent Files and Directories
-Tag Writer keeps track of your recently used files and directories:
+Photo Tag Writer keeps track of your recently used files and directories:
 1. **Recent Files**: Access your last 5 opened files via File → Recent Files
 2. **Recent Directories**: Quickly return to directories via File → Recent Directories
 3. Click any recent directory to open the first image in that folder
@@ -224,27 +224,27 @@ Quickly switch between light and dark themes:
 - Verify the file is not corrupted
 
 ### Logs
-Tag Writer creates log files that can help diagnose issues:
+Photo Tag Writer creates log files that can help diagnose issues:
 - On Windows: Check `%APPDATA%\tag-writer\logs`
 - On macOS/Linux: Check `~/.tag-writer/logs`
 
 ## Frequently Asked Questions
 
 ### What image formats are supported?
-Tag Writer supports JPEG, TIFF, and PNG formats. RAW formats are not directly supported.
+Photo Tag Writer supports JPEG, TIFF, and PNG formats. RAW formats are not directly supported.
 
-### Does Tag Writer modify my original images?
-Yes, Tag Writer writes metadata directly to your image files. However, it creates a backup before making changes, which can be found in the same directory with "_backup_" in the filename.
+### Does Photo Tag Writer modify my original images?
+Yes, Photo Tag Writer writes metadata directly to your image files. However, it creates a backup before making changes, which can be found in the same directory with "_backup_" in the filename.
 
-### Can I use Tag Writer for batch processing?
-Tag Writer doesn't have direct batch processing capabilities, but you can use the JSON export/import feature to apply the same metadata to multiple images.
+### Can I use Photo Tag Writer for batch processing?
+Photo Tag Writer doesn't have direct batch processing capabilities, but you can use the JSON export/import feature to apply the same metadata to multiple images.
 
 ### How do I report bugs or request features?
 Please submit issues on our GitHub repository: https://github.com/yourusername/tag-writer/issues
 
 ---
 
-This documentation is for Tag Writer version 0.07s. For the latest documentation, please visit the tag-writer [GitHub repository](https://github.com/juren53/tag-writer).
+This documentation is for Photo Tag Writer version 0.07s. For the latest documentation, please visit the tag-writer [GitHub repository](https://github.com/juren53/tag-writer).
 
 ### Recent Changes in Version 0.07o
 - Enhanced 'Set Today's Date' menu function to target Date Modified field instead of Date Created

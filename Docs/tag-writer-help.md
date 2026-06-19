@@ -1,14 +1,14 @@
-# Tag Writer User Guide
+# Photo Tag Writer User Guide
 
 **Version 0.06b**
 
 ## Overview
 
-Tag Writer is a free, open-source application designed to view and edit IPTC metadata in image files (JPG and TIF formats). This tool is particularly useful when metadata cannot be pulled from an online database and needs to be entered manually.
+Photo Tag Writer is a free, open-source application designed to view and edit IPTC metadata in image files (JPG and TIF formats). This tool is particularly useful when metadata cannot be pulled from an online database and needs to be entered manually.
 
 The application provides a simple graphical user interface for editing common IPTC metadata fields, allowing photographers, archivists, and digital asset managers to properly tag their images with essential information.
 
-![Tag Writer Main Window](https://github.com/juren53/tag-writer/raw/main/Docs/images/main-window.png)
+![Photo Tag Writer Main Window](https://github.com/juren53/tag-writer/raw/main/Docs/images/main-window.png)
 
 ## Table of Contents
 
@@ -18,7 +18,7 @@ The application provides a simple graphical user interface for editing common IP
 - [Interface Overview](#interface-overview)
   - [Main Window](#main-window)
   - [Menu Structure](#menu-structure)
-- [Using Tag Writer](#using-tag-writer)
+- [Using Photo Tag Writer](#using-tag-writer)
   - [Selecting Files](#selecting-files)
   - [Viewing Existing Metadata](#viewing-existing-metadata)
   - [Editing Metadata](#editing-metadata)
@@ -45,7 +45,7 @@ The application provides a simple graphical user interface for editing common IP
 
 ### Dependencies
 
-Tag Writer requires the following Python libraries:
+Photo Tag Writer requires the following Python libraries:
 
 1. **exiftool** - The Python wrapper for ExifTool, which is used to read and write metadata
    ```
@@ -62,13 +62,13 @@ Tag Writer requires the following Python libraries:
    - On macOS with Homebrew: `brew install exiftool`
    - On Windows: Download from [ExifTool website](https://exiftool.org/)
 
-Note: Tag Writer can run with limited functionality if PIL/Pillow is not installed, but thumbnail and image previews will not be available.
+Note: Photo Tag Writer can run with limited functionality if PIL/Pillow is not installed, but thumbnail and image previews will not be available.
 
 ## Interface Overview
 
 ### Main Window
 
-The Tag Writer main window is divided into several key areas:
+The Photo Tag Writer main window is divided into several key areas:
 
 - **Menu Bar** - Contains File, Edit, View, and Help menus
 - **Control Buttons** - "Select File" and "Write Metadata" buttons
@@ -96,11 +96,11 @@ The Tag Writer main window is divided into several key areas:
 - **Show ALL Metatags** - Display all metadata tags for the current image
 
 #### Help Menu
-- **About** - Display information about Tag Writer
+- **About** - Display information about Photo Tag Writer
 - **License** - Show license information
 - **Usage Guide** - Open this help document in a web browser
 
-## Using Tag Writer
+## Using Photo Tag Writer
 
 ### Selecting Files
 
@@ -115,7 +115,7 @@ After selecting a file, the file name will be displayed, and any existing metada
 
 ### Viewing Existing Metadata
 
-When you select an image file, Tag Writer automatically reads the IPTC metadata from the file and populates the form fields with the existing values. This allows you to see what metadata is already associated with the image.
+When you select an image file, Photo Tag Writer automatically reads the IPTC metadata from the file and populates the form fields with the existing values. This allows you to see what metadata is already associated with the image.
 
 The thumbnail preview (if available) shows a small version of the image to confirm you're working with the correct file.
 
@@ -140,7 +140,7 @@ The Caption Abstract field has been enhanced with the following features:
 
 After editing the metadata fields, click the "Write Metadata" button to save the changes to the image file. A confirmation message will appear in the status bar at the bottom of the window.
 
-Important: Tag Writer does not create backup files by default. Any changes you make will overwrite the existing metadata in the file.
+Important: Photo Tag Writer does not create backup files by default. Any changes you make will overwrite the existing metadata in the file.
 
 ### Exporting to JSON
 
@@ -163,7 +163,7 @@ This feature is useful for applying the same metadata to multiple images or for 
 
 ### Viewing All Metadata Tags
 
-Tag Writer now allows you to view all metadata tags present in an image, not just the IPTC fields that can be edited:
+Photo Tag Writer now allows you to view all metadata tags present in an image, not just the IPTC fields that can be edited:
 
 1. Select an image file
 2. Go to View → Show ALL Metatags
@@ -173,7 +173,7 @@ This comprehensive view includes EXIF, XMP, IPTC, and other metadata formats, pr
 
 ### Rotating Images
 
-Tag Writer provides image rotation functionality that preserves all metadata:
+Photo Tag Writer provides image rotation functionality that preserves all metadata:
 
 - **Edit → Rotate Clockwise**: Rotates the image 90° clockwise
 - **Edit → Rotate Counter-clockwise**: Rotates the image 90° counter-clockwise
@@ -186,7 +186,7 @@ When you rotate an image:
 
 ### Image Preview
 
-If PIL/Pillow is installed, Tag Writer provides image preview functionality:
+If PIL/Pillow is installed, Photo Tag Writer provides image preview functionality:
 
 1. **Thumbnail View** - A small preview appears in the main window
 2. **Full Image View** - Click on the thumbnail to open a larger view of the image
@@ -196,7 +196,7 @@ If PIL/Pillow is installed, Tag Writer provides image preview functionality:
 
 ## IPTC Metadata Fields
 
-Tag Writer supports editing the following IPTC metadata fields:
+Photo Tag Writer supports editing the following IPTC metadata fields:
 
 | Field | Description | Example |
 |-------|-------------|---------|
@@ -212,7 +212,7 @@ Tag Writer supports editing the following IPTC metadata fields:
 
 ## Command-Line Usage
 
-Tag Writer can be launched from the command line with the following options:
+Photo Tag Writer can be launched from the command line with the following options:
 
 ```
 python tag-writer.py [file_path] [-d DIRECTORY] [-v/--version]
@@ -262,7 +262,7 @@ Solution: This has been fixed in version 0.06b. Update to the latest version.
 
 ### Missing Dependencies
 
-Tag Writer will operate in reduced functionality mode if certain dependencies are missing:
+Photo Tag Writer will operate in reduced functionality mode if certain dependencies are missing:
 
 - Without **PIL/Pillow**: No thumbnail or image preview functionality
 - Without **ImageTk** (part of PIL): No image display, even if PIL is installed
@@ -273,7 +273,7 @@ The application displays the status of these dependencies in the version label a
 
 ## License Information
 
-Tag Writer is free software, distributed under the terms of the GNU General Public License version 3 or later.
+Photo Tag Writer is free software, distributed under the terms of the GNU General Public License version 3 or later.
 
 ```
 tag-writer is free software: you can redistribute it and/or modify it under the terms 
