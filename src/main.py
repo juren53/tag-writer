@@ -114,7 +114,7 @@ class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
 
     def setup_ui(self):
         """Set up the user interface."""
-        self.setWindowTitle("Tag Writer")
+        self.setWindowTitle("Photo Tag Writer")
         self.resize(1000, 600)
 
         self.setWindowIcon(get_app_icon())
@@ -186,14 +186,14 @@ def main():
     instance_checker = SingleInstanceChecker("tag-writer")
 
     if instance_checker.is_already_running():
-        logger.warning("Another instance of Tag Writer is already running")
+        logger.warning("Another instance of Photo Tag Writer is already running")
 
         app = QApplication(sys.argv)
         QMessageBox.warning(
             None,
-            "Tag Writer Already Running",
-            "Another instance of Tag Writer is already running.\n\n"
-            "Only one instance of Tag Writer can run at a time.\n"
+            "Photo Tag Writer Already Running",
+            "Another instance of Photo Tag Writer is already running.\n\n"
+            "Only one instance of Photo Tag Writer can run at a time.\n"
             "Please use the existing instance or close it first.",
             QMessageBox.StandardButton.Ok
         )

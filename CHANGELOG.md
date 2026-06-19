@@ -5,6 +5,16 @@ All notable changes to the Tag Writer project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - Thu 19 Jun 2026 17:00 CDT
+
+### Changed
+- **Renamed to Photo Tag Writer** — all user-visible strings updated from "Tag Writer" to
+  "Photo Tag Writer" for symmetry with AudioTagWriter. Affected: window title, dialog titles,
+  About/Credits/Help text, error messages, update notifications, preferences tooltip, README.
+  Internal package names (`tag_writer`), file/directory names, and GitHub repo URL are unchanged.
+
+---
+
 ## [0.2.10] - Thu 19 Jun 2026 16:00 CDT
 
 ### Fixed

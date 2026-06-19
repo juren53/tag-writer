@@ -60,17 +60,17 @@ class HelpMixin:
         layout.setSpacing(10)
 
         credits_text = QLabel(
-            "<h2>Tag Writer Credits</h2>"
-            "<p>Tag Writer would not be possible without the incredible work of:</p>"
+            "<h2>Photo Tag Writer Credits</h2>"
+            "<p>Photo Tag Writer would not be possible without the incredible work of:</p>"
             "<hr>"
             "<h3>Phil Harvey</h3>"
             "<p><b>Father of ExifTool</b></p>"
             "<p>For creating and maintaining ExifTool, the comprehensive metadata toolkit "
-            "that powers Tag Writer's ability to read and write image metadata.</p>"
+            "that powers Photo Tag Writer's ability to read and write image metadata.</p>"
             "<hr>"
             "<h3>The PyQt Team</h3>"
             "<p><b>GUI Framework</b></p>"
-            "<p>For providing the excellent PyQt libraries that enable Tag Writer's "
+            "<p>For providing the excellent PyQt libraries that enable Photo Tag Writer's "
             "user-friendly graphical interface.</p>"
             "<hr>"
             "<h3>Guido van Rossum</h3>"
@@ -104,7 +104,7 @@ class HelpMixin:
     def on_help(self):
         """Show Help dialog."""
         QMessageBox.information(self,
-            "Tag Writer Help",
+            "Photo Tag Writer Help",
             "This application allows you to edit and save metadata for image files.\n\n"
             "Usage:\n"
             "1. Open an image file using File > Open or the Select File button\n"
@@ -136,7 +136,7 @@ class HelpMixin:
                     project_root = _get_project_root()
                     markdown_content = markdown_content.replace(
                         '![Tag Writer Main Window](images/',
-                        f'![Tag Writer Main Window]({project_root}/Docs/images/'
+                        f'![Photo Tag Writer Main Window]({project_root}/Docs/images/'
                     )
 
                 text_edit = QTextEdit()
@@ -174,7 +174,7 @@ class HelpMixin:
         project_root = _get_project_root()
         user_guide_file = os.path.join(project_root, "Docs", "user-guide.md")
         self._show_markdown_dialog(
-            "Tag Writer User Guide",
+            "Photo Tag Writer User Guide",
             user_guide_file,
             "https://github.com/juren53/tag-writer/blob/main/Docs/user-guide.md"
         )
@@ -184,7 +184,7 @@ class HelpMixin:
         project_root = _get_project_root()
         glossary_file = os.path.join(project_root, "Docs", "glossary.md")
         self._show_markdown_dialog(
-            "Tag Writer Glossary",
+            "Photo Tag Writer Glossary",
             glossary_file,
             "https://github.com/juren53/tag-writer/blob/main/Docs/glossary.md"
         )

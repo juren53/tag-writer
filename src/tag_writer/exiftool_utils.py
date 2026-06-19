@@ -204,13 +204,13 @@ def show_exiftool_error_dialog(error_message):
     msg_box = QMessageBox()
     msg_box.setIcon(QMessageBox.Icon.Critical)
     msg_box.setWindowTitle("ExifTool Not Found")
-    msg_box.setText("Tag Writer requires ExifTool to function properly.")
+    msg_box.setText("Photo Tag Writer requires ExifTool to function properly.")
     msg_box.setDetailedText(f"Error: {error_message}\n\n"
                            "Please install ExifTool:\n"
                            "• Windows: Download from https://exiftool.org/ and add to PATH\n"
                            "• Linux: Install via package manager (e.g., 'sudo apt install exiftool')\n"
                            "• macOS: Install via Homebrew ('brew install exiftool')\n\n"
-                           "After installation, restart Tag Writer.")
+                           "After installation, restart Photo Tag Writer.")
     msg_box.setStandardButtons(QMessageBox.StandardButton.Ok)
     msg_box.exec()
 

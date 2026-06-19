@@ -78,7 +78,7 @@ class UpdatesMixin:
 
             if "404" in error_msg and "Not Found" in error_msg:
                 friendly_msg = (
-                    "TagWriter repository doesn't have any releases yet.\n\n"
+                    "Photo Tag Writer repository doesn't have any releases yet.\n\n"
                     "You're using the latest available version!"
                 )
                 QMessageBox.information(self, "No Releases Available", friendly_msg)
@@ -107,7 +107,7 @@ class UpdatesMixin:
                 QMessageBox.information(
                     self,
                     "Up to Date",
-                    f"TagWriter {result.current_version} is the latest version available."
+                    f"Photo Tag Writer {result.current_version} is the latest version available."
                 )
 
     def show_update_dialog(self, result):

@@ -1,8 +1,8 @@
-# Tag Writer
+# Photo Tag Writer
 
-**Version 0.2.5** | PyQt6 | Python 3
+**Version 0.3.0** | PyQt6 | Python 3
 
-Tag Writer is a free, open-source application designed to view and edit IPTC metadata in image files (JPG and TIF formats). This tool is particularly useful when metadata cannot be pulled from an online database and needs to be entered manually.
+Photo Tag Writer is a free, open-source application designed to view and edit IPTC metadata in image files (JPG and TIF formats). This tool is particularly useful when metadata cannot be pulled from an online database and needs to be entered manually.
 
 The application provides a simple graphical user interface for editing common IPTC metadata fields, allowing photographers, archivists, and digital asset managers to properly tag their images with essential information.
 
@@ -45,7 +45,7 @@ tag-writer has been tested against the following file types:
 
 ## Architecture (v0.2.1)
 
-Tag Writer uses a modular package architecture under `src/tag_writer/` with the MainWindow composed from 7 mixins:
+Photo Tag Writer uses a modular package architecture under `src/tag_writer/` with the MainWindow composed from 7 mixins:
 
 ```
 tag-writer.py              # Thin launcher wrapper

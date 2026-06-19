@@ -27,7 +27,7 @@ class PreferencesDialog(QDialog):
         self.auto_check_updates_checkbox = QCheckBox("Automatically check for updates on startup")
         self.auto_check_updates_checkbox.setChecked(self.config.auto_check_updates)
         self.auto_check_updates_checkbox.setToolTip(
-            "When enabled, Tag Writer will check for new versions on startup.\n"
+            "When enabled, Photo Tag Writer will check for new versions on startup.\n"
             "You can still manually check for updates from the Help menu."
         )
         updates_layout.addWidget(self.auto_check_updates_checkbox)

@@ -103,7 +103,7 @@ class NavigationMixin:
 
             self.file_label.setText(os.path.basename(file_path))
             self.path_label.setText(os.path.dirname(file_path))
-            self.setWindowTitle(f"Tag Writer - {os.path.basename(file_path)}")
+            self.setWindowTitle(f"Photo Tag Writer - {os.path.basename(file_path)}")
             self.status_label.setText(f"Loaded {os.path.basename(file_path)}")
 
             self.update_recent_menu()
