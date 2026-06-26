@@ -14,6 +14,7 @@ a = Analysis(
     datas=[
         ('ICON_tw.ico', '.'),  # Include icon file in the bundle
         ('ICON_tw.png', '.'),  # Include PNG fallback
+        ('resources/icons', 'resources/icons'),  # IMM icon files
         ('tools/exiftool.exe', 'tools'),  # Bundle ExifTool
         ('Docs', 'Docs'),  # Include documentation
         ('CHANGELOG.md', '.'),  # Include changelog

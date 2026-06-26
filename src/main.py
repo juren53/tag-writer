@@ -24,9 +24,11 @@ if os.path.isdir(_IMM_PATH) and _IMM_PATH not in sys.path:
 _app_icons = None
 try:
     from icon_loader import IconLoader  # side-effect: _init_win32() on Windows
-    _app_icons = IconLoader(
-        base_path=pathlib.Path(__file__).resolve().parent.parent / "resources" / "icons"
-    )
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        _icons_base = pathlib.Path(sys._MEIPASS) / "resources" / "icons"
+    else:
+        _icons_base = pathlib.Path(__file__).resolve().parent.parent / "resources" / "icons"
+    _app_icons = IconLoader(base_path=_icons_base)
 except Exception:
     pass
 
