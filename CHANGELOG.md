@@ -5,6 +5,17 @@ All notable changes to the Photo Tag Writer project will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - Fri 26 Jun 2026 10:49 CDT
+
+### Fixed
+- **Compiled exe: generic icon in taskbar** — `IconLoader` was initialized with a
+  `base_path` computed via `__file__.parent.parent`, which resolves incorrectly when frozen
+  because PyInstaller flattens `src/` into `sys._MEIPASS`; the path now uses `sys._MEIPASS`
+  directly when running frozen. Also added `resources/icons` to `tag-writer.spec` datas so
+  the icon files are present in the bundle. Bug introduced in v0.2.8 (IMM integration).
+
+---
+
 ## [0.3.0] - Thu 19 Jun 2026 17:00 CDT
 
 ### Changed
