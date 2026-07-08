@@ -5,6 +5,19 @@ All notable changes to the Photo Tag Writer project will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - Wed 08 Jul 2026 09:13 CDT
+
+### Fixed
+- **16-bit grayscale PNGs displayed as stark white/black with streaking** — Pillow loads
+  16-bit grayscale PNGs with mode `'I'` (32-bit int), not `'I;16'`/`'I;16B'` as the display
+  code checked for, so the 16-bit-to-8-bit normalization was never applied. Converting mode
+  `'I'` directly to RGB clips any pixel value over 255 to white instead of scaling, producing
+  the white-out with streaking artifacts. `load_image()` in `image_utils.py` now also matches
+  mode `'I'`. Also adds `numpy` to `requirements.txt`, since the existing normalization branch
+  depends on it but it was never declared as a dependency.
+
+---
+
 ## [0.3.1] - Fri 26 Jun 2026 10:49 CDT
 
 ### Fixed
