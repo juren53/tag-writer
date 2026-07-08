@@ -33,7 +33,11 @@ def load_image(image_path):
             logger.debug(f"Could not process EXIF orientation: {e}")
 
         # Convert 16-bit images to 8-bit for display
-        if image.mode in ['I;16', 'I;16B']:
+        # Note: Pillow loads 16-bit grayscale PNGs with mode 'I' (32-bit int),
+        # not 'I;16'/'I;16B' - those modes only appear for in-memory images.
+        # Without this, Image.convert('RGB') on mode 'I' clips values > 255 to
+        # white instead of scaling, producing stark white/black streaking.
+        if image.mode in ['I;16', 'I;16B', 'I']:
             import numpy as np
             np_image = np.array(image)
             ptp_value = np.ptp(np_image)
