@@ -131,3 +131,7 @@ tag-writer/
 **Icon not showing in PyInstaller build**: Icons must be in spec `datas` list and `_get_icon_path()` in `src/main.py` handles frozen path resolution via `sys._MEIPASS`.
 
 **Import errors after adding modules**: Check dependency ordering. New utilities go before classes that use them. New mixins go after widgets/dialogs.
+
+**Desktop launcher (`.desktop` file) silently fails to open the app**: usually a broken `tagwriter_env` venv, not the `.desktop` file. Debug by running the exact `Exec=` command from `~/.local/share/applications/tagwriter.desktop` directly in a terminal to see the real error/traceback. Two causes seen so far:
+- `ModuleNotFoundError` — a dependency in `requirements.txt` was never installed into `tagwriter_env`. Fix: `tagwriter_env/bin/pip install -r requirements.txt`.
+- Silent crash with no traceback, exit code 139 (SIGSEGV) — PyQt6 binding/runtime version mismatch (e.g. `PyQt6` pinned old while `PyQt6-Qt6` resolved to a much newer version via an unpinned transitive dependency). Check with `tagwriter_env/bin/pip show PyQt6 PyQt6-Qt6 PyQt6-sip` — all should be from the same release line. Fix by upgrading the PyQt6 family together: `pip install --upgrade PyQt6 PyQt6-sip PyQt6-WebEngine`, then re-pin the matched versions in `requirements.txt`.
