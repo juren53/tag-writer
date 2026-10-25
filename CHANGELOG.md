@@ -172,7 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed hardcoded button widths so buttons stretch to fill the panel correctly
 - **Full Image Window — Opens Behind Main Window** - Full Image window now opens in front of the main UI and receives focus automatically
 
-## [0.3.3] - Sun 25 Oct 2026 11:48 CDT
+## [Unreleased]
 
 ### Changed
 - **About Dialog** - Replaced hand-built About dialog with `pyqt_app_info` library
