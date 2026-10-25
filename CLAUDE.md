@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Photo Tag Writer is a PyQt6 desktop application for viewing and editing IPTC/XMP/EXIF metadata in image files (JPG, TIFF, PNG). It uses ExifTool for metadata operations and Pillow for image handling. Current version: v0.3.2a.
+Photo Tag Writer is a PyQt6 desktop application for viewing and editing IPTC/XMP/EXIF metadata in image files (JPG, TIFF, PNG). It uses ExifTool for metadata operations and Pillow for image handling. Current version: v0.3.3.
 
 ## Development Commands
 
@@ -47,7 +47,7 @@ This applies to:
 
 ### Modular Package Structure (v0.2.1)
 
-The application uses a mixin-based architecture under `src/tag_writer/` (24 modules). Root `tag-writer.py` is a thin wrapper that adds `src/` to the path and calls `main()`.
+The application uses a mixin-based architecture under `src/tag_writer/` (25 modules). Root `tag-writer.py` is a thin wrapper that adds `src/` to the path and calls `main()`.
 
 ```python
 # MainWindow composition in src/main.py
@@ -65,7 +65,8 @@ constants → config → utilities → core classes → widgets/dialogs → mixi
 | Module | Purpose |
 |--------|---------|
 | `constants.py` | APP_VERSION, APP_TIMESTAMP, IMAGE_EXTENSIONS, EXIFTOOL_TIMEOUT |
-| `config.py` | Config singleton, SingleInstanceChecker (file locking) |
+| `config.py` | Config singleton |
+| `single_instance_guard.py` | SingleInstanceGuard — QLocalServer/QLocalSocket; second launch raises the running window (vendored from ATW) |
 | `platform.py` | Windows AppUserModelID, taskbar icon |
 | `exiftool_utils.py` | get_exiftool_path() (3-tier), PersistentExifTool singleton, execute_with_timeout() |
 | `metadata.py` | MetadataManager — 11 IPTC/XMP/EXIF field mappings, load/save/export/import |
@@ -106,7 +107,7 @@ Mixins access MainWindow attributes via `self.` (metadata_panel, image_viewer, s
 tag-writer/
 ├── src/
 │   ├── main.py                    # MainWindow + main() entry point
-│   └── tag_writer/                # Package (24 modules)
+│   └── tag_writer/                # Package (25 modules)
 │       ├── dialogs/               # ThemeDialog, PreferencesDialog
 │       └── widgets/               # MetadataPanel, ImageViewer, FullImageViewer
 ├── tools/
@@ -124,7 +125,7 @@ tag-writer/
 
 ## Common Issues
 
-**SingleInstanceChecker blocks launch**: Delete `%TEMP%/tag-writer.lock` if app crashed without cleanup.
+**Second launch does nothing visible**: by design — `SingleInstanceGuard` raises the already-running window (and opens any file passed on the command line) instead of starting a new one. If no window appears, a hidden/hung instance may still hold the socket; kill the stray `tag-writer.py` process.
 
 **ExifTool not found**: Ensure `tools/exiftool.exe` exists or exiftool is on PATH. Check with `exiftool -ver`.
 

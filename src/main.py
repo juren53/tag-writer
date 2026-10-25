@@ -11,7 +11,7 @@ import logging
 
 from PyQt6.QtWidgets import (
     QMainWindow, QApplication, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QSplitter, QStatusBar, QMessageBox
+    QLabel, QSplitter, QStatusBar
 )
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtGui import QIcon
@@ -33,7 +33,8 @@ except Exception:
     pass
 
 from tag_writer.constants import APP_NAME, APP_VERSION, APP_TIMESTAMP, APP_ORGANIZATION, APP_USER_MODEL_ID, IMAGE_EXTENSIONS
-from tag_writer.config import config, SingleInstanceChecker
+from tag_writer.config import config
+from tag_writer.single_instance_guard import SingleInstanceGuard
 from tag_writer.exiftool_utils import check_exiftool_availability, show_exiftool_error_dialog, show_exiftool_success_status
 from tag_writer.metadata import MetadataManager
 from tag_writer.theme import DEFAULT_THEME, is_dark_theme
@@ -184,25 +185,6 @@ class MainWindow(MenuMixin, WindowMixin, NavigationMixin, FileOpsMixin,
 
 def main():
     """Run the application."""
-    # Check for single instance before creating QApplication
-    instance_checker = SingleInstanceChecker("tag-writer")
-
-    if instance_checker.is_already_running():
-        logger.warning("Another instance of Photo Tag Writer is already running")
-
-        app = QApplication(sys.argv)
-        QMessageBox.warning(
-            None,
-            "Photo Tag Writer Already Running",
-            "Another instance of Photo Tag Writer is already running.\n\n"
-            "Only one instance of Photo Tag Writer can run at a time.\n"
-            "Please use the existing instance or close it first.",
-            QMessageBox.StandardButton.Ok
-        )
-        return 1
-
-    logger.info("Single instance check passed - starting application")
-
     app = QApplication(sys.argv)
 
     # Set application name and organization
@@ -231,11 +213,19 @@ def main():
                 file_to_open = os.path.abspath(potential_file)
                 logger.info(f"File to open from command line: {file_to_open}")
 
+    # A second launch raises the running window (handing it any file to open) and exits
+    guard = SingleInstanceGuard(APP_USER_MODEL_ID)
+    payload = file_to_open.encode("utf-8") if file_to_open else b""
+    if not guard.try_acquire(payload):
+        return 0
+    app.aboutToQuit.connect(guard.release)
+
     # Check ExifTool availability before proceeding
     is_available, version, error_msg = check_exiftool_availability()
 
     # Create and show the main window
     window = MainWindow()
+    guard.connect_window(window, on_payload=window.load_file)
     window.show()
 
     if _app_icons is not None:
@@ -255,15 +245,10 @@ def main():
 
     # Run the application
     try:
-        exit_code = app.exec()
-        instance_checker.release()
-        return exit_code
+        return app.exec()
     except KeyboardInterrupt:
-        instance_checker.release()
         app.quit()
         return 0
-    finally:
-        instance_checker.release()
 
 
 if __name__ == "__main__":

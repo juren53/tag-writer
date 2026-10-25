@@ -5,6 +5,20 @@ All notable changes to the Photo Tag Writer project will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - Sun 25 Oct 2026 11:48 CDT
+
+### Changed
+- **Replace file-lock `SingleInstanceChecker` with `SingleInstanceGuard`** — vendored
+  `single_instance_guard.py` from Audio Tag Writer (ATW v0.7.13). Uses
+  QLocalServer/QLocalSocket instead of a temp-directory lock file, so launching a second
+  instance now silently raises the existing window instead of showing a "Photo Tag Writer
+  Already Running" dialog. An image passed on the second launch's command line is opened in
+  the running window. Also removes the stale-lock-file failure mode after a crash. Removed
+  the now-dead `SingleInstanceChecker` class and its `msvcrt`/`fcntl`/`tempfile` imports from
+  `config.py`.
+
+---
+
 ## [0.3.2a] - Sun 25 Oct 2026 11:36 CDT
 
 ### Added
@@ -158,7 +172,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed hardcoded button widths so buttons stretch to fill the panel correctly
 - **Full Image Window — Opens Behind Main Window** - Full Image window now opens in front of the main UI and receives focus automatically
 
-## [Unreleased]
+## [0.3.3] - Sun 25 Oct 2026 11:48 CDT
 
 ### Changed
 - **About Dialog** - Replaced hand-built About dialog with `pyqt_app_info` library

@@ -1,12 +1,10 @@
 """
-Tag Writer - Configuration and single instance management.
+Tag Writer - Configuration management.
 """
 
 import os
-import sys
 import json
 import logging
-import tempfile
 
 from .constants import APP_VERSION, APP_TIMESTAMP
 
@@ -23,81 +21,6 @@ _THEME_MIGRATION: dict[str, str] = {
 }
 
 logger = logging.getLogger(__name__)
-
-# Platform-specific imports for file locking
-if sys.platform.startswith('win'):
-    import msvcrt
-else:
-    import fcntl
-
-
-class SingleInstanceChecker:
-    """
-    Ensures only one instance of the application runs at a time.
-    Uses file locking to prevent multiple instances.
-    """
-    def __init__(self, app_name="tag-writer"):
-        self.app_name = app_name
-        self.lock_file_path = os.path.join(tempfile.gettempdir(), f"{app_name}.lock")
-        self.lock_file = None
-        self.is_locked = False
-
-    def is_already_running(self):
-        """Check if another instance is already running."""
-        try:
-            self.lock_file = open(self.lock_file_path, 'w')
-
-            if sys.platform.startswith('win'):
-                try:
-                    msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_NBLCK, 1)
-                    self.is_locked = True
-                    self.lock_file.write(str(os.getpid()))
-                    self.lock_file.flush()
-                    return False
-                except (OSError, IOError):
-                    return True
-            else:
-                try:
-                    fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    self.is_locked = True
-                    self.lock_file.write(str(os.getpid()))
-                    self.lock_file.flush()
-                    return False
-                except (OSError, IOError):
-                    return True
-        except Exception as e:
-            logger.error(f"Error checking for running instance: {e}")
-            return False
-
-    def release(self):
-        """Release the lock file."""
-        if self.is_locked and self.lock_file:
-            try:
-                if sys.platform.startswith('win'):
-                    try:
-                        msvcrt.locking(self.lock_file.fileno(), msvcrt.LK_UNLCK, 1)
-                    except:
-                        pass
-                else:
-                    try:
-                        fcntl.flock(self.lock_file.fileno(), fcntl.LOCK_UN)
-                    except:
-                        pass
-
-                self.lock_file.close()
-                self.is_locked = False
-
-                try:
-                    if os.path.exists(self.lock_file_path):
-                        os.remove(self.lock_file_path)
-                except:
-                    pass
-            except Exception as e:
-                logger.error(f"Error releasing lock: {e}")
-
-    def __del__(self):
-        """Ensure lock is released when object is destroyed."""
-        self.release()
 
 
 class Config:
