@@ -5,6 +5,15 @@ All notable changes to the Photo Tag Writer project will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2a] - Sun 25 Oct 2026 11:36 CDT
+
+### Added
+- **"PTW" acronym label** — Photo Tag Writer now has the short name `PTW`
+  (`APP_SHORT_NAME` in `constants.py`), passed to the `pyqt-app-info` About dialog so its
+  title and heading read "Photo Tag Writer [ PTW ]", matching HPM and HAM.
+
+---
+
 ## [0.3.2] - Wed 08 Jul 2026 09:13 CDT
 
 ### Fixed

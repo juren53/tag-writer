@@ -16,7 +16,7 @@ from pyqt_app_info import AppIdentity, ToolSpec, ToolRegistry, gather_info
 from pyqt_app_info.qt import AboutDialog
 
 from .config import config
-from .constants import APP_NAME, APP_VERSION, APP_TIMESTAMP
+from .constants import APP_NAME, APP_SHORT_NAME, APP_VERSION, APP_TIMESTAMP
 from .exiftool_utils import get_exiftool_path
 
 logger = logging.getLogger(__name__)
@@ -35,6 +35,7 @@ class HelpMixin:
         """Show About dialog using pyqt_app_info."""
         identity = AppIdentity(
             name=APP_NAME,
+            short_name=APP_SHORT_NAME,
             version=APP_VERSION,
             commit_date=APP_TIMESTAMP,
             description="A tool for editing image metadata.",
