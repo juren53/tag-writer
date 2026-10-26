@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the now-dead `SingleInstanceChecker` class and its `msvcrt`/`fcntl`/`tempfile` imports from
   `config.py`.
 
+### Fixed
+- **EXE would crash at startup with "No module named 'theme_manager'" on any machine without
+  `~/Projects/ThemeManager`** (same failure as ATW v0.7.14a). ThemeManager and the Icon Manager
+  Module (`icon_loader`) are found via runtime `sys.path` insertions, which PyInstaller's static
+  analysis never runs, so they could be silently left out of the exe — it only worked on the
+  build machine because the exe fell back to the source folders there. `tag-writer.spec` now
+  adds both folders to `pathex`, lists `theme_manager`, `icon_loader` and
+  `github_version_checker` as hidden imports, and fails the build if either folder is missing.
+  `resources/icons` was already bundled and resolved from `sys._MEIPASS`. Verified by launching
+  the exe with `USERPROFILE` pointed at an empty folder.
+
 ---
 
 ## [0.3.2a] - Sun 25 Oct 2026 11:36 CDT
