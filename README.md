@@ -28,6 +28,14 @@ tag-writer has been tested against the following file types:
      - Writer-Editor                   : {archivist/editor} e.g. LAA
 ```
 
+## Download
+
+**Windows executable (latest release):**
+https://github.com/juren53/tag-writer/releases/latest/download/tag-writer.exe
+
+A single self-contained `tag-writer.exe` — no Python install required; ExifTool is bundled.
+Previous versions and release notes: https://github.com/juren53/tag-writer/releases
+
 ## Features
 
 - Edit 11 IPTC/XMP/EXIF metadata fields with a form-based UI
